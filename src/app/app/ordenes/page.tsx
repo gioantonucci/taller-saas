@@ -1100,8 +1100,8 @@ export default function OrdenesPage() {
           </div>
 
           {/* VISTA DESKTOP: Tabla de Columnas Esenciales */}
-          <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs min-w-[750px]">
               <thead>
                 <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-3 px-4">Vehículo y Patente</th>

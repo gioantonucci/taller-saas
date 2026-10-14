@@ -498,113 +498,189 @@ export default function AuditoriaPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <th className="py-3 px-4">Fecha y Hora</th>
-                  <th className="py-3 px-4">Usuario Responsable</th>
-                  <th className="py-3 px-4">Acción Realizada</th>
-                  <th className="py-3 px-4">Módulo Afectado</th>
-                  <th className="py-3 px-4">Detalle del Cambio</th>
-                  <th className="py-3 px-4 text-right">Inspección</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {logs.map((log) => {
-                  const date = new Date(log.timestamp);
-                  const formattedDate = date.toLocaleDateString("es-AR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  });
-                  const formattedTime = date.toLocaleTimeString("es-AR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  });
+          <>
+            {/* VISTA MOBILE: Tarjetas Responsivas de Auditoría */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {logs.map((log) => {
+                const date = new Date(log.timestamp);
+                const formattedDate = date.toLocaleDateString("es-AR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                });
+                const formattedTime = date.toLocaleTimeString("es-AR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                });
 
-                  const friendlyAction = getActionFriendlyName(
-                    log.accion,
-                    log.entidadAfectada || log.entidad || ""
-                  );
-                  const friendlyModule = getModuleFriendlyName(
-                    log.entidadAfectada || log.entidad || ""
-                  );
-                  const summary = getChangeSummary(log);
+                const friendlyAction = getActionFriendlyName(
+                  log.accion,
+                  log.entidadAfectada || log.entidad || ""
+                );
+                const friendlyModule = getModuleFriendlyName(
+                  log.entidadAfectada || log.entidad || ""
+                );
+                const summary = getChangeSummary(log);
 
-                  return (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-slate-50/70 transition-colors group"
-                    >
-                      {/* 1. Fecha / Hora */}
-                      <td className="py-3.5 px-4 font-mono text-[11px] whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-slate-900 font-bold">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{formattedTime}</span>
+                return (
+                  <div key={log.id} className="p-4 space-y-2.5 hover:bg-slate-50/60 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-slate-900 font-bold font-mono text-xs">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{formattedTime}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">({formattedDate})</span>
+                      </div>
+
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getActionBadge(
+                          log.accion
+                        )}`}
+                      >
+                        {friendlyAction}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-0.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                          {log.userName ? log.userName[0].toUpperCase() : "S"}
                         </div>
-                        <span className="block text-[10px] text-slate-400 mt-0.5">
-                          {formattedDate}
+                        <span className="font-bold text-slate-800 text-xs">
+                          {log.userName || "Sistema Automático"}
                         </span>
-                      </td>
+                      </div>
 
-                      {/* 2. Usuario que realizó la acción */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px]">
-                            {log.userName ? log.userName[0].toUpperCase() : "S"}
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block leading-tight">
-                              {log.userName || "Sistema Automático"}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block">
-                              {log.userEmail || "—"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 3. Acción */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getActionBadge(
-                            log.accion
-                          )}`}
-                        >
-                          {friendlyAction}
-                        </span>
-                      </td>
-
-                      {/* 4. Módulo afectado */}
-                      <td className="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">
+                      <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
                         {friendlyModule}
-                      </td>
+                      </span>
+                    </div>
 
-                      {/* 5. Detalle del cambio (qué se modificó) */}
-                      <td className="py-3.5 px-4 text-slate-600 max-w-sm">
-                        <span className="line-clamp-2 leading-relaxed text-[11px]">
-                          {summary}
-                        </span>
-                      </td>
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-slate-50 p-2 rounded-xl border border-slate-100">
+                      {summary}
+                    </p>
 
-                      {/* 6. Inspección / Ver Diff */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => setSelectedLog(log)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-1.5 rounded-lg border border-sky-200 transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Ver Diff</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    <button
+                      onClick={() => setSelectedLog(log)}
+                      className="w-full py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-sky-200 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Ver Diferencias (Diff)</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* VISTA DESKTOP: Tabla con Min-Width */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[750px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-4">Fecha y Hora</th>
+                    <th className="py-3 px-4">Usuario Responsable</th>
+                    <th className="py-3 px-4">Acción Realizada</th>
+                    <th className="py-3 px-4">Módulo Afectado</th>
+                    <th className="py-3 px-4">Detalle del Cambio</th>
+                    <th className="py-3 px-4 text-right">Inspección</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {logs.map((log) => {
+                    const date = new Date(log.timestamp);
+                    const formattedDate = date.toLocaleDateString("es-AR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    });
+                    const formattedTime = date.toLocaleTimeString("es-AR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    });
+
+                    const friendlyAction = getActionFriendlyName(
+                      log.accion,
+                      log.entidadAfectada || log.entidad || ""
+                    );
+                    const friendlyModule = getModuleFriendlyName(
+                      log.entidadAfectada || log.entidad || ""
+                    );
+                    const summary = getChangeSummary(log);
+
+                    return (
+                      <tr
+                        key={log.id}
+                        className="hover:bg-slate-50/70 transition-colors group"
+                      >
+                        {/* 1. Fecha / Hora */}
+                        <td className="py-3.5 px-4 font-mono text-[11px] whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-900 font-bold">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{formattedTime}</span>
+                          </div>
+                          <span className="block text-[10px] text-slate-400 mt-0.5">
+                            {formattedDate}
+                          </span>
+                        </td>
+
+                        {/* 2. Usuario que realizó la acción */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px]">
+                              {log.userName ? log.userName[0].toUpperCase() : "S"}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-900 block leading-tight">
+                                {log.userName || "Sistema Automático"}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block">
+                                {log.userEmail || "—"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 3. Acción */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getActionBadge(
+                              log.accion
+                            )}`}
+                          >
+                            {friendlyAction}
+                          </span>
+                        </td>
+
+                        {/* 4. Módulo afectado */}
+                        <td className="py-3.5 px-4 font-semibold text-slate-700 whitespace-nowrap">
+                          {friendlyModule}
+                        </td>
+
+                        {/* 5. Detalle del cambio (qué se modificó) */}
+                        <td className="py-3.5 px-4 text-slate-600 max-w-sm">
+                          <span className="line-clamp-2 leading-relaxed text-[11px]">
+                            {summary}
+                          </span>
+                        </td>
+
+                        {/* 6. Inspección / Ver Diff */}
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => setSelectedLog(log)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-1.5 rounded-lg border border-sky-200 transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Ver Diff</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

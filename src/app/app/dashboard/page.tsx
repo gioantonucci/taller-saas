@@ -300,8 +300,75 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {/* VISTA MOBILE: Tarjetas Responsivas */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {ultimasOrdenes.map((orden) => {
+            const statusInfo = getStatusInfo(orden.estado);
+
+            return (
+              <div key={orden.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/app/ordenes/${orden.id}`}
+                      className="font-bold text-slate-900 hover:text-sky-600 text-sm"
+                    >
+                      Orden #{orden.numeroOrden}
+                    </Link>
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-bold text-slate-700">
+                      {orden.vehicle.patente}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
+                  >
+                    {statusInfo.label}
+                  </span>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <Link
+                    href={`/app/vehiculos/${orden.vehicle.patente}`}
+                    className="font-semibold text-slate-800 hover:text-sky-600 block"
+                  >
+                    {orden.vehicle.marca} {orden.vehicle.modelo}
+                  </Link>
+
+                  <div className="flex items-center justify-between text-slate-500 pt-1">
+                    <Link
+                      href={`/app/clientes/${orden.vehicle.client.id}`}
+                      className="hover:text-sky-600 truncate max-w-[200px]"
+                    >
+                      {orden.vehicle.client.nombre} {orden.vehicle.client.apellido}
+                    </Link>
+
+                    {orden.mechanic ? (
+                      <span className="flex items-center gap-1 font-medium text-slate-700 shrink-0">
+                        <Wrench className="w-3 h-3 text-sky-600" />
+                        <span>{orden.mechanic.nombre}</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic shrink-0">Sin asignar</span>
+                    )}
+                  </div>
+                </div>
+
+                <Link
+                  href={`/app/ordenes/${orden.id}`}
+                  className="w-full py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span>Ver Detalle de Orden</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* VISTA DESKTOP: Tabla con Min-Width */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <th className="py-3 px-4">Orden</th>

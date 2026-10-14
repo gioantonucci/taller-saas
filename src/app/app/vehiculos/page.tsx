@@ -254,89 +254,161 @@ function VehiculosContent() {
             <p className="text-xs">Podés registrar uno nuevo asociándolo a un cliente existente o creando un cliente nuevo.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
-                <tr>
-                  <th className="p-3.5">Dominio / Patente</th>
-                  <th className="p-3.5">Marca y Modelo</th>
-                  <th className="p-3.5">Año</th>
-                  <th className="p-3.5">Titular / Cliente</th>
-                  <th className="p-3.5">Historial</th>
-                  <th className="p-3.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-3.5">
+          <>
+            {/* VISTA MOBILE: Tarjetas Responsivas */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {vehicles.map((v) => (
+                <div key={v.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/app/vehiculos/${v.patente}`}
+                          className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-900 hover:bg-sky-100 hover:text-sky-800 transition-colors inline-block"
+                        >
+                          {v.patente}
+                        </Link>
+                        <span className="text-xs text-slate-400 font-semibold">
+                          {v.anio}
+                        </span>
+                      </div>
                       <Link
                         href={`/app/vehiculos/${v.patente}`}
-                        className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-900 hover:bg-sky-100 hover:text-sky-800 transition-colors inline-block"
-                      >
-                        {v.patente}
-                      </Link>
-                    </td>
-
-                    <td className="p-3.5">
-                      <Link
-                        href={`/app/vehiculos/${v.patente}`}
-                        className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
+                        className="font-bold text-slate-900 hover:text-sky-600 transition-colors text-sm block"
                       >
                         {v.marca} {v.modelo}
                       </Link>
-                      <span className="text-[11px] text-slate-400">
-                        Color: {v.color || "No especificado"}
-                      </span>
-                    </td>
+                      {v.color && (
+                        <span className="text-[11px] text-slate-400 block">
+                          Color: {v.color}
+                        </span>
+                      )}
+                    </div>
 
-                    <td className="p-3.5 text-slate-600 font-medium">
-                      {v.anio}
-                    </td>
+                    <button
+                      onClick={() => handleSoftDelete(v)}
+                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
-                    <td className="p-3.5">
+                  {/* Titular y Órdenes */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-medium block">Titular</span>
                       <Link
                         href={`/app/clientes/${v.client.id}`}
                         className="font-bold text-slate-800 hover:text-sky-600 transition-colors block"
                       >
                         {v.client.nombre} {v.client.apellido}
                       </Link>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        DNI {v.client.dni}
-                      </span>
-                    </td>
+                    </div>
 
-                    <td className="p-3.5">
-                      <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200 text-[11px]">
-                        <History className="w-3.5 h-3.5 text-sky-600" />
-                        <span>{v.workOrders?.length || 0} órdenes</span>
-                      </span>
-                    </td>
+                    <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200 text-[11px]">
+                      <History className="w-3.5 h-3.5 text-sky-600" />
+                      <span>{v.workOrders?.length || 0} órdenes</span>
+                    </span>
+                  </div>
 
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                  {/* Botón Ver Ficha Clínica */}
+                  <Link
+                    href={`/app/vehiculos/${v.patente}`}
+                    className="w-full py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <span>Ver Ficha Clínica</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            {/* VISTA DESKTOP: Tabla con Min-Width */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[700px]">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="p-3.5">Dominio / Patente</th>
+                    <th className="p-3.5">Marca y Modelo</th>
+                    <th className="p-3.5">Año</th>
+                    <th className="p-3.5">Titular / Cliente</th>
+                    <th className="p-3.5">Historial</th>
+                    <th className="p-3.5 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vehicles.map((v) => (
+                    <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3.5">
                         <Link
                           href={`/app/vehiculos/${v.patente}`}
-                          className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 text-xs font-bold transition-all flex items-center gap-1"
+                          className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-900 hover:bg-sky-100 hover:text-sky-800 transition-colors inline-block"
                         >
-                          <span>Ficha Clínica</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
+                          {v.patente}
                         </Link>
+                      </td>
 
-                        <button
-                          onClick={() => handleSoftDelete(v)}
-                          className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Eliminar"
+                      <td className="p-3.5">
+                        <Link
+                          href={`/app/vehiculos/${v.patente}`}
+                          className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          {v.marca} {v.modelo}
+                        </Link>
+                        <span className="text-[11px] text-slate-400">
+                          Color: {v.color || "No especificado"}
+                        </span>
+                      </td>
+
+                      <td className="p-3.5 text-slate-600 font-medium">
+                        {v.anio}
+                      </td>
+
+                      <td className="p-3.5">
+                        <Link
+                          href={`/app/clientes/${v.client.id}`}
+                          className="font-bold text-slate-800 hover:text-sky-600 transition-colors block"
+                        >
+                          {v.client.nombre} {v.client.apellido}
+                        </Link>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          DNI {v.client.dni}
+                        </span>
+                      </td>
+
+                      <td className="p-3.5">
+                        <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200 text-[11px]">
+                          <History className="w-3.5 h-3.5 text-sky-600" />
+                          <span>{v.workOrders?.length || 0} órdenes</span>
+                        </span>
+                      </td>
+
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/app/vehiculos/${v.patente}`}
+                            className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 text-xs font-bold transition-all flex items-center gap-1"
+                          >
+                            <span>Ficha Clínica</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+
+                          <button
+                            onClick={() => handleSoftDelete(v)}
+                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

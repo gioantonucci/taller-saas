@@ -243,114 +243,215 @@ export default function ClientesPage() {
             <p className="text-xs">Podés registrar uno nuevo utilizando el botón "Nuevo Cliente".</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
-                <tr>
-                  <th className="p-3.5">Cliente / DNI</th>
-                  <th className="p-3.5">Contacto</th>
-                  <th className="p-3.5">Dirección</th>
-                  <th className="p-3.5">Vehículos</th>
-                  <th className="p-3.5 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {clients.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-3.5">
+          <>
+            {/* VISTA MOBILE: Tarjetas Responsivas */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {clients.map((c) => (
+                <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <Link
                         href={`/app/clientes/${c.id}`}
-                        className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
+                        className="font-bold text-slate-900 hover:text-sky-600 transition-colors text-sm block"
                       >
                         {c.nombre} {c.apellido}
                       </Link>
-                      <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
+                      <span className="inline-block mt-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
                         DNI {c.dni}
                       </span>
-                    </td>
+                    </div>
 
-                    <td className="p-3.5 space-y-1">
-                      {c.telefono ? (
-                        <div className="flex items-center gap-1.5 text-slate-700 font-medium">
-                          <Phone className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{c.telefono}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">Sin teléfono</span>
-                      )}
-                      {c.email && (
-                        <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
-                          <Mail className="w-3 h-3 text-slate-400" />
-                          <span>{c.email}</span>
-                        </div>
-                      )}
-                    </td>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => openEditModal(c)}
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                        title="Editar Cliente"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleSoftDelete(c)}
+                        className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <Link
+                        href={`/app/clientes/${c.id}`}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600 text-slate-700 hover:text-white transition-colors"
+                        title="Ver Ficha Completa"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
 
-                    <td className="p-3.5 text-slate-600 max-w-xs truncate">
-                      {c.direccion ? (
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{c.direccion}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">No especificada</span>
-                      )}
-                    </td>
+                  {/* Contacto & Dirección */}
+                  <div className="space-y-1 text-xs">
+                    {c.telefono ? (
+                      <a
+                        href={`tel:${c.telefono}`}
+                        className="flex items-center gap-1.5 text-slate-700 font-medium hover:text-sky-600"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>{c.telefono}</span>
+                      </a>
+                    ) : (
+                      <span className="text-slate-400 italic text-[11px] block">Sin teléfono</span>
+                    )}
 
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-6 h-6 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xs">
-                          {c.vehicles?.length || 0}
-                        </span>
-                        <div className="flex flex-wrap gap-1 max-w-[200px]">
-                          {c.vehicles?.slice(0, 2).map((v: any) => (
-                            <Link
-                              key={v.id}
-                              href={`/app/vehiculos/${v.patente}`}
-                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
-                            >
-                              {v.patente}
-                            </Link>
-                          ))}
-                          {(c.vehicles?.length || 0) > 2 && (
-                            <span className="text-[10px] text-slate-400 font-semibold">
-                              +{c.vehicles.length - 2}
-                            </span>
-                          )}
-                        </div>
+                    {c.email && (
+                      <a
+                        href={`mailto:${c.email}`}
+                        className="flex items-center gap-1.5 text-slate-500 text-[11px] hover:text-sky-600 truncate"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{c.email}</span>
+                      </a>
+                    )}
+
+                    {c.direccion && (
+                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pt-0.5">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{c.direccion}</span>
                       </div>
-                    </td>
+                    )}
+                  </div>
 
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEditModal(c)}
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
-                          title="Editar Cliente"
+                  {/* Vehículos del cliente */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-semibold">
+                      Vehículos ({c.vehicles?.length || 0})
+                    </span>
+                    <div className="flex flex-wrap gap-1 items-center justify-end">
+                      {c.vehicles?.map((v: any) => (
+                        <Link
+                          key={v.id}
+                          href={`/app/vehiculos/${v.patente}`}
+                          className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleSoftDelete(c)}
-                          className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          {v.patente}
+                        </Link>
+                      ))}
+                      {(!c.vehicles || c.vehicles.length === 0) && (
+                        <span className="text-[10px] text-slate-400 italic">Sin vehículos asociados</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* VISTA DESKTOP: Tabla con Min-Width */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[650px]">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="p-3.5">Cliente / DNI</th>
+                    <th className="p-3.5">Contacto</th>
+                    <th className="p-3.5">Dirección</th>
+                    <th className="p-3.5">Vehículos</th>
+                    <th className="p-3.5 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {clients.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="p-3.5">
                         <Link
                           href={`/app/clientes/${c.id}`}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600 text-slate-700 hover:text-white transition-colors ml-1"
-                          title="Ver Ficha Completa"
+                          className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
                         >
-                          <ChevronRight className="w-3.5 h-3.5" />
+                          {c.nombre} {c.apellido}
                         </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
+                          DNI {c.dni}
+                        </span>
+                      </td>
+
+                      <td className="p-3.5 space-y-1">
+                        {c.telefono ? (
+                          <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{c.telefono}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">Sin teléfono</span>
+                        )}
+                        {c.email && (
+                          <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                            <Mail className="w-3 h-3 text-slate-400" />
+                            <span>{c.email}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="p-3.5 text-slate-600 max-w-xs truncate">
+                        {c.direccion ? (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{c.direccion}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">No especificada</span>
+                        )}
+                      </td>
+
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-6 h-6 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center font-bold text-xs">
+                            {c.vehicles?.length || 0}
+                          </span>
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {c.vehicles?.slice(0, 2).map((v: any) => (
+                              <Link
+                                key={v.id}
+                                href={`/app/vehiculos/${v.patente}`}
+                                className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
+                              >
+                                {v.patente}
+                              </Link>
+                            ))}
+                            {(c.vehicles?.length || 0) > 2 && (
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                +{c.vehicles.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEditModal(c)}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                            title="Editar Cliente"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleSoftDelete(c)}
+                            className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/app/clientes/${c.id}`}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600 text-slate-700 hover:text-white transition-colors ml-1"
+                            title="Ver Ficha Completa"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

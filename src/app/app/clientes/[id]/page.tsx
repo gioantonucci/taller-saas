@@ -390,49 +390,94 @@ export default function ClienteDetallePage() {
             No se registran órdenes de trabajo previas para este cliente.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="py-2.5 px-3">Orden</th>
-                  <th className="py-2.5 px-3">Vehículo</th>
-                  <th className="py-2.5 px-3">Fecha</th>
-                  <th className="py-2.5 px-3">Estado</th>
-                  <th className="py-2.5 px-3 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {allOrders.map((o: any) => {
-                  const statusInfo = getStatusInfo(o.estado);
-                  return (
-                    <tr key={o.id} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">#{o.numeroOrden}</td>
-                      <td className="py-2.5 px-3">
-                        {o.vehicle.marca} {o.vehicle.modelo}{" "}
-                        <span className="font-mono text-[11px] text-slate-500">({o.vehicle.patente})</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-500">
+          <>
+            {/* VISTA MOBILE: Tarjetas Responsivas */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {allOrders.map((o: any) => {
+                const statusInfo = getStatusInfo(o.estado);
+                return (
+                  <div key={o.id} className="py-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono font-bold text-slate-900 text-xs">
+                        #{o.numeroOrden}
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}>
+                        {statusInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="text-xs">
+                      <span className="font-semibold text-slate-800">
+                        {o.vehicle.marca} {o.vehicle.modelo}
+                      </span>{" "}
+                      <span className="font-mono text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 font-bold border border-slate-200">
+                        {o.vehicle.patente}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[11px] text-slate-400">
                         {new Date(o.fechaIngreso).toLocaleDateString("es-AR")}
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <Link
-                          href={`/app/ordenes/${o.id}`}
-                          className="text-xs font-bold text-sky-600 hover:underline"
-                        >
-                          Ver Orden →
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </span>
+
+                      <Link
+                        href={`/app/ordenes/${o.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        <span>Ver Orden</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* VISTA DESKTOP: Tabla con Min-Width */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs min-w-[550px]">
+                <thead>
+                  <tr className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <th className="py-2.5 px-3">Orden</th>
+                    <th className="py-2.5 px-3">Vehículo</th>
+                    <th className="py-2.5 px-3">Fecha</th>
+                    <th className="py-2.5 px-3">Estado</th>
+                    <th className="py-2.5 px-3 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {allOrders.map((o: any) => {
+                    const statusInfo = getStatusInfo(o.estado);
+                    return (
+                      <tr key={o.id} className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-3 font-mono font-bold text-slate-900">#{o.numeroOrden}</td>
+                        <td className="py-2.5 px-3">
+                          {o.vehicle.marca} {o.vehicle.modelo}{" "}
+                          <span className="font-mono text-[11px] text-slate-500">({o.vehicle.patente})</span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-500">
+                          {new Date(o.fechaIngreso).toLocaleDateString("es-AR")}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}>
+                            {statusInfo.label}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <Link
+                            href={`/app/ordenes/${o.id}`}
+                            className="text-xs font-bold text-sky-600 hover:underline"
+                          >
+                            Ver Orden →
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
