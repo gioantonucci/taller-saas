@@ -39,11 +39,7 @@ export default function Footer() {
               Navegación
             </h4>
             <ul className="space-y-2.5 text-xs text-neutral-400">
-              <li>
-                <a href="/#nosotros" className="hover:text-white transition-colors">
-                  Nosotros (30+ años)
-                </a>
-              </li>
+
               <li>
                 <a href="/#servicios" className="hover:text-white transition-colors">
                   Nuestros servicios

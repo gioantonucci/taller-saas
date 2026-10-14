@@ -413,49 +413,7 @@ export default function PoggiServiceLandingPage() {
           </div>
         </section>
 
-        {/* ========================================================================= */}
-        {/* 4. EXPERIENCIA Y CONFIANZA (NOSOTROS) */}
-        {/* ========================================================================= */}
-        <section id="nosotros" className="py-20 lg:py-24 bg-[#0b0b0d]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mx-auto text-center space-y-4 mb-14">
-              <span className="text-xs font-black uppercase tracking-widest text-[#e5242b] block">
-                POGGI Taller Integral
-              </span>
-              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white">
-                Experiencia y confianza
-              </h2>
-              <p className="text-neutral-300 text-sm sm:text-base leading-relaxed">
-                Un taller profesional donde la atención personalizada y el diagnóstico preciso son parte del trabajo.
-              </p>
-            </div>
 
-            {/* Banner Moderno de Compromiso */}
-            <div className="max-w-4xl mx-auto p-8 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-[#e5242b]/10 border border-[#e5242b]/30 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-7 h-7 text-[#e5242b]" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-bold text-white uppercase tracking-tight">
-                    Atención personalizada y directa
-                  </h4>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    Trato transparente con el mecánico a cargo y diagnósticos explicados en detalle.
-                  </p>
-                </div>
-              </div>
-
-              <a
-                href={`tel:${phone}`}
-                className="px-5 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold uppercase tracking-wider shrink-0 transition-colors flex items-center gap-2"
-              >
-                <Phone className="w-3.5 h-3.5 text-[#e5242b]" />
-                <span>Contactar: {phone}</span>
-              </a>
-            </div>
-          </div>
-        </section>
 
         {/* ========================================================================= */}
         {/* 5. TRABAJOS REALIZADOS (GALERÍA TÉCNICA) */}

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Phone, Menu, X, User } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 
 export default function Navbar() {
@@ -15,7 +15,6 @@ export default function Navbar() {
   const cleanPhone = phone.replace(/\D/g, "");
 
   const navLinks = [
-    { href: "/#nosotros", label: "Nosotros" },
     { href: "/#servicios", label: "Servicios" },
     { href: "/#especializacion", label: "Especialización" },
     { href: "/#trabajos", label: "Trabajos" },
@@ -50,16 +49,8 @@ export default function Navbar() {
           {/* Botones de Acción Desktop */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href={`tel:${phone}`}
-              className="flex items-center gap-1.5 text-xs font-bold text-neutral-300 hover:text-white px-3 py-2 rounded-md hover:bg-neutral-800 transition-colors"
-            >
-              <Phone className="w-3.5 h-3.5 text-[#e5242b]" />
-              <span>{phone}</span>
-            </a>
-
-            <a
               href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+                "Hola POGGI Taller Integral, quisiera consultar por mi vehículo."
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -112,15 +103,8 @@ export default function Navbar() {
           ))}
           <div className="pt-3 border-t border-neutral-800 flex flex-col gap-2">
             <a
-              href={`tel:${phone}`}
-              className="w-full text-center py-2.5 font-bold text-neutral-200 bg-neutral-900 rounded-lg flex items-center justify-center gap-2"
-            >
-              <Phone className="w-4 h-4 text-[#e5242b]" />
-              <span>{phone}</span>
-            </a>
-            <a
               href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+                "Hola POGGI Taller Integral, quisiera consultar por mi vehículo."
               )}`}
               target="_blank"
               rel="noopener noreferrer"
