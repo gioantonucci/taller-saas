@@ -20,7 +20,6 @@ export default function Navbar() {
     { href: "/#especializacion", label: "Especialización" },
     { href: "/#trabajos", label: "Trabajos" },
     { href: "/#ubicacion", label: "Ubicación" },
-    { href: "/#contacto", label: "Contacto" },
     { href: "/estado", label: "Seguimiento" },
   ];
 
