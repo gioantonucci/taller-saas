@@ -24,13 +24,13 @@ async function main() {
   // 2. Configuración del Taller (Tenant Settings) adaptada a España
   const tenant = await prisma.tenantSettings.create({
     data: {
-      tallerNombre: "Taller Mecánico Central Pro",
-      whatsapp: "+34 612 345 678",
-      logoUrl: "/logo.png",
-      direccion: "Calle Alcalá 124, 28009 Madrid, España",
-      horarios: "Lunes a Viernes: 08:30 a 19:30 | Sábados: 09:00 a 14:00",
-      email: "contacto@tallerpro.es",
-      descripcion: "Servicio integral del automóvil, inyección electrónica, mecánica general de alta precisión, diagnosis computarizada multimarca y chapa y pintura de precisión.",
+      tallerNombre: "POGGI Taller Integral",
+      whatsapp: "+34 656 40 62 86",
+      logoUrl: "/images/poggi/logo.png",
+      direccion: "C. de Sant Pius X, 13, 46017 València, España",
+      horarios: "Lunes a viernes · 08:00–18:00",
+      email: "poggitallerintegral@gmail.com",
+      descripcion: "Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.",
       valorHoraManoDeObra: 45.0,
     },
   });

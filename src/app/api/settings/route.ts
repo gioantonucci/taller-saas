@@ -9,15 +9,15 @@ export async function GET() {
     if (!settings) {
       settings = await prisma.tenantSettings.create({
         data: {
-          tallerNombre: "Taller Mecánico Central Pro",
-          whatsapp: "+54 9 11 4567-8900",
-          logoUrl: "/logo.png",
-          direccion: "Av. del Libertador 4580, Buenos Aires",
-          horarios: "Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00",
-          email: "contacto@tallerpro.com",
+          tallerNombre: "POGGI Taller Integral",
+          whatsapp: "+34 656 40 62 86",
+          logoUrl: "/images/poggi/logo.png",
+          direccion: "C. de Sant Pius X, 13, 46017 València, España",
+          horarios: "Lunes a viernes · 08:00–18:00",
+          email: "poggitallerintegral@gmail.com",
           descripcion:
-            "Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado con tecnología de punta.",
-          valorHoraManoDeObra: 15000,
+            "Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.",
+          valorHoraManoDeObra: 45,
         },
       });
     }
@@ -68,16 +68,16 @@ export async function PATCH(request: NextRequest) {
         })
       : await prisma.tenantSettings.create({
           data: {
-            tallerNombre: body.tallerNombre || "Taller Mecánico Central Pro",
-            whatsapp: body.whatsapp || "+54 9 11 4567-8900",
-            logoUrl: body.logoUrl || "/logo.png",
-            direccion: body.direccion || "Av. del Libertador 4580, Buenos Aires",
-            horarios: body.horarios || "Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00",
-            email: body.email || "contacto@tallerpro.com",
+            tallerNombre: body.tallerNombre || "POGGI Taller Integral",
+            whatsapp: body.whatsapp || "+34 656 40 62 86",
+            logoUrl: body.logoUrl || "/images/poggi/logo.png",
+            direccion: body.direccion || "C. de Sant Pius X, 13, 46017 València, España",
+            horarios: body.horarios || "Lunes a viernes · 08:00–18:00",
+            email: body.email || "poggitallerintegral@gmail.com",
             descripcion:
               body.descripcion ||
-              "Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado.",
-            valorHoraManoDeObra: body.valorHoraManoDeObra || 15000,
+              "Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.",
+            valorHoraManoDeObra: body.valorHoraManoDeObra || 45,
           },
         });
 

@@ -14,11 +14,11 @@ model TenantSettings {
   tallerNombre String
   whatsapp     String
   logoUrl             String?
-  direccion           String?   @default("Av. del Libertador 4580, Buenos Aires")
-  horarios            String?   @default("Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00")
-  email               String?   @default("contacto@tallerpro.com")
-  descripcion         String?   @default("Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado con tecnología de punta.")
-  valorHoraManoDeObra Float     @default(15000)
+  direccion           String?   @default("C. de Sant Pius X, 13, 46017 València, España")
+  horarios            String?   @default("Lunes a viernes · 08:00–18:00")
+  email               String?   @default("poggitallerintegral@gmail.com")
+  descripcion         String?   @default("Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.")
+  valorHoraManoDeObra Float     @default(45)
   createdAt           DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

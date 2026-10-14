@@ -202,7 +202,7 @@ export default function OrdenDetallePage() {
     if (!order) return;
     const cleanPhone = order.vehicle?.client?.telefono?.replace(/\D/g, "") || "";
     const car = `${order.vehicle?.marca} ${order.vehicle?.modelo} (${order.vehicle?.patente})`;
-    const text = `¡Hola ${order.vehicle?.client?.nombre}! Te avisamos desde Taller Central Pro que tu vehículo ${car} correspondiente a la Orden #${order.numeroOrden} ya se encuentra terminado y listo para retirar. ¡Te esperamos!`;
+    const text = `¡Hola ${order.vehicle?.client?.nombre}! Te avisamos desde POGGI Taller Integral que tu vehículo ${car} correspondiente a la Orden #${order.numeroOrden} ya se encuentra terminado y listo para retirar. ¡Te esperamos!`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
     setNotified(true);

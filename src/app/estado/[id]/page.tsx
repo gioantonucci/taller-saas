@@ -184,7 +184,12 @@ export default function EstadoOrdenClientePage() {
       <header className="border-b border-neutral-800/80 bg-[#09090b]/95 backdrop-blur sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <img
+                src="/images/poggi/logo.png"
+                alt="Logo POGGI Taller Integral"
+                className="h-8 sm:h-9 w-auto object-contain drop-shadow"
+              />
               <span className="text-base sm:text-lg font-black tracking-wider uppercase text-white">
                 <span className="text-[#e5242b]">POGGI</span> TALLER INTEGRAL
               </span>

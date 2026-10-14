@@ -486,7 +486,7 @@ export default function OrdenesPage() {
   const handleNotifyClient = async (orden: any) => {
     const cleanPhone = orden.vehicle?.client?.telefono?.replace(/\D/g, "") || "";
     const car = `${orden.vehicle?.marca || ""} ${orden.vehicle?.modelo || ""} (${orden.vehicle?.patente || ""})`;
-    const text = `¡Hola ${orden.vehicle?.client?.nombre || "estimado/a"}! Te avisamos desde Taller Central Pro que tu vehículo ${car} correspondiente a la Orden #${orden.numeroOrden} ya se encuentra terminado y listo para retirar. ¡Te esperamos!`;
+    const text = `¡Hola ${orden.vehicle?.client?.nombre || "estimado/a"}! Te avisamos desde POGGI Taller Integral que tu vehículo ${car} correspondiente a la Orden #${orden.numeroOrden} ya se encuentra terminado y listo para retirar. ¡Te esperamos!`;
 
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, "_blank");
 

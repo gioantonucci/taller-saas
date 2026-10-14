@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Taller Central Pro | Sistema SaaS de Gestión Automotor",
+  title: "POGGI TALLER INTEGRAL | Taller de Automoción en Valencia",
   description:
-    "Plataforma SaaS líder para digitalización integral de talleres mecánicos. Gestión de repuestos con OCR, peritaje fotográfico en la nube y auditoría en tiempo real.",
+    "Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnosis electrónica avanzada, electricidad, neumáticos, climatización y mantenimiento integral.",
 };
 
 export default function RootLayout({

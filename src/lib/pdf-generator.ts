@@ -90,7 +90,7 @@ function checkBadge(doc: jsPDF, x: number, y: number, ok: boolean, trueLabel: st
 export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const { numeroOrden, vehiculo, cliente, peritaje, tallerNombre } = params;
-  const taller = tallerNombre || "Taller Mecánico Central Pro";
+  const taller = tallerNombre || "POGGI Taller Integral";
   const PAGE_W = 210;
   const MARGIN = 14;
   const COL = (PAGE_W - 2 * MARGIN) / 2; // ~91mm cada columna

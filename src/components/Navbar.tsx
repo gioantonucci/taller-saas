@@ -26,8 +26,13 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-neutral-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6 sm:py-7 min-h-[92px]">
-          {/* Logo POGGI TALLER INTEGRAL */}
-          <Link href="/" className="flex items-center gap-2 group py-1">
+          {/* Logo POGGI TALLER INTEGRAL con Isotipo */}
+          <Link href="/" className="flex items-center gap-3 group py-1">
+            <img
+              src="/images/poggi/logo.png"
+              alt="Logo POGGI Taller Integral"
+              className="h-10 sm:h-12 w-auto object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+            />
             <span className="text-xl sm:text-2xl font-black tracking-wider uppercase text-white">
               <span className="text-[#e5242b]">POGGI</span> TALLER INTEGRAL
             </span>

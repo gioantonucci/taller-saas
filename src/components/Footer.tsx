@@ -19,8 +19,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-neutral-800">
           {/* Columna 1: Marca POGGI */}
           <div className="md:col-span-1 space-y-4">
-            <Link href="/" className="inline-block">
-              <span className="text-xl font-black tracking-wider uppercase text-white">
+            <Link href="/" className="flex items-center gap-3">
+              <img
+                src="/images/poggi/logo.png"
+                alt="Logo POGGI Taller Integral"
+                className="h-10 w-auto object-contain drop-shadow"
+              />
+              <span className="text-lg font-black tracking-wider uppercase text-white">
                 <span className="text-[#e5242b]">POGGI</span> TALLER INTEGRAL
               </span>
             </Link>

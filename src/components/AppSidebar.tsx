@@ -170,7 +170,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
           </div>
           <div>
             <span className="font-extrabold text-xs tracking-tight block leading-tight">
-              TALLER <span className="text-sky-400">CENTRAL</span>
+              POGGI <span className="text-[#e5242b]">TALLER INTEGRAL</span>
             </span>
             <span
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border inline-block ${getRoleBadgeClasses(
@@ -245,15 +245,17 @@ export default function AppSidebar({ user }: AppSidebarProps) {
           {/* Logo y Encabezado del Taller */}
           <div className="p-5 border-b border-slate-800">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-950 group-hover:scale-105 transition-transform">
-                <Wrench className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src="/images/poggi/logo.png"
+                alt="Logo Poggi Taller Integral"
+                className="w-10 h-10 object-contain drop-shadow"
+              />
               <div>
-                <h1 className="font-extrabold text-white text-base tracking-tight leading-tight">
-                  TALLER CENTRAL
+                <h1 className="font-extrabold text-white text-sm tracking-tight leading-tight">
+                  POGGI TALLER INTEGRAL
                 </h1>
-                <span className="text-[10px] text-sky-400 font-semibold tracking-wider uppercase block">
-                  SaaS Automotor • Fase 2
+                <span className="text-[10px] text-[#e5242b] font-semibold tracking-wider uppercase block">
+                  Panel de Gestión
                 </span>
               </div>
             </Link>

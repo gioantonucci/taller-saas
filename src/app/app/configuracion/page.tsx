@@ -36,16 +36,16 @@ export default function ConfiguracionPage() {
         const data = await res.json();
         if (data.settings) {
           setFormData({
-            tallerNombre: data.settings.tallerNombre || "Taller Mecánico Central Pro",
-            whatsapp: data.settings.whatsapp || "+54 9 11 4567-8900",
-            logoUrl: data.settings.logoUrl || "/logo.png",
-            direccion: data.settings.direccion || "Av. del Libertador 4580, Buenos Aires",
-            horarios: data.settings.horarios || "Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00",
-            email: data.settings.email || "contacto@tallerpro.com",
+            tallerNombre: data.settings.tallerNombre || "POGGI Taller Integral",
+            whatsapp: data.settings.whatsapp || "+34 656 40 62 86",
+            logoUrl: data.settings.logoUrl || "/images/poggi/logo.png",
+            direccion: data.settings.direccion || "C. de Sant Pius X, 13, 46017 València, España",
+            horarios: data.settings.horarios || "Lunes a viernes · 08:00–18:00",
+            email: data.settings.email || "poggitallerintegral@gmail.com",
             descripcion:
               data.settings.descripcion ||
-              "Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado con tecnología de punta.",
-            valorHoraManoDeObra: data.settings.valorHoraManoDeObra || 15000,
+              "Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.",
+            valorHoraManoDeObra: data.settings.valorHoraManoDeObra || 45,
           });
         }
       }
@@ -164,7 +164,7 @@ export default function ConfiguracionPage() {
                 required
                 value={formData.tallerNombre}
                 onChange={(e) => setFormData({ ...formData, tallerNombre: e.target.value })}
-                placeholder="Ej: Taller Central Pro"
+                placeholder="Ej: POGGI Taller Integral"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold"
               />
               <span className="text-[10px] text-slate-400 mt-1 block">
@@ -181,7 +181,7 @@ export default function ConfiguracionPage() {
                 required
                 value={formData.whatsapp}
                 onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                placeholder="Ej: +54 9 11 4567-8900"
+                placeholder="Ej: +34 656 40 62 86"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 font-semibold font-mono"
               />
               <span className="text-[10px] text-slate-400 mt-1 block">
@@ -199,7 +199,7 @@ export default function ConfiguracionPage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="contacto@tallerpro.com"
+                placeholder="poggitallerintegral@gmail.com"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
               />
             </div>
