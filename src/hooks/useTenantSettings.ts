@@ -16,15 +16,15 @@ export interface TenantSettingsData {
 
 const defaultSettings: TenantSettingsData = {
   id: "default",
-  tallerNombre: "Taller Mecánico Central Pro",
-  whatsapp: "+54 9 11 4567-8900",
+  tallerNombre: "POGGI Taller Integral",
+  whatsapp: "+34 656 40 62 86",
   logoUrl: "/logo.png",
-  direccion: "Av. del Libertador 4580, Buenos Aires",
-  horarios: "Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00",
-  email: "contacto@tallerpro.com",
+  direccion: "C. de Sant Pius X, 13, 46017 València, España",
+  horarios: "Lunes a viernes: 08:00 a 18:00",
+  email: "poggitallerintegral@gmail.com",
   descripcion:
-    "Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado de última generación.",
-  valorHoraManoDeObra: 15000,
+    "Más de 30 años cuidando tu vehículo en Valencia. Mantenimiento, diagnóstico, reparación y electrónica automotriz con experiencia, tecnología y atención personalizada.",
+  valorHoraManoDeObra: 45,
 };
 
 export function useTenantSettings() {

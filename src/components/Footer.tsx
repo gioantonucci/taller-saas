@@ -2,120 +2,136 @@
 
 import React from "react";
 import Link from "next/link";
-import { Wrench, MapPin, Phone, Mail, Clock, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, ShieldCheck, ChevronRight } from "lucide-react";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 
 export default function Footer() {
   const { settings } = useTenantSettings();
 
+  const phone = settings.whatsapp || "+34 656 40 62 86";
+  const address = settings.direccion || "C. de Sant Pius X, 13, 46017 València, España";
+  const email = settings.email || "poggitallerintegral@gmail.com";
+  const hours = settings.horarios || "Lunes a viernes · 08:00–18:00";
+
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+    <footer className="bg-[#050505] text-neutral-300 pt-16 pb-20 md:pb-12 border-t border-neutral-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
-          {/* Columna 1: Marca White-Label */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-neutral-800">
+          {/* Columna 1: Marca POGGI */}
           <div className="md:col-span-1 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-sky-600 flex items-center justify-center text-white">
-                <Wrench className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-extrabold text-white text-lg tracking-tight">
-                {settings.tallerNombre || "Taller Mecánico Central Pro"}
+            <Link href="/" className="inline-block">
+              <span className="text-xl font-black tracking-wider uppercase text-white">
+                <span className="text-[#e5242b]">POGGI</span> TALLER INTEGRAL
               </span>
-            </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {settings.descripcion ||
-                "Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado con tecnología de punta."}
+            </Link>
+            <p className="text-xs text-neutral-400 leading-relaxed">
+              Más de 30 años cuidando tu vehículo en Valencia. Mecánica general, diagnóstico electrónico de precisión, electricidad y climatización.
             </p>
-            <div className="flex items-center gap-2 text-xs text-emerald-400">
+            <div className="flex items-center gap-2 text-xs text-[#e5242b]">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>Garantía Oficial en Repuestos y Mano de Obra</span>
+              <span className="font-bold">Profesionalidad y Garantía en cada trabajo</span>
             </div>
           </div>
 
-          {/* Columna 2: Navegación Rápida */}
+          {/* Columna 2: Navegación */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Navegación</h4>
-            <ul className="space-y-2.5 text-xs text-slate-400">
+            <h4 className="text-xs font-black text-white uppercase tracking-widest mb-4">
+              Navegación
+            </h4>
+            <ul className="space-y-2.5 text-xs text-neutral-400">
               <li>
-                <Link href="/" className="hover:text-white transition-colors">
-                  Inicio
-                </Link>
+                <a href="/#nosotros" className="hover:text-white transition-colors">
+                  Nosotros (30+ años)
+                </a>
               </li>
               <li>
-                <Link href="/servicios" className="hover:text-white transition-colors">
-                  Servicios Mecánicos Especializados
-                </Link>
+                <a href="/#servicios" className="hover:text-white transition-colors">
+                  Nuestros servicios
+                </a>
               </li>
               <li>
-                <Link href="/contacto" className="hover:text-white transition-colors">
-                  Ubicación y Contacto
-                </Link>
+                <a href="/#especializacion" className="hover:text-white transition-colors">
+                  Especialización Electrónica
+                </a>
               </li>
               <li>
-                <Link href="/login" className="hover:text-white transition-colors">
-                  Portal Operativo del Taller (Login)
+                <a href="/#trabajos" className="hover:text-white transition-colors">
+                  Trabajos realizados
+                </a>
+              </li>
+              <li>
+                <a href="/#ubicacion" className="hover:text-white transition-colors">
+                  Ubicación en Valencia
+                </a>
+              </li>
+              <li>
+                <Link href="/estado" className="hover:text-white transition-colors font-bold text-neutral-200">
+                  Seguimiento de Coche en Vivo
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Columna 3: Horarios de Atención Dinámicos */}
+          {/* Columna 3: Horarios */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
-              Horarios de Taller
+            <h4 className="text-xs font-black text-white uppercase tracking-widest mb-4">
+              Horario de Taller
             </h4>
-            <div className="space-y-2 text-xs text-slate-400">
+            <div className="space-y-2 text-xs text-neutral-400">
               <div className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                <span>
-                  {settings.horarios ||
-                    "Lunes a Viernes: 08:00 a 19:00 hs | Sábados: 08:30 a 13:00 hs"}
-                </span>
+                <Clock className="w-4 h-4 text-[#e5242b] shrink-0 mt-0.5" />
+                <span>{hours}</span>
               </div>
-              <p className="text-slate-500 italic text-[11px] pt-1">
-                Atención con turno previo y guardia para emergencias mecánicas.
+              <p className="text-neutral-500 italic text-[11px] pt-1">
+                Atención con cita previa y recepción personalizada de vehículos.
               </p>
             </div>
           </div>
 
-          {/* Columna 4: Contacto y Dirección Dinámica */}
+          {/* Columna 4: Contacto */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">
-              Ubicación y WhatsApp
+            <h4 className="text-xs font-black text-white uppercase tracking-widest mb-4">
+              Contacto y Ubicación
             </h4>
-            <ul className="space-y-3 text-xs text-slate-400">
+            <ul className="space-y-3 text-xs text-neutral-400">
               <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                <span>{settings.direccion || "Av. del Libertador 4580, Buenos Aires"}</span>
+                <MapPin className="w-4 h-4 text-[#e5242b] shrink-0 mt-0.5" />
+                <span>{address}</span>
               </li>
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+                <Phone className="w-4 h-4 text-[#e5242b] shrink-0" />
                 <a
-                  href={`https://wa.me/${(settings.whatsapp || "+54 9 11 4567-8900").replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-emerald-300 transition-colors font-semibold"
+                  href={`tel:${phone}`}
+                  className="hover:text-white transition-colors font-semibold"
                 >
-                  WhatsApp: {settings.whatsapp || "+54 9 11 4567-8900"}
+                  {phone}
                 </a>
               </li>
               <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-sky-400 shrink-0" />
-                <span>{settings.email || "contacto@tallerpro.com"}</span>
+                <Mail className="w-4 h-4 text-[#e5242b] shrink-0" />
+                <a
+                  href={`mailto:${email}`}
+                  className="hover:text-white transition-colors"
+                >
+                  {email}
+                </a>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>
-            © {new Date().getFullYear()} {settings.tallerNombre || "Taller Central Pro"}. Todos los
-            derechos reservados.
-          </p>
-          <p className="text-[11px] text-slate-600">
-            Powered by AutoTaller SaaS Platform • White-Label Architecture
-          </p>
+        {/* Barra inferior */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 gap-4">
+          <p>© {new Date().getFullYear()} POGGI Taller Integral · C. de Sant Pius X, 13 · València</p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <Link href="/login" className="hover:text-neutral-300 transition-colors">
+              Acceso Staff
+            </Link>
+            <span>•</span>
+            <Link href="/estado" className="hover:text-neutral-300 transition-colors">
+              Consulta de Reparaciones
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

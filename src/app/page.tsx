@@ -9,32 +9,31 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 import {
   Wrench,
-  ShieldCheck,
-  Activity,
-  CheckCircle2,
-  Clock,
-  Car,
-  ChevronRight,
-  MapPin,
-  Phone,
-  Sparkles,
-  ArrowRight,
-  Cpu,
   Search,
-  Check,
-  Layers,
-  Award,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Calendar,
+  ChevronRight,
+  ShieldCheck,
+  Cpu,
+  Car,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
-export default function WorkshopLandingPage() {
+export default function PoggiLandingPage() {
   const { settings } = useTenantSettings();
   const router = useRouter();
   const [trackingCode, setTrackingCode] = useState("");
 
-  const cleanPhone = (settings.whatsapp || "+54 9 11 4567-8900").replace(/\D/g, "");
-  const workshopName = settings.tallerNombre || "Taller Mecánico Central Pro";
-  const address = settings.direccion || "Av. del Libertador 4580, Buenos Aires";
-  const hours = settings.horarios || "Lunes a Viernes: 08:00 a 19:00 hs | Sábados: 08:30 a 13:00 hs";
+  const phone = settings.whatsapp || "+34 656 40 62 86";
+  const cleanPhone = phone.replace(/\D/g, "");
+  const address = settings.direccion || "C. de Sant Pius X, 13, 46017 València, España";
+  const email = settings.email || "poggitallerintegral@gmail.com";
+  const hours = settings.horarios || "Lunes a viernes · 08:00–18:00";
 
   const handleTrackingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,478 +43,567 @@ export default function WorkshopLandingPage() {
     }
   };
 
-  const servicesList = [
+  const services = [
     {
-      title: "Mantenimiento y Service Programado",
-      desc: "Cambio de aceite sintético de alta gama, filtros de aire, aceite, combustible y habitáculo. Chequeo de 30 puntos de seguridad.",
-      icon: Clock,
-      badge: "Preventivo",
+      num: "01",
+      title: "Mecánica general",
+      desc: "Mantenimiento, revisiones y reparación de averías con repuestos de calidad certificada.",
     },
     {
-      title: "Inyección y Diagnóstico Computarizado",
-      desc: "Scanners multimarca de última generación. Diagnóstico de fallas electrónicas, reseteo de Check Engine y calibración de sensores.",
-      icon: Cpu,
-      badge: "Electrónica",
+      num: "02",
+      title: "Diagnosis computarizada",
+      desc: "Localización precisa y rápida del origen de averías mediante escáner multimarca avanzado.",
     },
     {
-      title: "Frenos, Discos y Seguridad Activa",
-      desc: "Revisión completa de frenos ABS, rectificación de discos, cambio de pastillas cerámicas, líquido de freno y campanas traseras.",
-      icon: ShieldCheck,
-      badge: "Seguridad",
+      num: "03",
+      title: "Electricidad",
+      desc: "Sistemas eléctricos y electrónicos del automóvil, alternadores, baterías y arranque.",
     },
     {
-      title: "Distribución y Bomba de Agua",
-      desc: "Reemplazo de kits de distribución (correa/cadena y tensores) con instrumental de puesta a punto oficial y bombas de refrigeración.",
-      icon: Wrench,
-      badge: "Motor",
+      num: "04",
+      title: "Neumáticos",
+      desc: "Montaje, equilibrado de precisión, alineación y mantenimiento de ruedas.",
     },
     {
-      title: "Tren Delantero y Suspensión",
-      desc: "Amortiguadores presurizados, extremos de dirección, bieletas, bujes, parrillas de suspensión y alineación 3D computarizada.",
-      icon: Layers,
-      badge: "Chasis",
+      num: "05",
+      title: "Climatización",
+      desc: "Revisión, carga de gas refrigerante, detección de fugas y reparación del aire acondicionado.",
     },
     {
-      title: "Embragues y Transmisión",
-      desc: "Diagnóstico y sustitución de embragues convencionales y bimasa, bombines hidráulicos y service de cajas manuales y automáticas.",
-      icon: Activity,
-      badge: "Transmisión",
+      num: "06",
+      title: "Electrónica automotriz",
+      desc: "Diagnosis profunda, calibración de sensores y reparación de sistemas electrónicos y centralitas.",
     },
   ];
 
+  const specializationChecks = [
+    "Diagnosis electrónica de alta precisión",
+    "Unidades de control (ECU) y sistemas de gestión del motor",
+    "Sistemas eléctricos integrales del vehículo",
+    "Detección y resolución de averías electrónicas complejas",
+    "Reparación, programación y mantenimiento preventivo",
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-900 font-sans">
+    <div className="flex flex-col min-h-screen bg-[#080808] text-white font-sans selection:bg-[#e5242b] selection:text-white">
       <Navbar />
 
       <main className="flex-1">
         {/* ========================================================================= */}
-        {/* HERO SECTION ORIENTADO AL CLIENTE DEL TALLER */}
+        {/* HERO SECTION */}
         {/* ========================================================================= */}
-        <section className="relative overflow-hidden bg-slate-950 text-white pt-16 pb-24 lg:pt-20 lg:pb-32">
-          {/* Fondo sutil y gradientes de luz */}
-          <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:28px_28px] pointer-events-none" />
-          <div className="absolute top-1/4 -right-40 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-10 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              {/* Columna Izquierda: Propuesta de Valor para el Conductor */}
-              <div className="lg:col-span-7 space-y-6">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/10 border border-sky-400/20 text-sky-400 text-xs font-bold tracking-wide">
-                  <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                  <span>{workshopName} • Servicio Mecánico Profesional</span>
-                </div>
-
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] text-white">
-                  Tu auto en las mejores manos.{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-300 to-indigo-300">
-                    Mecánica de precisión y transparencia total.
-                  </span>
-                </h1>
-
-                <p className="text-slate-300 text-base sm:text-lg max-w-2xl leading-relaxed">
-                  Realizamos service programado, inyección electrónica, frenos y mecánica general. Constatamos el ingreso de tu vehículo con <strong>peritaje digital de fotos</strong> y te mantenemos informado paso a paso en tiempo real.
-                </p>
-
-                {/* Botones de Acción para el Cliente */}
-                <div className="flex flex-wrap items-center gap-3.5 pt-2">
-                  <a
-                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                      `Hola ${workshopName}, quisiera consultar por un turno / presupuesto para mi vehículo.`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
-                  >
-                    <Phone className="w-4 h-4 fill-slate-950" />
-                    <span>Pedir Turno por WhatsApp</span>
-                  </a>
-
-                  <Link
-                    href="/servicios"
-                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-bold text-sm border border-slate-700/80 transition-all"
-                  >
-                    <span>Ver Nuestros Servicios</span>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  </Link>
-                </div>
-
-                {/* 4 Sellos de Confianza para el Conductor */}
-                <div className="pt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-slate-800/80 text-xs text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span className="font-medium">Presupuesto Previo</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span className="font-medium">Garantía Escrita</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span className="font-medium">Peritaje con Fotos</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span className="font-medium">Scanner Oficial</span>
-                  </div>
-                </div>
+        <section
+          className="relative min-h-[780px] lg:min-h-[820px] flex items-center justify-center bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(8,8,8,0.96) 0%, rgba(8,8,8,0.85) 45%, rgba(8,8,8,0.3) 100%), url('/images/poggi/motor.jpg')`,
+          }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20 lg:py-28 relative z-10">
+            <div className="max-w-3xl space-y-6">
+              {/* Eyebrow */}
+              <div className="inline-flex items-center gap-2 text-xs font-black tracking-widest uppercase">
+                <span className="text-[#e5242b]">Taller de automoción</span>
+                <span className="text-slate-400">·</span>
+                <span className="text-slate-300">Valencia</span>
               </div>
 
-              {/* Columna Derecha: Tarjeta de Seguimiento en Vivo para Clientes */}
-              <div className="lg:col-span-5">
-                <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-black/60 relative overflow-hidden backdrop-blur">
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-400/20">
-                        <Car className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-white text-sm">
-                          Portal de Clientes
-                        </h3>
-                        <p className="text-[11px] text-slate-400">
-                          Seguí el avance de tu auto en vivo
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-                      Online 24/7
+              {/* Título Principal */}
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.98] text-white">
+                Más de <span className="text-[#e5242b]">30 años</span> cuidando tu vehículo.
+              </h1>
+
+              {/* Descripción */}
+              <p className="text-slate-300 text-base sm:text-xl font-normal leading-relaxed max-w-2xl">
+                Mantenimiento, diagnóstico, reparación y electrónica automotriz con experiencia, tecnología y atención personalizada.
+              </p>
+
+              {/* Botones de Acción */}
+              <div className="flex flex-wrap items-center gap-3.5 pt-3">
+                <a
+                  href="#contacto"
+                  className="px-7 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-lg shadow-[#e5242b]/25 transform hover:-translate-y-0.5 inline-flex items-center justify-center cursor-pointer"
+                >
+                  Pedir cita
+                </a>
+                <a
+                  href={`tel:${phone}`}
+                  className="px-7 py-3.5 bg-transparent hover:bg-white/10 text-white text-xs font-black uppercase tracking-wider border border-white rounded-md transition-all inline-flex items-center justify-center gap-2"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Llamar ahora</span>
+                </a>
+                <a
+                  href="#seguimiento"
+                  className="px-6 py-3.5 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider border border-white/20 rounded-md transition-all inline-flex items-center justify-center gap-2"
+                >
+                  <Search className="w-3.5 h-3.5 text-[#e5242b]" />
+                  <span>Estado de mi coche</span>
+                </a>
+              </div>
+
+              {/* Barra de Estadísticas */}
+              <div className="pt-8">
+                <div className="grid grid-cols-2 sm:grid-cols-4 bg-black/85 backdrop-blur-md border border-neutral-700/80 rounded-xl overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-neutral-700/80 shadow-2xl">
+                  <div className="p-4 sm:p-5 text-center">
+                    <span className="block text-2xl sm:text-3xl font-black text-white">30+</span>
+                    <span className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mt-1">
+                      Años de experiencia
                     </span>
                   </div>
 
-                  <form onSubmit={handleTrackingSubmit} className="pt-5 space-y-3">
-                    <label className="block text-xs font-semibold text-slate-300">
-                      ¿Tenés tu auto en el taller? Ingresá tu Orden o Patente:
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ej: 1001 o AF 142 XY"
-                        value={trackingCode}
-                        onChange={(e) => setTrackingCode(e.target.value)}
-                        className="w-full pl-4 pr-12 py-3.5 rounded-2xl bg-slate-950 border border-slate-700/80 font-mono text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all uppercase"
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-2 top-2 bottom-2 px-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center justify-center transition-colors cursor-pointer"
-                        title="Buscar orden"
-                      >
-                        <Search className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Consultá qué tareas se están realizando, evidencias fotográficas de peritaje y fecha estimada de retiro.
+                  <div className="p-4 sm:p-5 text-center">
+                    <span className="block text-2xl sm:text-3xl font-black text-white">5,0</span>
+                    <span className="block text-[#e5242b] text-sm tracking-widest my-0.5 font-bold">★★★★★</span>
+                    <span className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                      Valoración Google
+                    </span>
+                  </div>
+
+                  <div className="p-4 sm:p-5 text-center">
+                    <span className="block text-2xl sm:text-3xl font-black text-white">100+</span>
+                    <span className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mt-1">
+                      Clientes satisfechos
+                    </span>
+                  </div>
+
+                  <div className="p-4 sm:p-5 text-center">
+                    <span className="block text-xl sm:text-2xl font-black text-white">08:00–18:00</span>
+                    <span className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mt-1">
+                      Lunes a viernes
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓN 1: NUESTROS SERVICIOS (FONDO CLARO) */}
+        {/* ========================================================================= */}
+        <section id="servicios" className="py-20 lg:py-24 bg-[#f4f4f4] text-[#111]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-2">
+                Lo que hacemos
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#111]">
+                Nuestros servicios
+              </h2>
+              <p className="mt-3 text-neutral-600 text-sm sm:text-base">
+                Todo lo que necesitas para mantener tu vehículo en las mejores condiciones con la garantía de Poggi.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {services.map((s) => (
+                <div
+                  key={s.num}
+                  className="bg-white border border-neutral-200 p-7 rounded-xl shadow-xs hover:border-[#e5242b]/60 transition-all group flex flex-col justify-between"
+                >
+                  <div>
+                    <span className="text-[#e5242b] text-2xl font-black block mb-3 group-hover:scale-105 transition-transform">
+                      {s.num}
+                    </span>
+                    <h3 className="text-lg font-black uppercase text-[#111] mb-2.5">
+                      {s.title}
+                    </h3>
+                    <p className="text-neutral-600 text-sm leading-relaxed">
+                      {s.desc}
                     </p>
-                  </form>
-
-                  {/* Preview de ejemplo del peritaje de ingreso */}
-                  <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2.5">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      Ejemplo de reporte transparente:
-                    </span>
-                    <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-bold text-white">Toyota Corolla XEI • AF 142 XY</p>
-                        <p className="text-[11px] text-slate-400">Check-in completado con 4 fotos de peritaje</p>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-bold text-[10px]">
-                        En Reparación
-                      </span>
-                    </div>
+                  </div>
+                  <div className="pt-5 mt-4 border-t border-neutral-100 flex items-center justify-between text-xs font-bold text-[#e5242b]">
+                    <span>Atención especializada</span>
+                    <ChevronRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓN 2: ESPECIALIZACIÓN (ELECTRÓNICA AUTOMOTRIZ) */}
+        {/* ========================================================================= */}
+        <section id="especializacion" className="bg-[#0e0e0e] text-white">
+          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[580px]">
+            {/* Imagen Izquierda */}
+            <div
+              className="min-h-[360px] lg:min-h-full bg-cover bg-center"
+              style={{ backgroundImage: `url('/images/poggi/egr.jpg')` }}
+            />
+
+            {/* Texto Derecha */}
+            <div className="p-8 sm:p-14 lg:p-20 flex flex-col justify-center">
+              <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-2">
+                Especialización
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white mb-4">
+                Electrónica automotriz
+              </h2>
+              <p className="text-neutral-300 text-sm sm:text-base leading-relaxed mb-6 max-w-xl">
+                La electrónica es una parte fundamental de los vehículos actuales. Trabajamos en la diagnosis y resolución de problemas relacionados con sus sistemas eléctricos y electrónicos con instrumental de última generación.
+              </p>
+
+              <ul className="space-y-3 mb-8 text-sm sm:text-base text-neutral-200">
+                {specializationChecks.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="text-[#e5242b] font-black text-lg leading-none shrink-0">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div>
+                <a
+                  href="#contacto"
+                  className="px-7 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all inline-flex items-center gap-2 shadow-lg shadow-[#e5242b]/25 cursor-pointer"
+                >
+                  <span>Consultar servicio</span>
+                  <ChevronRight className="w-4 h-4" />
+                </a>
               </div>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* NUESTROS SERVICIOS MECÁNICOS */}
+        {/* SECCIÓN 3: EXPERIENCIA Y CONFIANZA (NOSOTROS) */}
         {/* ========================================================================= */}
-        <section id="servicios" className="py-20 bg-slate-50 border-b border-slate-200">
+        <section id="nosotros" className="py-20 lg:py-24 bg-[#f4f4f4] text-[#111]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-sky-600 bg-sky-50 px-3 py-1 rounded-full border border-sky-200">
-                Especialidades de Taller
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-2">
+                POGGI Taller Integral
               </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 tracking-tight">
-                Servicios Integrales para tu Vehículo
+              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#111]">
+                Experiencia y confianza
               </h2>
-              <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                Trabajamos con repuestos garantizados, herramientas oficiales y personal capacitado en todas las marcas y modelos nacionales e importados.
+              <p className="mt-3 text-neutral-600 text-sm sm:text-base">
+                Un taller profesional donde la atención personalizada y el diagnóstico preciso son parte fundamental de cada trabajo.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {servicesList.map((srv, idx) => {
-                const IconComponent = srv.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md hover:border-sky-300 transition-all group flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white transition-all">
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {srv.badge}
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold text-slate-900 mb-2">
-                        {srv.title}
-                      </h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">
-                        {srv.desc}
-                      </p>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                      <a
-                        href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                          `Hola ${workshopName}, quisiera consultar sobre el servicio de ${srv.title}.`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1"
-                      >
-                        <span>Consultar presupuesto</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-12 text-center">
-              <Link
-                href="/servicios"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors shadow-sm"
-              >
-                <span>Ver Catálogo Completo de Reparaciones</span>
-                <ArrowRight className="w-4 h-4 text-sky-400" />
-              </Link>
+            <div className="grid grid-cols-2 lg:grid-cols-4 bg-[#101010] text-white border border-neutral-800 rounded-xl overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-neutral-800 shadow-xl max-w-5xl mx-auto">
+              <div className="p-6 text-center">
+                <span className="block text-3xl sm:text-4xl font-black text-white">30+</span>
+                <span className="block text-xs font-bold text-neutral-400 uppercase tracking-wider mt-1.5">
+                  Años de experiencia
+                </span>
+              </div>
+              <div className="p-6 text-center">
+                <span className="block text-3xl sm:text-4xl font-black text-white">5,0</span>
+                <span className="block text-[#e5242b] text-sm tracking-widest my-1 font-bold">★★★★★</span>
+                <span className="block text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                  Valoración Google
+                </span>
+              </div>
+              <div className="p-6 text-center">
+                <span className="block text-3xl sm:text-4xl font-black text-white">100+</span>
+                <span className="block text-xs font-bold text-neutral-400 uppercase tracking-wider mt-1.5">
+                  Clientes satisfechos
+                </span>
+              </div>
+              <div className="p-6 text-center">
+                <span className="block text-3xl sm:text-4xl font-black text-white">18:00</span>
+                <span className="block text-xs font-bold text-neutral-400 uppercase tracking-wider mt-1.5">
+                  Hora de cierre
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* CÓMO TRABAJAMOS: TRANSPARENCIA Y PERITAJE PASO A PASO */}
+        {/* SECCIÓN 4: TRABAJOS REALIZADOS (GALERÍA) */}
         {/* ========================================================================= */}
-        <section className="py-20 bg-white">
+        <section id="trabajos" className="py-20 lg:py-24 bg-[#080808] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-                Paso a Paso
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-2">
+                Trabajos realizados
               </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mt-3 tracking-tight">
-                ¿Cómo cuidamos tu auto?
+              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-white">
+                Nuestro trabajo
               </h2>
-              <p className="text-slate-600 text-sm mt-3 leading-relaxed">
-                Sin sorpresas en la factura ni cambios de piezas innecesarios. Nuestro protocolo garantiza absoluta tranquilidad.
+              <p className="mt-3 text-neutral-400 text-sm sm:text-base">
+                Una selección de trabajos mecánicos, diagnosis y electrónica realizados en el taller.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 text-center relative">
-                <div className="w-10 h-10 mx-auto rounded-full bg-slate-900 text-white font-black text-sm flex items-center justify-center mb-4">
-                  1
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="group relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-lg">
+                <div className="h-72 overflow-hidden">
+                  <img
+                    src="/images/poggi/motor.jpg"
+                    alt="Motor de vehículo en POGGI Taller Integral"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
-                <h4 className="font-bold text-slate-900 text-sm mb-1.5">
-                  1. Recepción y Turno
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Traés tu vehículo con turno coordinado. Escuchamos el motivo de visita y registramos kilometraje y combustible.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 text-center relative">
-                <div className="w-10 h-10 mx-auto rounded-full bg-sky-600 text-white font-black text-sm flex items-center justify-center mb-4">
-                  2
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm mb-1.5">
-                  2. Peritaje Digital
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Fotografiamos detalles estéticos de ingreso, comprobamos luces testigo y escaneamos la computadora del auto.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 text-center relative">
-                <div className="w-10 h-10 mx-auto rounded-full bg-indigo-600 text-white font-black text-sm flex items-center justify-center mb-4">
-                  3
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm mb-1.5">
-                  3. Presupuesto Claro
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Te enviamos por WhatsApp el desglose exacto de repuestos y mano de obra. Nada se cambia sin tu visto bueno.
-                </p>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 text-center relative">
-                <div className="w-10 h-10 mx-auto rounded-full bg-emerald-600 text-white font-black text-sm flex items-center justify-center mb-4">
-                  4
-                </div>
-                <h4 className="font-bold text-slate-900 text-sm mb-1.5">
-                  4. Entrega y Garantía
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Retirás tu vehículo listo, probado y con garantía oficial por escrito de repuestos y mano de obra.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* INFORMACIÓN DE CONTACTO, HORARIOS Y UBICACIÓN */}
-        {/* ========================================================================= */}
-        <section className="py-20 bg-slate-900 text-white border-t border-slate-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              <div className="lg:col-span-6 space-y-6">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-sky-400">
-                    Estamos para ayudarte
+                <div className="p-5">
+                  <span className="text-[11px] font-bold text-[#e5242b] uppercase tracking-wider block">
+                    Mecánica & Diagnosis
                   </span>
-                  <h2 className="text-3xl font-extrabold text-white mt-1">
-                    Acercate a Nuestro Taller
-                  </h2>
+                  <h4 className="text-base font-bold text-white mt-1">
+                    Revisión integral y ajuste de motor
+                  </h4>
                 </div>
+              </div>
 
-                <p className="text-slate-300 text-sm leading-relaxed">
-                  Contamos con taller propio equipado con elevadores hidráulicos, laboratorio de inyección y sala de espera climatizada para clientes.
+              <div className="group relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-lg">
+                <div className="h-72 overflow-hidden">
+                  <img
+                    src="/images/poggi/egr.jpg"
+                    alt="Trabajo mecánico realizado en POGGI"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-5">
+                  <span className="text-[11px] font-bold text-[#e5242b] uppercase tracking-wider block">
+                    Inyección & EGR
+                  </span>
+                  <h4 className="text-base font-bold text-white mt-1">
+                    Descarbonización y sistemas de recirculación
+                  </h4>
+                </div>
+              </div>
+
+              <div className="group relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900 shadow-lg">
+                <div className="h-72 overflow-hidden">
+                  <img
+                    src="/images/poggi/distribucion.jpg"
+                    alt="Trabajo de distribución realizado en POGGI"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-5">
+                  <span className="text-[11px] font-bold text-[#e5242b] uppercase tracking-wider block">
+                    Distribución
+                  </span>
+                  <h4 className="text-base font-bold text-white mt-1">
+                    Kit de distribución y puesta a punto oficial
+                  </h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓN 5: SEGUIMIENTO EN VIVO PARA CLIENTES (SAAS INTEGRATION) */}
+        {/* ========================================================================= */}
+        <section id="seguimiento" className="py-16 bg-[#101010] border-y border-neutral-800">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e5242b]/15 border border-[#e5242b]/30 text-[#e5242b] text-xs font-black tracking-wide uppercase mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Transparencia Digital para Conductores</span>
+            </div>
+
+            <h3 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-tight">
+              ¿Tu coche está en el taller? Consulta su estado en vivo
+            </h3>
+            <p className="text-neutral-400 text-sm mt-2 max-w-xl mx-auto">
+              Ingresá la matrícula de tu coche o el número de orden para ver el peritaje fotográfico, partes de trabajo y avance de la reparación.
+            </p>
+
+            <form
+              onSubmit={handleTrackingSubmit}
+              className="mt-6 flex flex-col sm:flex-row gap-2 max-w-lg mx-auto"
+            >
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={trackingCode}
+                  onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                  placeholder="Ej: 4821 KRP o #1001"
+                  className="w-full px-4 py-3.5 rounded-lg bg-neutral-900 border border-neutral-700 text-white font-mono text-sm placeholder:text-neutral-500 focus:outline-none focus:border-[#e5242b] uppercase tracking-wider"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-6 py-3.5 rounded-lg bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider transition-all inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-md shadow-[#e5242b]/20"
+              >
+                <Search className="w-4 h-4" />
+                <span>Consultar</span>
+              </button>
+            </form>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* SECCIÓN 6: NUESTRA UBICACIÓN (MAPA Y CÓMO LLEGAR) */}
+        {/* ========================================================================= */}
+        <section id="ubicacion" className="py-20 lg:py-24 bg-[#f4f4f4] text-[#111]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-2">
+                Nuestra ubicación
+              </span>
+              <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-[#111]">
+                Ven a visitarnos
+              </h2>
+              <p className="mt-3 text-neutral-600 text-sm sm:text-base">
+                Estamos en Valencia. Encuéntranos fácilmente en C. de Sant Pius X, 13.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch max-w-6xl mx-auto">
+              {/* Mapa Google Maps Embebido */}
+              <div className="lg:col-span-8 min-h-[380px] bg-neutral-200 border border-neutral-300 rounded-xl overflow-hidden shadow-xs">
+                <iframe
+                  title="Ubicación de POGGI Taller Integral en Valencia"
+                  src="https://www.google.com/maps?q=Carrer%20de%20Sant%20Pius%20X%2013%2046017%20Valencia&output=embed"
+                  width="100%"
+                  height="100%"
+                  className="min-h-[380px] w-full border-0"
+                  loading="lazy"
+                />
+              </div>
+
+              {/* Ficha de Ubicación */}
+              <div className="lg:col-span-4 bg-white border border-neutral-200 rounded-xl p-8 flex flex-col justify-center shadow-xs">
+                <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block mb-1">
+                  POGGI TALLER INTEGRAL
+                </span>
+                <h3 className="text-2xl font-black uppercase text-[#111] mb-4">
+                  Estamos aquí.
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed mb-4">
+                  {address}
                 </p>
-
-                <div className="space-y-3.5 text-xs text-slate-300">
-                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
-                    <MapPin className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-white text-sm">Dirección</p>
-                      <p className="text-slate-300 mt-0.5">{address}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
-                    <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-white text-sm">Horarios de Atención</p>
-                      <p className="text-slate-300 mt-0.5">{hours}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
-                    <Phone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-white text-sm">WhatsApp y Teléfono</p>
-                      <p className="text-slate-300 mt-0.5">
-                        {settings.whatsapp || "+54 9 11 4567-8900"}
-                      </p>
-                    </div>
-                  </div>
+                <div className="mb-6">
+                  <strong className="text-xs uppercase tracking-wider text-neutral-900 block mb-1">
+                    Horario
+                  </strong>
+                  <p className="text-neutral-600 text-sm">{hours}</p>
                 </div>
+                <a
+                  href="https://www.google.com/maps/dir/?api=1&destination=Carrer+de+Sant+Pius+X+13+46017+Valencia"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full text-center px-6 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-md shadow-[#e5242b]/20"
+                >
+                  Cómo llegar
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                <div className="flex flex-wrap items-center gap-3 pt-2">
+        {/* ========================================================================= */}
+        {/* SECCIÓN 7: CONTACTO DIRECTO */}
+        {/* ========================================================================= */}
+        <section id="contacto" className="py-20 lg:py-24 bg-[#f4f4f4] text-[#111] border-t border-neutral-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto">
+              {/* Columna Izquierda */}
+              <div className="space-y-4">
+                <span className="text-[#e5242b] text-xs font-black tracking-widest uppercase block">
+                  Contacto
+                </span>
+                <h2 className="text-4xl sm:text-6xl font-black uppercase tracking-tight text-[#111] leading-none">
+                  Estamos en Valencia.
+                </h2>
+                <p className="text-neutral-600 text-base leading-relaxed pt-2">
+                  Solicita tu cita o contacta directamente con nuestro taller para presupuestos, diagnósticos o mantenimiento general.
+                </p>
+                <div className="pt-4 flex flex-wrap gap-3">
+                  <a
+                    href={`tel:${phone}`}
+                    className="px-6 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all inline-flex items-center gap-2 shadow-md shadow-[#e5242b]/20"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Llamar al taller</span>
+                  </a>
                   <a
                     href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                      `Hola ${workshopName}, quisiera coordinar una visita a su taller.`
+                      "Hola POGGI Taller Integral, quisiera solicitar una cita / presupuesto para mi vehículo."
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-colors"
+                    className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-md transition-all inline-flex items-center gap-2 shadow-md shadow-emerald-600/20"
                   >
-                    <Phone className="w-4 h-4 fill-slate-950" />
-                    <span>Iniciar Chat por WhatsApp</span>
+                    <span>WhatsApp directo</span>
                   </a>
-
-                  <Link
-                    href="/contacto"
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-colors"
-                  >
-                    <span>Formulario de Contacto</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
                 </div>
               </div>
 
-              {/* Tarjeta de Destacados del Taller */}
-              <div className="lg:col-span-6">
-                <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-7 shadow-xl space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
-                      <Award className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-white text-base">
-                        Calidad de Servicio Homologada
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Compromiso con cada cliente que nos elige
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 text-xs text-slate-300">
-                    <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Repuestos originales y primeras marcas de distribuidora oficial.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Diagnóstico computarizado con reporte impreso o digital.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Guardia de auxilio y recepción con grúa coordinada.</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>Múltiples medios de pago: Efectivo, Transferencia y Tarjetas.</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] text-slate-400 font-semibold">¿Necesitás una cotización rápida?</p>
-                      <p className="text-xs font-bold text-white mt-0.5">Escribinos con la patente y marca de tu auto</p>
-                    </div>
-                    <a
-                      href={`https://wa.me/${cleanPhone}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs shrink-0 transition-colors"
-                    >
-                      Cotizar Ahora
-                    </a>
-                  </div>
+              {/* Columna Derecha con Información */}
+              <div className="space-y-4 bg-white p-8 rounded-xl border border-neutral-200 shadow-xs">
+                <div className="pb-4 border-b border-neutral-100">
+                  <b className="block uppercase text-xs tracking-wider text-neutral-900 mb-1">
+                    Dirección
+                  </b>
+                  <span className="text-neutral-600 text-sm">{address}</span>
+                </div>
+                <div className="pb-4 border-b border-neutral-100">
+                  <b className="block uppercase text-xs tracking-wider text-neutral-900 mb-1">
+                    Teléfono
+                  </b>
+                  <a href={`tel:${phone}`} className="text-neutral-800 hover:text-[#e5242b] text-sm font-semibold transition-colors">
+                    {phone}
+                  </a>
+                </div>
+                <div className="pb-4 border-b border-neutral-100">
+                  <b className="block uppercase text-xs tracking-wider text-neutral-900 mb-1">
+                    Email
+                  </b>
+                  <a href={`mailto:${email}`} className="text-neutral-800 hover:text-[#e5242b] text-sm font-semibold transition-colors">
+                    {email}
+                  </a>
+                </div>
+                <div className="pb-4">
+                  <b className="block uppercase text-xs tracking-wider text-neutral-900 mb-1">
+                    Horario
+                  </b>
+                  <span className="text-neutral-600 text-sm">{hours}</span>
+                </div>
+                <div className="pt-2">
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Carrer+de+Sant+Pius+X+13+46017+Valencia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-center px-5 py-3 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all inline-block shadow-sm"
+                  >
+                    Cómo llegar en Google Maps
+                  </a>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* BANNER INFERIOR DISCRETO PARA EL STAFF / MECÁNICOS */}
-        {/* ========================================================================= */}
-        <section className="bg-slate-950 border-t border-slate-800/80 py-4 text-center text-xs text-slate-400">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-            <span>¿Sos mecánico o empleado del taller?</span>
-            <Link
-              href="/login"
-              className="font-bold text-sky-400 hover:text-sky-300 underline underline-offset-4"
-            >
-              Ingresar al Sistema Operativo del Taller →
-            </Link>
           </div>
         </section>
       </main>
 
       <Footer />
       <WhatsAppButton />
+
+      {/* ========================================================================= */}
+      {/* BARRA MÓVIL INFERIOR FIJA (Igual a la web de Poggi) */}
+      {/* ========================================================================= */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#111] border-t border-neutral-700 flex text-center">
+        <a
+          href={`tel:${phone}`}
+          className="flex-1 py-3.5 px-2 text-[11px] font-black uppercase text-white hover:bg-neutral-800 border-r border-neutral-800 flex items-center justify-center gap-1.5"
+        >
+          <Phone className="w-3.5 h-3.5 text-[#e5242b]" />
+          <span>Llamar</span>
+        </a>
+        <a
+          href="#contacto"
+          className="flex-1 py-3.5 px-2 text-[11px] font-black uppercase text-white bg-[#e5242b] hover:bg-[#c91d23] flex items-center justify-center gap-1.5"
+        >
+          <Calendar className="w-3.5 h-3.5 text-white" />
+          <span>Pedir cita</span>
+        </a>
+        <Link
+          href="/estado"
+          className="flex-1 py-3.5 px-2 text-[11px] font-black uppercase text-white hover:bg-neutral-800 border-l border-neutral-800 flex items-center justify-center gap-1.5"
+        >
+          <Search className="w-3.5 h-3.5 text-[#e5242b]" />
+          <span>Seguimiento</span>
+        </Link>
+      </div>
     </div>
   );
 }
