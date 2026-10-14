@@ -14,7 +14,6 @@ import {
   Shield,
   UserCheck,
   Settings,
-  Activity,
 } from "lucide-react";
 import { UserSession } from "@/types";
 
@@ -130,12 +129,6 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       href: "/app/configuracion",
       label: "Configuración",
       icon: Settings,
-      roles: ["ADMIN"],
-    },
-    {
-      href: "/app/admin/monitoreo",
-      label: "Monitoreo",
-      icon: Activity,
       roles: ["ADMIN"],
     },
   ];
