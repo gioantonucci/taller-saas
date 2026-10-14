@@ -164,13 +164,15 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       {/* 1. TOP BAR MOBILE (Visible en celulares: md:hidden)                       */}
       {/* ========================================================================= */}
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-slate-900 text-white px-4 py-2.5 border-b border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
-            <Wrench className="w-4 h-4 text-white" />
-          </div>
+        <div className="flex items-center gap-2">
+          <img
+            src="/images/poggi/logo.png"
+            alt="Logo POGGI"
+            className="w-7 h-7 object-contain"
+          />
           <div>
-            <span className="font-extrabold text-xs tracking-tight block leading-tight">
-              POGGI <span className="text-[#e5242b]">TALLER INTEGRAL</span>
+            <span className="font-black text-sm tracking-tight block leading-tight text-[#e5242b]">
+              POGGI
             </span>
             <span
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border inline-block ${getRoleBadgeClasses(

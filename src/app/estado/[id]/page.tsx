@@ -190,8 +190,8 @@ export default function EstadoOrdenClientePage() {
                 alt="Logo POGGI Taller Integral"
                 className="h-8 sm:h-9 w-auto object-contain drop-shadow"
               />
-              <span className="text-base sm:text-lg font-black tracking-wider uppercase text-white">
-                <span className="text-[#e5242b]">POGGI</span> TALLER INTEGRAL
+              <span className="text-base sm:text-lg font-black tracking-wider uppercase text-[#e5242b]">
+                POGGI
               </span>
             </Link>
             <span className="hidden sm:inline-block text-neutral-600">|</span>
