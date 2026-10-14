@@ -1,0 +1,125 @@
+// Prisma Schema for PostgreSQL / Supabase
+// SaaS de Gestión para Talleres Automotores
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  RECEPTION
+  MECHANIC
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+model TenantSettings {
+  id           String    @id @default(uuid()) @db.Uuid
+  tallerNombre String    @map("taller_nombre") @db.VarChar(255)
+  whatsapp     String    @db.VarChar(50)
+  logoUrl      String?   @map("logo_url") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users        User[]
+  clients      Client[]
+  vehicles     Vehicle[]
+
+  @@map("tenant_settings")
+}
+
+model User {
+  id             String          @id @default(uuid()) @db.Uuid
+  tenantId       String?         @map("tenant_id") @db.Uuid
+  tenant         TenantSettings? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  nombre         String          @db.VarChar(100)
+  apellido       String?         @db.VarChar(100)
+  email          String          @unique @db.VarChar(255)
+  passwordHash   String          @map("password_hash") @db.VarChar(255)
+  role           Role            @default(RECEPTION)
+  status         Status          @default(ACTIVE)
+  failedAttempts Int             @default(0) @map("failed_attempts")
+  lockoutUntil   DateTime?       @map("lockout_until") @db.Timestamptz(6)
+  creadoEn       DateTime        @default(now()) @map("creado_en") @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model Client {
+  id         String          @id @default(uuid()) @db.Uuid
+  tenantId   String?         @map("tenant_id") @db.Uuid
+  tenant     TenantSettings? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  nombre     String          @db.VarChar(100)
+  apellido   String          @db.VarChar(100)
+  dni        String          @unique @db.VarChar(20)
+  direccion  String?         @db.Text
+  telefono   String?         @db.VarChar(50)
+  email      String?         @db.VarChar(255)
+  isDeleted  Boolean         @default(false) @map("is_deleted")
+  status     Status          @default(ACTIVE)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  vehicles   Vehicle[]
+
+  @@index([isDeleted])
+  @@index([dni])
+  @@map("clients")
+}
+
+model Vehicle {
+  id         String          @id @default(uuid()) @db.Uuid
+  tenantId   String?         @map("tenant_id") @db.Uuid
+  tenant     TenantSettings? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  clientId   String          @map("client_id") @db.Uuid
+  client     Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  marca      String          @db.VarChar(100)
+  modelo     String          @db.VarChar(100)
+  anio       Int
+  patente    String          @unique @db.VarChar(20)
+  nroChasis  String?         @map("nro_chasis") @db.VarChar(50)
+  nroMotor   String?         @map("nro_motor") @db.VarChar(50)
+  color      String?         @db.VarChar(50)
+  isDeleted  Boolean         @default(false) @map("is_deleted")
+  status     Status          @default(ACTIVE)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([isDeleted])
+  @@index([patente])
+  @@index([clientId])
+  @@map("vehicles")
+}
+
+model AuditLog {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String?   @map("user_id") @db.Uuid
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail       String?   @map("user_email") @db.VarChar(255)
+  userName        String?   @map("user_name") @db.VarChar(255)
+  accion          String    @db.VarChar(50)
+  entidad         String    @db.VarChar(50)
+  entidadAfectada String?   @map("entidad_afectada") @db.VarChar(50)
+  entidadId       String?   @map("entidad_id") @db.VarChar(100)
+  valores         Json?
+  detallesCambio  Json?     @map("detalles_cambio")
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  timestamp       DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([entidad])
+  @@index([timestamp(sort: Desc)])
+  @@map("audit_logs")
+}

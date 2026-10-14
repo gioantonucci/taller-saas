@@ -1,0 +1,207 @@
+// Prisma Schema for Sistema SaaS de Gestión para Talleres Automotores
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model TenantSettings {
+  id           String    @id @default(cuid())
+  tallerNombre String
+  whatsapp     String
+  logoUrl             String?
+  direccion           String?   @default("Av. del Libertador 4580, Buenos Aires")
+  horarios            String?   @default("Lunes a Viernes: 08:00 a 19:00 | Sábados: 08:30 a 13:00")
+  email               String?   @default("contacto@tallerpro.com")
+  descripcion         String?   @default("Servicio integral del automotor, inyección electrónica, mecánica general y diagnóstico computarizado con tecnología de punta.")
+  valorHoraManoDeObra Float     @default(15000)
+  createdAt           DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  users        User[]
+  clients      Client[]
+  vehicles     Vehicle[]
+}
+
+model User {
+  id             String          @id @default(cuid())
+  tenantId       String?
+  tenant         TenantSettings? @relation(fields: [tenantId], references: [id])
+  nombre         String
+  apellido       String?
+  email          String          @unique
+  passwordHash   String
+  role           String          // "ADMIN", "RECEPTION", "MECHANIC" (también soporta "RECEPCION", "MECANICO")
+  status         String          @default("ACTIVE") // "ACTIVE", "INACTIVE" (Soft Delete)
+  failedAttempts Int             @default(0)
+  lockoutUntil   DateTime?
+  creadoEn       DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  workOrdersMechanic WorkOrder[] @relation("MechanicOrders")
+  workOrdersAdmin    WorkOrder[] @relation("AdminOrders")
+  workLogs           WorkLog[]
+  auditLogs          AuditLog[]
+}
+
+model Client {
+  id         String          @id @default(cuid())
+  tenantId   String?
+  tenant     TenantSettings? @relation(fields: [tenantId], references: [id])
+  nombre     String
+  apellido   String
+  dni        String          @unique
+  direccion  String
+  telefono   String
+  email      String
+  isDeleted  Boolean         @default(false)
+  status     String          @default("ACTIVE") // "ACTIVE", "INACTIVE" (Soft Delete)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  vehicles     Vehicle[]
+  transactions Transaction[]
+}
+
+model Vehicle {
+  id         String          @id @default(cuid())
+  tenantId   String?
+  tenant     TenantSettings? @relation(fields: [tenantId], references: [id])
+  clientId   String
+  client     Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  marca      String
+  modelo     String
+  anio       Int
+  patente    String          @unique
+  nroChasis  String?
+  nroMotor   String?
+  color      String?
+  isDeleted  Boolean         @default(false)
+  status     String          @default("ACTIVE") // "ACTIVE", "INACTIVE" (Soft Delete)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  workOrders WorkOrder[]
+}
+
+model WorkOrder {
+  id               String                 @id @default(cuid())
+  numeroOrden      Int                    @unique
+  vehicleId        String
+  vehicle          Vehicle                @relation(fields: [vehicleId], references: [id])
+  mechanicId       String?
+  mechanic         User?                  @relation("MechanicOrders", fields: [mechanicId], references: [id])
+  adminId          String?
+  admin            User?                  @relation("AdminOrders", fields: [adminId], references: [id])
+  estado           String                 @default("PENDIENTE") // "PENDIENTE", "EN_CURSO", "ESPERANDO_REPUESTOS", "FINALIZADO"
+  fechaIngreso     DateTime               @default(now())
+  fechaEstimada    DateTime?
+  fechaEntrega     DateTime?
+  nivelNafta       String                 @default("1/2") // "VACIO", "1/4", "1/2", "3/4", "LLENO"
+  kilometraje      Int?
+  detallesIngreso  String
+  comentariosDuenio String?                // Comentario/declaración inicial del dueño al ingresar sobre abolladuras y desperfectos preexistentes
+  checklistDanio   String?                // JSON string of vehicle damage points and accessories
+  costoManoDeObra  Float                  @default(0)
+  totalPresupuesto Float                  @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  multimedia       WorkOrderMultimedia[]
+  workLogs         WorkLog[]
+  parts            Part[]
+  transactions     Transaction[]
+}
+
+model WorkOrderMultimedia {
+  id           String    @id @default(cuid())
+  workOrderId  String
+  workOrder    WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  tipo         String    @default("FOTO") // "FOTO", "VIDEO"
+  urlStorage   String    // Object storage URL (separated from relational DB)
+  descripcion  String?
+  etiqueta     String?   // "INGRESO", "DURANTE", "FINALIZADO", "REPUESTO_ROTO"
+  fechaCarga   DateTime  @default(now())
+}
+
+model WorkLog {
+  id               String    @id @default(cuid())
+  workOrderId      String
+  workOrder        WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  mechanicId       String
+  mechanic         User      @relation(fields: [mechanicId], references: [id])
+  horasInvertidas  Float
+  descripcionTarea String
+  fechaRegistro    DateTime  @default(now())
+}
+
+model InventoryItem {
+  id                String    @id @default(cuid())
+  nombre            String
+  codigo            String?
+  categoria         String?   @default("Mecánica General")
+  stock             Int       @default(0)
+  stockMinimo       Int       @default(1)
+  costo             Float     @default(0)
+  precioVenta       Float     @default(0)
+  archivoFacturaURL String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  assignedParts     Part[]    @relation("InventoryPart")
+}
+
+model Part {
+  id                String         @id @default(cuid())
+  workOrderId       String
+  workOrder         WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  inventoryItemId   String?
+  inventoryItem     InventoryItem? @relation("InventoryPart", fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  nombreRepuesto    String
+  codigo            String?
+  cantidad          Int            @default(1)
+  costo             Float          // Costo de compra
+  precioVenta       Float          // Precio facturado
+  archivoFacturaURL String?        // Comprobante / Remito en Object Storage
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model AuditLog {
+  id               String    @id @default(cuid())
+  userId           String?
+  user             User?     @relation(fields: [userId], references: [id])
+  userEmail        String?
+  userName         String?
+  accion           String    // "CREATE", "UPDATE", "SOFT_DELETE", "LOGIN", "EXPORT", etc.
+  entidad          String?   // "Users", "TenantSettings", "Clients", "Vehicles", "Auth"
+  entidadAfectada  String    // Compatibilidad retroactiva
+  entidadId        String?
+  valores          String?   // JSON string con valores/atributos modificados
+  detallesCambio   String    // Compatibilidad retroactiva JSON
+  ipAddress        String?
+  timestamp        DateTime  @default(now())
+}
+
+model Transaction {
+  id              String      @id @default(cuid())
+  monto           Float
+  tipo            String      // "INGRESO", "EGRESO"
+  concepto        String      // "Cobro Orden #1005", "Seña de repuesto", "Pago proveedor", "Gasto operativo"
+  categoria       String?     // "COBRO_ORDEN", "SENIA", "PAGO_PROVEEDOR", "GASTO_OPERATIVO", "RETIRO", "OTRO"
+  metodoPago      String      @default("EFECTIVO") // "EFECTIVO", "TRANSFERENCIA", "TARJETA_DEBITO", "TARJETA_CREDITO", "MERCADOPAGO"
+  clienteId       String?
+  cliente         Client?     @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  workOrderId     String?
+  workOrder       WorkOrder?  @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  fecha           DateTime    @default(now())
+  comprobanteNro  String?
+  observaciones   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
