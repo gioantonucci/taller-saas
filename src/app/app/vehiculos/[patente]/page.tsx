@@ -359,38 +359,38 @@ export default function VehiculoHistorialClinicoPage() {
             {vehicle.workOrders.map((order: any) => (
               <div
                 key={order.id}
-                className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-900">
                       Orden #{order.numeroOrden}
                     </span>
                     <span
-                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                        order.estado === "FINALIZADO"
+                      className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
+                        order.estado === "FINALIZADO" || order.estado === "ENTREGADO"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : order.estado === "EN_CURSO" || order.estado === "EN_REPARACION"
                           ? "bg-sky-50 text-sky-700 border-sky-200"
                           : "bg-amber-50 text-amber-700 border-amber-200"
                       }`}
                     >
-                      {order.estado}
+                      {order.estado.replace(/_/g, " ")}
                     </span>
                     <span className="text-[11px] text-slate-400">
-                      {new Date(order.fechaIngreso).toLocaleDateString("es-AR")}
+                      {new Date(order.fechaIngreso).toLocaleDateString("es-ES")}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-700 font-medium">
+                  <p className="text-xs text-slate-700 font-medium leading-relaxed">
                     {order.detallesIngreso}
                   </p>
 
-                  <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1">
+                  <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-1 flex-wrap">
                     {order.kilometraje && (
                       <span className="flex items-center gap-1 font-mono">
                         <Gauge className="w-3.5 h-3.5 text-slate-400" />
-                        {order.kilometraje.toLocaleString("es-AR")} km
+                        {order.kilometraje.toLocaleString("es-ES")} km
                       </span>
                     )}
                     <span className="flex items-center gap-1">
@@ -406,13 +406,13 @@ export default function VehiculoHistorialClinicoPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-center">
+                <div className="shrink-0 self-start sm:self-center pt-2 sm:pt-0">
                   <Link
                     href={`/app/ordenes/${order.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-white bg-white hover:bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-300 hover:border-slate-900 shadow-xs hover:shadow transition-all whitespace-nowrap shrink-0 group cursor-pointer"
                   >
-                    <span>Ver Ficha de Orden</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <span>Ver orden</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 </div>
               </div>
