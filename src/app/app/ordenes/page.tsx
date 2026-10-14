@@ -13,6 +13,7 @@ import {
   RefreshCw,
   MessageCircle,
   X,
+  User,
   Users,
   Car,
   Wrench,
@@ -28,11 +29,11 @@ import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 
-// Badge Matrícula Compacto sin franja de país para ahorrar espacio
+// Badge Matrícula Compacto pero legible y de tamaño táctil
 function ArgentinePlateBadge({ patente }: { patente: string }) {
   const cleanPatente = patente.toUpperCase().trim();
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 border border-slate-300 rounded-md bg-slate-100 text-slate-900 font-mono font-black text-xs tracking-wider select-none shrink-0 shadow-2xs">
+    <span className="inline-flex items-center px-2 py-0.5 border border-slate-300 rounded-md bg-slate-100 text-slate-900 font-mono font-black text-xs sm:text-sm tracking-wider select-none shrink-0 shadow-2xs">
       {cleanPatente}
     </span>
   );
@@ -776,7 +777,7 @@ export default function OrdenesPage() {
   }, [orders, estadoFilter, search]);
 
   return (
-    <div className="space-y-4 pb-12">
+    <div className="space-y-5 pb-16">
       {/* 1. Header Unificado */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -785,7 +786,7 @@ export default function OrdenesPage() {
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-sky-600 uppercase tracking-wider block">
                 Módulo de Recepción
               </span>
               <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -793,14 +794,14 @@ export default function OrdenesPage() {
               </h1>
             </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             {estadoFilter === "ENTREGADO"
               ? `${filteredOrders.length} ${filteredOrders.length === 1 ? "orden entregada / archivada" : "órdenes entregadas / archivadas"}`
               : `${filteredOrders.length} ${filteredOrders.length === 1 ? "vehículo en taller" : "vehículos en taller"} • Gestión de ingresos, peritaje y reparaciones activas.`}
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => fetchOrders(true)}
@@ -814,7 +815,7 @@ export default function OrdenesPage() {
           <button
             type="button"
             onClick={handleOpenModal}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Ingresar Auto</span>
@@ -824,16 +825,16 @@ export default function OrdenesPage() {
 
       {/* Banner Éxito al Crear */}
       {createdOrderSuccess && (
-        <div className="p-3 rounded-2xl bg-emerald-600 text-white text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-emerald-600 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-sm animate-in fade-in">
           <div className="flex items-center gap-2 truncate pr-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span className="truncate">
               Orden #{createdOrderSuccess.numeroOrden} ({createdOrderSuccess.vehicle?.patente}) ingresada con éxito.
             </span>
           </div>
           <Link
             href={`/app/ordenes/${createdOrderSuccess.id}`}
-            className="px-2.5 py-1 rounded-lg bg-white text-emerald-900 font-extrabold text-[11px] shrink-0"
+            className="px-3 py-1.5 rounded-lg bg-white text-emerald-900 font-extrabold text-xs shrink-0"
           >
             Abrir ➔
           </Link>
@@ -842,9 +843,9 @@ export default function OrdenesPage() {
 
       {/* Banner Éxito al Entregar / Archivar */}
       {deliveredSuccessMsg && (
-        <div className="p-3 rounded-2xl bg-slate-900 text-white text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-slate-900 text-white text-xs sm:text-sm font-bold flex items-center justify-between shadow-sm animate-in fade-in">
           <div className="flex items-center gap-2 truncate pr-2">
-            <PackageCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+            <PackageCheck className="w-5 h-5 shrink-0 text-emerald-400" />
             <span className="truncate">{deliveredSuccessMsg}</span>
           </div>
           <button
@@ -858,13 +859,13 @@ export default function OrdenesPage() {
       )}
 
       {/* 2. Filtros Limpios en Píldoras Horizontales */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-1 px-1">
         <button
           type="button"
           onClick={() => setEstadoFilter("TODOS")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "TODOS"
-              ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
               : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
           }`}
         >
@@ -874,9 +875,9 @@ export default function OrdenesPage() {
         <button
           type="button"
           onClick={() => setEstadoFilter("PENDIENTE")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "PENDIENTE"
-              ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
+              ? "bg-rose-600 text-white border-rose-600 shadow-sm"
               : "bg-white text-slate-600 hover:bg-rose-50 border-slate-200"
           }`}
         >
@@ -886,9 +887,9 @@ export default function OrdenesPage() {
         <button
           type="button"
           onClick={() => setEstadoFilter("EN_CURSO")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "EN_CURSO"
-              ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
               : "bg-white text-slate-600 hover:bg-blue-50 border-slate-200"
           }`}
         >
@@ -898,9 +899,9 @@ export default function OrdenesPage() {
         <button
           type="button"
           onClick={() => setEstadoFilter("ESPERANDO_REPUESTOS")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "ESPERANDO_REPUESTOS"
-              ? "bg-amber-500 text-white border-amber-500 shadow-2xs"
+              ? "bg-amber-500 text-white border-amber-500 shadow-sm"
               : "bg-white text-slate-600 hover:bg-amber-50 border-slate-200"
           }`}
         >
@@ -910,9 +911,9 @@ export default function OrdenesPage() {
         <button
           type="button"
           onClick={() => setEstadoFilter("FINALIZADO")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "FINALIZADO"
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-2xs"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
               : "bg-white text-slate-600 hover:bg-emerald-50 border-slate-200"
           }`}
         >
@@ -922,9 +923,9 @@ export default function OrdenesPage() {
         <button
           type="button"
           onClick={() => setEstadoFilter("ENTREGADO")}
-          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+          className={`shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer whitespace-nowrap ${
             estadoFilter === "ENTREGADO"
-              ? "bg-slate-700 text-white border-slate-700 shadow-2xs"
+              ? "bg-slate-700 text-white border-slate-700 shadow-sm"
               : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200"
           }`}
         >
@@ -934,21 +935,21 @@ export default function OrdenesPage() {
 
       {/* 3. Barra de Búsqueda Rápida */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-400" />
+        <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
         <input
           type="text"
           placeholder="Buscar por patente, auto o cliente..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none placeholder:text-slate-400 shadow-2xs"
+          className="w-full pl-10 pr-9 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none placeholder:text-slate-400 shadow-2xs"
         />
         {search && (
           <button
             type="button"
             onClick={() => setSearch("")}
-            className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -964,9 +965,9 @@ export default function OrdenesPage() {
           No se encontraron vehículos para mostrar.
         </div>
       ) : (
-        <div className="space-y-2">
-          {/* VISTA MOBILE: Tarjetas de 3 líneas ultra legibles */}
-          <div className="md:hidden space-y-2.5">
+        <div className="space-y-4">
+          {/* VISTA MOBILE: Tarjetas Amplias, Espaciadas y Cómodas */}
+          <div className="md:hidden space-y-4">
             {filteredOrders.map((orden) => {
               const statusInfo = getStatusInfo(orden.estado);
 
@@ -974,19 +975,19 @@ export default function OrdenesPage() {
                 <Link
                   key={orden.id}
                   href={`/app/ordenes/${orden.id}`}
-                  className="block bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs hover:border-sky-300 transition-all active:scale-[0.99]"
+                  className="group block bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 shadow-sm hover:border-sky-300 hover:shadow-md transition-all active:scale-[0.99]"
                 >
-                  {/* Fila 1: Patente y Estado */}
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                  {/* Fila 1: Patente, Nro de Orden y Badge de Estado */}
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <ArgentinePlateBadge patente={orden.vehicle.patente} />
-                      <span className="text-[11px] font-mono font-bold text-slate-400">
+                      <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                         #{orden.numeroOrden}
                       </span>
                     </div>
 
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-tight whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-tight whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
                       <span className="whitespace-nowrap">{statusInfo.label}</span>
@@ -994,34 +995,58 @@ export default function OrdenesPage() {
                   </div>
 
                   {/* Fila 2: Modelo del Auto */}
-                  <h3 className="font-extrabold text-sm text-slate-900 leading-tight">
+                  <h3 className="font-extrabold text-base sm:text-lg text-slate-900 leading-snug mt-2.5 group-hover:text-sky-600 transition-colors">
                     {orden.vehicle.marca} {orden.vehicle.modelo}
                   </h3>
 
+                  {/* Fila 3: Titular / Cliente */}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 mt-1.5">
+                    <User className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span className="font-semibold text-slate-800">
+                      {orden.vehicle.client.nombre} {orden.vehicle.client.apellido}
+                    </span>
+                    {orden.vehicle.client.telefono && (
+                      <span className="text-slate-400 text-xs">
+                        • {orden.vehicle.client.telefono}
+                      </span>
+                    )}
+                  </div>
+
                   {/* Motivo de Consulta */}
                   {orden.detallesIngreso && (
-                    <p className="mt-1 text-[11px] text-slate-600 line-clamp-2">
-                      <span className="font-bold text-slate-700">Motivo:</span> {orden.detallesIngreso}
-                    </p>
-                  )}
-
-                  {orden.comentariosDuenio && (
-                    <div className="mt-1.5 p-1.5 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[10px] text-amber-900 flex items-start gap-1">
-                      <ShieldAlert className="w-3 h-3 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="line-clamp-2 leading-tight">
-                        <strong>Peritaje visual cliente:</strong> {orden.comentariosDuenio}
-                      </p>
+                    <div className="mt-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-700 leading-relaxed">
+                      <span className="font-bold text-slate-500 block text-[11px] uppercase tracking-wider mb-1">
+                        Motivo de Ingreso
+                      </span>
+                      <p className="line-clamp-2">{orden.detallesIngreso}</p>
                     </div>
                   )}
 
-                  {/* Mecánico Asignado en Mobile */}
-                  <div className="mt-2 flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px]">
-                    <div className="flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="font-semibold text-slate-700">
-                        {orden.mechanic ? `${orden.mechanic.nombre} ${orden.mechanic.apellido || ""}` : "Sin asignar"}
+                  {/* Peritaje visual cliente */}
+                  {orden.comentariosDuenio && (
+                    <div className="mt-2.5 p-3 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-950 flex items-start gap-2.5">
+                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block text-[11px] text-amber-800 uppercase tracking-wider">
+                          Peritaje visual cliente
+                        </span>
+                        <p className="mt-0.5 leading-relaxed line-clamp-2">{orden.comentariosDuenio}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mecánico Asignado y Fecha */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <Wrench className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-700 font-semibold">
+                        {orden.mechanic ? `${orden.mechanic.nombre} ${orden.mechanic.apellido || ""}` : "Sin mecánico asignado"}
                       </span>
                     </div>
+
+                    <span className="text-slate-400 font-medium">
+                      {new Date(orden.fechaIngreso).toLocaleDateString("es-AR")}
+                    </span>
                   </div>
 
                   {/* Botón de Ver Peritaje Registrado en Mobile */}
@@ -1033,16 +1058,16 @@ export default function OrdenesPage() {
                         e.stopPropagation();
                         setPeritajeModalOrder(orden);
                       }}
-                      className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer"
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
                     >
-                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <Eye className="w-4 h-4 text-emerald-400" />
                       <span>Ver Peritaje Realizado</span>
                     </button>
                   )}
 
                   {/* Botón Destacado: Avisar al Cliente si está Terminado y Botón Entregar */}
                   {(orden.estado === "FINALIZADO" || orden.estado === "TERMINADO" || orden.estado === "REPARADO") && (
-                    <div className="mt-2 space-y-1.5">
+                    <div className="mt-3 space-y-2">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1050,7 +1075,7 @@ export default function OrdenesPage() {
                           e.stopPropagation();
                           handleNotifyClient(orden);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-sm transition-all"
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-sm transition-all cursor-pointer"
                       >
                         <MessageCircle className="w-4 h-4" />
                         <span>{notifiedOrders[orden.id] ? "Aviso Enviado al Cliente ✓" : "Dar Aviso al Cliente (WhatsApp)"}</span>
@@ -1064,7 +1089,7 @@ export default function OrdenesPage() {
                           e.stopPropagation();
                           handleMarkAsDelivered(orden);
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer"
                       >
                         <PackageCheck className="w-4 h-4 text-emerald-400" />
                         <span>{deliveringOrderId === orden.id ? "Archivando..." : "Marcar como Entregado / Archivar"}</span>
@@ -1074,25 +1099,24 @@ export default function OrdenesPage() {
 
                   {/* Indicador si la orden ya fue Entregada y Archivada */}
                   {(orden.estado === "ENTREGADO" || orden.estado === "ARCHIVADO") && (
-                    <div className="mt-2 p-2 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-bold flex items-center justify-between">
+                    <div className="mt-3 p-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <PackageCheck className="w-3.5 h-3.5 text-slate-500" />
+                        <PackageCheck className="w-4 h-4 text-slate-500" />
                         <span>Vehículo Entregado (Archivado)</span>
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono font-medium">
+                      <span className="text-[11px] text-slate-500 font-mono font-medium">
                         {orden.fechaEntrega ? new Date(orden.fechaEntrega).toLocaleDateString("es-AR") : "Archivado"}
                       </span>
                     </div>
                   )}
 
-                  {/* Fila 3: Titular y CTA */}
-                  <div className="flex items-center justify-between text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
-                    <span className="truncate pr-2 font-medium">
-                      {orden.vehicle.client.nombre} {orden.vehicle.client.apellido}
+                  {/* Fila inferior: CTA Claro y Grande */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-sky-600 flex items-center gap-1 group-hover:text-sky-700">
+                      <span>Ver orden de trabajo completa</span>
+                      <ChevronRight className="w-4 h-4" />
                     </span>
-                    <span className="p-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white transition-colors shrink-0">
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">Ficha #{orden.numeroOrden}</span>
                   </div>
                 </Link>
               );

@@ -306,7 +306,7 @@ export default function DashboardPage() {
             const statusInfo = getStatusInfo(orden.estado);
 
             return (
-              <div key={orden.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+              <div key={orden.id} className="p-4 sm:p-5 space-y-3 hover:bg-slate-50/60 transition-colors">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Link
@@ -315,37 +315,37 @@ export default function DashboardPage() {
                     >
                       Orden #{orden.numeroOrden}
                     </Link>
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-bold text-slate-700">
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-700 border border-slate-200">
                       {orden.vehicle.patente}
                     </span>
                   </div>
 
                   <span
-                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
+                    className={`inline-block px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap shrink-0 ${statusInfo.badgeClass}`}
                   >
                     {statusInfo.label}
                   </span>
                 </div>
 
-                <div className="space-y-1 text-xs">
+                <div className="space-y-1.5 text-xs sm:text-sm">
                   <Link
                     href={`/app/vehiculos/${orden.vehicle.patente}`}
-                    className="font-semibold text-slate-800 hover:text-sky-600 block"
+                    className="font-bold text-slate-900 hover:text-sky-600 text-sm sm:text-base block"
                   >
                     {orden.vehicle.marca} {orden.vehicle.modelo}
                   </Link>
 
-                  <div className="flex items-center justify-between text-slate-500 pt-1">
+                  <div className="flex items-center justify-between text-slate-500 pt-0.5">
                     <Link
                       href={`/app/clientes/${orden.vehicle.client.id}`}
-                      className="hover:text-sky-600 truncate max-w-[200px]"
+                      className="hover:text-sky-600 truncate max-w-[200px] font-medium"
                     >
                       {orden.vehicle.client.nombre} {orden.vehicle.client.apellido}
                     </Link>
 
                     {orden.mechanic ? (
                       <span className="flex items-center gap-1 font-medium text-slate-700 shrink-0">
-                        <Wrench className="w-3 h-3 text-sky-600" />
+                        <Wrench className="w-3.5 h-3.5 text-sky-600" />
                         <span>{orden.mechanic.nombre}</span>
                       </span>
                     ) : (
@@ -356,10 +356,10 @@ export default function DashboardPage() {
 
                 <Link
                   href={`/app/ordenes/${orden.id}`}
-                  className="w-full py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5"
                 >
                   <span>Ver Detalle de Orden</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
             );
