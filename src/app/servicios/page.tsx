@@ -49,7 +49,7 @@ export default function ServiciosPage() {
     {
       icon: CheckSquare,
       title: "Mantenimiento Preventivo y Service Oficial",
-      desc: "Revisiones por kilometraje (10k, 20k, 50k, 100k) manteniendo la validez de garantía con lubricantes 100% sintéticos homologados por fábrica.",
+      desc: "Revisiones completas por kilometraje utilizando lubricantes 100% sintéticos y repuestos homologados por fábrica.",
       puntos: ["Aceite sintético homologado", "Revisión integral de 30 puntos", "Informe digital emitido por nuestro SaaS"],
     },
   ];
@@ -118,26 +118,26 @@ export default function ServiciosPage() {
               })}
             </div>
 
-            {/* Banner Garantía */}
-            <div className="mt-16 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-3xl p-8 sm:p-12 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Banner Calidad y Atención */}
+            <div className="mt-16 bg-neutral-900 border border-neutral-800 text-white rounded-3xl p-8 sm:p-12 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="space-y-2 text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold">
-                  <ShieldCheck className="w-4 h-4 text-sky-400" />
-                  <span>Garantía Escrita</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e5242b]/15 text-[#e5242b] text-xs font-semibold">
+                  <ShieldCheck className="w-4 h-4 text-[#e5242b]" />
+                  <span>Experiencia y Confianza</span>
                 </div>
-                <h3 className="text-2xl font-extrabold text-white">
-                  3 meses o 5.000 km en todos los trabajos
+                <h3 className="text-2xl font-extrabold text-white uppercase tracking-tight">
+                  Más de 30 años de trayectoria técnica
                 </h3>
-                <p className="text-xs text-slate-300 max-w-xl">
-                  Cada vehículo intervenido queda registrado en el historial clínico digital de nuestro SaaS con comprobantes, remitos y fotos de peritaje accesibles en cualquier momento.
+                <p className="text-xs text-neutral-400 max-w-xl">
+                  Cada vehículo intervenido queda registrado en el historial técnico digital del taller con seguimiento del diagnóstico, repuestos y revisiones accesibles en cualquier momento.
                 </p>
               </div>
 
               <Link
                 href="/login"
-                className="px-6 py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shrink-0 transition-colors"
+                className="px-6 py-3 bg-[#e5242b] hover:bg-[#c91d23] text-white font-bold text-xs rounded-xl shadow-lg shrink-0 transition-colors uppercase tracking-wider"
               >
-                Acceso a la Plataforma
+                Acceso Staff
               </Link>
             </div>
           </div>

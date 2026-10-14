@@ -29,7 +29,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-2 text-xs text-[#e5242b]">
               <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span className="font-bold">Profesionalidad y Garantía en cada trabajo</span>
+              <span className="font-bold">Profesionalidad y Confianza en cada trabajo</span>
             </div>
           </div>
 
