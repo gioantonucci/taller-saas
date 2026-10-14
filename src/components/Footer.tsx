@@ -82,8 +82,8 @@ export default function Footer() {
                 <Clock className="w-4 h-4 text-[#e5242b] shrink-0 mt-0.5" />
                 <span>{hours}</span>
               </div>
-              <p className="text-neutral-500 italic text-[11px] pt-1">
-                Atención con cita previa y recepción personalizada de vehículos.
+              <p className="text-neutral-500 text-[11px] pt-1">
+                Consultas directas por WhatsApp y teléfono.
               </p>
             </div>
           </div>
