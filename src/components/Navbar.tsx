@@ -59,10 +59,14 @@ export default function Navbar() {
             </a>
 
             <a
-              href="/#contacto"
-              className="px-4 py-2 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-md shadow-[#e5242b]/20"
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-md flex items-center gap-1.5"
             >
-              Pedir cita
+              <span>WhatsApp</span>
             </a>
 
             <Link
@@ -116,11 +120,15 @@ export default function Navbar() {
               <span>{phone}</span>
             </a>
             <a
-              href="/#contacto"
+              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2.5 font-bold text-white bg-[#e5242b] rounded-lg uppercase tracking-wider text-xs"
+              className="w-full text-center py-2.5 font-bold text-white bg-[#25D366] rounded-lg uppercase tracking-wider text-xs"
             >
-              Pedir cita
+              WhatsApp Directo
             </a>
             <Link
               href="/login"

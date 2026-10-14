@@ -104,12 +104,12 @@ export default function ServiciosPage() {
 
                     <div className="mt-6 pt-4 border-t border-slate-100">
                       <a
-                        href="https://wa.me/5491145678900?text=Hola,%20quisiera%20consultar%20por%20el%20servicio%20de%20taller"
+                        href="https://wa.me/34656406286?text=Hola%20POGGI%20Taller%20Integral,%20quisiera%20consultar%20por%20un%20servicio%20para%20mi%20veh%C3%ADculo"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-bold text-sky-600 hover:text-sky-700 flex items-center gap-1"
+                        className="text-xs font-bold text-[#e5242b] hover:text-[#c91d23] flex items-center gap-1"
                       >
-                        <span>Consultar presupuesto</span>
+                        <span>Consultar por WhatsApp</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </a>
                     </div>

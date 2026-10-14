@@ -120,10 +120,14 @@ export default function PoggiLandingPage() {
               {/* Botones de Acción */}
               <div className="flex flex-wrap items-center gap-3.5 pt-3">
                 <a
-                  href="#contacto"
-                  className="px-7 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-lg shadow-[#e5242b]/25 transform hover:-translate-y-0.5 inline-flex items-center justify-center cursor-pointer"
+                  href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-7 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all shadow-lg shadow-[#e5242b]/25 transform hover:-translate-y-0.5 inline-flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Pedir cita
+                  <span>Consultar por WhatsApp</span>
                 </a>
                 <a
                   href={`tel:${phone}`}
@@ -256,10 +260,14 @@ export default function PoggiLandingPage() {
 
               <div>
                 <a
-                  href="#contacto"
+                  href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+                    "Hola POGGI Taller Integral, quisiera consultar por el servicio de diagnosis y electrónica automotriz."
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-7 py-3.5 bg-[#e5242b] hover:bg-[#c91d23] text-white text-xs font-black uppercase tracking-wider rounded-md transition-all inline-flex items-center gap-2 shadow-lg shadow-[#e5242b]/25 cursor-pointer"
                 >
-                  <span>Consultar servicio</span>
+                  <span>Consultar por WhatsApp</span>
                   <ChevronRight className="w-4 h-4" />
                 </a>
               </div>
@@ -506,7 +514,7 @@ export default function PoggiLandingPage() {
                   Estamos en Valencia.
                 </h2>
                 <p className="text-neutral-600 text-base leading-relaxed pt-2">
-                  Solicita tu cita o contacta directamente con nuestro taller para presupuestos, diagnósticos o mantenimiento general.
+                  Contacta directamente con nuestro taller por WhatsApp o llamada para presupuestos, diagnósticos o coordinación de turnos.
                 </p>
                 <div className="pt-4 flex flex-wrap gap-3">
                   <a
@@ -518,7 +526,7 @@ export default function PoggiLandingPage() {
                   </a>
                   <a
                     href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
-                      "Hola POGGI Taller Integral, quisiera solicitar una cita / presupuesto para mi vehículo."
+                      "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -579,7 +587,7 @@ export default function PoggiLandingPage() {
       <WhatsAppButton />
 
       {/* ========================================================================= */}
-      {/* BARRA MÓVIL INFERIOR FIJA (Igual a la web de Poggi) */}
+      {/* BARRA MÓVIL INFERIOR FIJA (WhatsApp y Llamada directa) */}
       {/* ========================================================================= */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#111] border-t border-neutral-700 flex text-center">
         <a
@@ -590,11 +598,14 @@ export default function PoggiLandingPage() {
           <span>Llamar</span>
         </a>
         <a
-          href="#contacto"
-          className="flex-1 py-3.5 px-2 text-[11px] font-black uppercase text-white bg-[#e5242b] hover:bg-[#c91d23] flex items-center justify-center gap-1.5"
+          href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(
+            "Hola POGGI Taller Integral, quisiera consultar por un turno / presupuesto para mi vehículo."
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 py-3.5 px-2 text-[11px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-1.5"
         >
-          <Calendar className="w-3.5 h-3.5 text-white" />
-          <span>Pedir cita</span>
+          <span>WhatsApp</span>
         </a>
         <Link
           href="/estado"
