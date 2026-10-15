@@ -282,6 +282,11 @@ export default function AppSidebar({ user }: AppSidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                    if (document.documentElement) document.documentElement.scrollTop = 0;
+                    if (document.body) document.body.scrollTop = 0;
+                  }}
                   className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all min-w-[56px] text-center ${
                     isActive
                       ? normalizedRole === "ADMIN"
@@ -381,6 +386,11 @@ export default function AppSidebar({ user }: AppSidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                    if (document.documentElement) document.documentElement.scrollTop = 0;
+                    if (document.body) document.body.scrollTop = 0;
+                  }}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
                       ? normalizedRole === "ADMIN"
