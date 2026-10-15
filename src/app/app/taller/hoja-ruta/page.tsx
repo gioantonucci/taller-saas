@@ -29,6 +29,7 @@ import {
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
 import { getStatusInfo } from "@/lib/order-status";
+import { useAppDialog } from "@/components/AppDialog";
 
 // Los 4 estados clave del flujo del taller
 const CORE_STATUSES = [
@@ -95,6 +96,7 @@ const QUICK_TASKS = [
 const QUICK_HOURS = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
 
 export default function HojaRutaMecanicoPage() {
+  const { alert, confirm } = useAppDialog();
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -228,7 +230,12 @@ export default function HojaRutaMecanicoPage() {
 
       if (isTargetRepair) {
         if (!targetOrder.mechanicId && !targetOrder.mechanic) {
-          alert("⚠️ Operación denegada: Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un técnico para liderar los trabajos.");
+          await alert({
+            title: "Mecánico Responsable Requerido",
+            message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un técnico para liderar los trabajos.",
+            variant: "warning",
+            icon: "warning",
+          });
           return;
         }
 
@@ -257,7 +264,12 @@ export default function HojaRutaMecanicoPage() {
         }
 
         if (!hasPeritaje) {
-          alert("⚠️ Operación denegada: No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso.");
+          await alert({
+            title: "Peritaje Previo Requerido",
+            message: "No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso.",
+            variant: "warning",
+            icon: "warning",
+          });
           setPeritajeModalOpen(true);
           return;
         }
@@ -279,7 +291,11 @@ export default function HojaRutaMecanicoPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo actualizar el estado"));
+        await alert({
+          title: "Error al actualizar estado",
+          message: data.error || "No se pudo actualizar el estado de la orden.",
+          variant: "danger",
+        });
         return;
       }
 
@@ -292,7 +308,11 @@ export default function HojaRutaMecanicoPage() {
       }
     } catch (err) {
       console.error("Error actualizando estado:", err);
-      alert("Error de conexión al actualizar el estado");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al actualizar el estado.",
+        variant: "danger",
+      });
     } finally {
       setSavingStatus(false);
     }
@@ -304,7 +324,12 @@ export default function HojaRutaMecanicoPage() {
     if (!tareaInput.trim() || !selectedOrder) return;
 
     if (!selectedOrderHasPeritaje) {
-      alert("⚠️ Operación denegada: Debe realizar el peritaje técnico de ingreso antes de poder registrar tareas.");
+      await alert({
+        title: "Peritaje Requerido",
+        message: "Debe realizar el peritaje técnico de ingreso antes de poder registrar tareas mecánicas.",
+        variant: "warning",
+        icon: "warning",
+      });
       setPeritajeModalOpen(true);
       return;
     }
@@ -322,7 +347,11 @@ export default function HojaRutaMecanicoPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo registrar la tarea"));
+        await alert({
+          title: "Error al registrar tarea",
+          message: data.error || "No se pudo registrar la tarea en la orden.",
+          variant: "danger",
+        });
         return;
       }
 
@@ -338,7 +367,11 @@ export default function HojaRutaMecanicoPage() {
       }
     } catch (err) {
       console.error("Error registrando horas:", err);
-      alert("Error de conexión al registrar horas");
+      await alert({
+        title: "Error de conexión",
+        message: "Ocurrió un error al intentar registrar las horas de trabajo.",
+        variant: "danger",
+      });
     } finally {
       setSavingWorkLog(false);
     }

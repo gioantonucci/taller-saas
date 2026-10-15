@@ -23,8 +23,10 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { openWorkOrderSchema, OpenWorkOrderValues } from "@/lib/validations";
+import { useAppDialog } from "@/components/AppDialog";
 
 export default function VehiculoHistorialClinicoPage() {
+  const { alert, confirm } = useAppDialog();
   const { patente } = useParams();
   const router = useRouter();
   const [vehicle, setVehicle] = useState<any | null>(null);
@@ -79,12 +81,14 @@ export default function VehiculoHistorialClinicoPage() {
     (o: any) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
   );
 
-  const openNewOrderModal = () => {
+  const openNewOrderModal = async () => {
     if (!vehicle) return;
     if (activeOrder) {
-      alert(
-        `Este vehículo ya se encuentra en el taller con la Orden activa #${activeOrder.numeroOrden} (${activeOrder.estado}). No se puede abrir una nueva orden simultánea.`
-      );
+      await alert({
+        title: "Orden Activa en Taller",
+        message: `Este vehículo ya se encuentra en el taller con la Orden activa #${activeOrder.numeroOrden} (${activeOrder.estado}). No se puede abrir una nueva orden simultánea.`,
+        variant: "warning",
+      });
       return;
     }
     setOrderError(null);
@@ -137,9 +141,14 @@ export default function VehiculoHistorialClinicoPage() {
 
   const handleSoftDelete = async () => {
     if (!vehicle) return;
-    const confirmDelete = window.confirm(
-      `¿Confirmás la eliminación del vehículo ${vehicle.marca} ${vehicle.modelo} (${vehicle.patente})?\n\nSe preservará todo el historial en órdenes y auditoría intacto.`
-    );
+    const confirmDelete = await confirm({
+      title: "Eliminar Vehículo",
+      message: `¿Confirmás la eliminación del vehículo ${vehicle.marca} ${vehicle.modelo} (${vehicle.patente})?\n\nSe preservará todo el historial en órdenes y auditoría intacto.`,
+      confirmText: "Eliminar Vehículo",
+      cancelText: "Cancelar",
+      variant: "danger",
+      icon: "trash",
+    });
     if (!confirmDelete) return;
 
     setDeleting(true);
@@ -149,14 +158,26 @@ export default function VehiculoHistorialClinicoPage() {
       });
 
       if (res.ok) {
-        alert("Vehículo eliminado correctamente.");
+        await alert({
+          title: "Vehículo Eliminado",
+          message: "El vehículo ha sido eliminado correctamente del sistema.",
+          variant: "success",
+        });
         router.push("/app/vehiculos");
       } else {
         const data = await res.json();
-        alert(data.error || "No se pudo eliminar el vehículo");
+        await alert({
+          title: "Error al eliminar",
+          message: data.error || "No se pudo eliminar el vehículo",
+          variant: "danger",
+        });
       }
     } catch {
-      alert("Error de conexión al eliminar el vehículo");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al eliminar el vehículo.",
+        variant: "danger",
+      });
     } finally {
       setDeleting(false);
     }

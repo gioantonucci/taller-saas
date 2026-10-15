@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Camera, X, RotateCcw, Check, RefreshCw, AlertCircle } from "lucide-react";
+import { useAppDialog } from "@/components/AppDialog";
 
 interface InAppCameraModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export default function InAppCameraModal({
   onClose,
   onCapture,
 }: InAppCameraModalProps) {
+  const { alert } = useAppDialog();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
@@ -164,7 +166,11 @@ export default function InAppCameraModal({
       await onCapture(file);
       handleClose();
     } catch (err: any) {
-      alert("Error al guardar la fotografía: " + (err?.message || "desconocido"));
+      await alert({
+        title: "Error al guardar fotografía",
+        message: err?.message || "No se pudo procesar la fotografía tomada.",
+        variant: "danger",
+      });
     } finally {
       setSaving(false);
     }

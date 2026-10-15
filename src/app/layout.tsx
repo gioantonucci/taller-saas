@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import ScrollToTop from "@/components/ScrollToTop";
+import { AppDialogProvider } from "@/components/AppDialog";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,7 +29,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ScrollToTop />
         </Suspense>
-        {children}
+        <AppDialogProvider>
+          {children}
+        </AppDialogProvider>
       </body>
     </html>
   );

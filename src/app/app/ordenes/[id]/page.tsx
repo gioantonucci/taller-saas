@@ -29,8 +29,10 @@ import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
 import { getStatusInfo } from "@/lib/order-status";
+import { useAppDialog } from "@/components/AppDialog";
 
 export default function OrdenDetallePage() {
+  const { alert, confirm } = useAppDialog();
   const { id } = useParams();
   const router = useRouter();
   const [order, setOrder] = useState<any | null>(null);
@@ -189,10 +191,18 @@ export default function OrdenDetallePage() {
         setAssignModalOpen(false);
       } else {
         const d = await res.json();
-        alert(d.error || "Error al asignar mecánico");
+        await alert({
+          title: "Error al asignar mecánico",
+          message: d.error || "No se pudo asignar el mecánico responsable.",
+          variant: "danger",
+        });
       }
     } catch {
-      alert("Error de conexión al asignar mecánico");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al asignar mecánico.",
+        variant: "danger",
+      });
     } finally {
       setAssigning(false);
     }
@@ -238,7 +248,11 @@ export default function OrdenDetallePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo marcar como entregado"));
+        await alert({
+          title: "Error al marcar como entregado",
+          message: data.error || "No se pudo marcar como entregado",
+          variant: "danger",
+        });
         return;
       }
       setOrder(data.order);
@@ -247,7 +261,11 @@ export default function OrdenDetallePage() {
       router.push(`/app/ordenes?delivered=${order.numeroOrden}`);
     } catch (err) {
       console.error("Error al marcar como entregado:", err);
-      alert("Error de conexión al marcar como entregado");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al marcar como entregado.",
+        variant: "danger",
+      });
     } finally {
       setDelivering(false);
     }
@@ -257,7 +275,12 @@ export default function OrdenDetallePage() {
     if (!order) return;
 
     if (order.estado === "ENTREGADO" || order.estado === "ARCHIVADO") {
-      alert("❌ La orden de trabajo ya se encuentra entregada y archivada. No se puede revertir ni modificar su estado.");
+      await alert({
+        title: "Orden Archivada",
+        message: "La orden de trabajo ya se encuentra entregada y archivada. No se puede revertir ni modificar su estado.",
+        variant: "danger",
+        icon: "lock",
+      });
       return;
     }
 
@@ -266,7 +289,11 @@ export default function OrdenDetallePage() {
         handleMarkAsDelivered();
         return;
       }
-      alert("❌ La orden de trabajo ya se encuentra finalizada técnicamente. Solo puede ser marcada como entregada para archivarla.");
+      await alert({
+        title: "Reparación Finalizada",
+        message: "La orden de trabajo ya se encuentra finalizada técnicamente. Solo puede ser marcada como entregada para archivarla.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -277,7 +304,11 @@ export default function OrdenDetallePage() {
       order.estado === "ESPERANDO_REPUESTOS";
 
     if (isPastInspection && (newStatus === "PENDIENTE_PERITAJE" || newStatus === "PENDIENTE")) {
-      alert("❌ No es posible volver hacia atrás al estado de peritaje inicial una vez que el vehículo ya fue peritado.");
+      await alert({
+        title: "Acción no permitida",
+        message: "No es posible volver hacia atrás al estado de peritaje inicial una vez que el vehículo ya fue peritado.",
+        variant: "danger",
+      });
       return;
     }
 
@@ -290,7 +321,12 @@ export default function OrdenDetallePage() {
       newStatus === "ESPERANDO_REPUESTOS";
 
     if (isTargetRepair && !order.mechanicId && !order.mechanic) {
-      alert("❌ Operación denegada: Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico para iniciar los trabajos técnicos.");
+      await alert({
+        title: "Mecánico Responsable Requerido",
+        message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico para iniciar los trabajos técnicos.",
+        variant: "warning",
+        icon: "warning",
+      });
       setSelectedMechanicToAssign("");
       setAssignModalOpen(true);
       return;
@@ -298,7 +334,12 @@ export default function OrdenDetallePage() {
 
     // REGLA DE NEGOCIO ESTRICTA: Si no se realizó el peritaje no debería poder llegar al punto de reparación
     if (isTargetRepair && !isPeritajeRealizado) {
-      alert("❌ Operación denegada: No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso del vehículo.");
+      await alert({
+        title: "Peritaje Previo Requerido",
+        message: "No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso del vehículo.",
+        variant: "warning",
+        icon: "warning",
+      });
       setPeritajeModalOpen(true);
       return;
     }
@@ -306,28 +347,49 @@ export default function OrdenDetallePage() {
     // Si marca como terminado: validar que exista mecánico y peritaje antes de abrir modal
     if (newStatus === "FINALIZADO" || newStatus === "TERMINADO") {
       if (!order.mechanicId && !order.mechanic) {
-        alert("❌ No se puede finalizar la orden sin un mecánico asignado responsable. Debe designar un técnico antes de concluir la reparación.");
+        await alert({
+          title: "Mecánico Responsable Requerido",
+          message: "No se puede finalizar la orden sin un mecánico asignado responsable. Debe designar un técnico antes de concluir la reparación.",
+          variant: "warning",
+          icon: "warning",
+        });
         return;
       }
       if (!isPeritajeRealizado) {
-        alert("❌ No se puede finalizar la orden sin haber realizado el peritaje técnico de ingreso.");
+        await alert({
+          title: "Peritaje Previo Requerido",
+          message: "No se puede finalizar la orden sin haber realizado el peritaje técnico de ingreso.",
+          variant: "warning",
+          icon: "warning",
+        });
         return;
       }
       setIsFinalizarModalOpen(true);
       return;
     }
 
+    let confirmTitle = "¿Confirmar cambio de estado?";
     let confirmMsg = "";
     if (newStatus === "EN_ESPERA_REPUESTOS") {
+      confirmTitle = "Pausar por Repuestos";
       confirmMsg = "¿Desea pausar los trabajos en el taller mientras se esperan repuestos o insumos?";
     } else if (newStatus === "EN_REPARACION") {
+      confirmTitle = "Reanudar Reparación";
       confirmMsg = "¿Desea reanudar los trabajos mecánicos en taller?";
     } else {
       const targetInfo = getStatusInfo(newStatus);
       confirmMsg = `¿Confirmar cambio de estado a '${targetInfo.label}'?`;
     }
 
-    if (!window.confirm(confirmMsg)) {
+    const isConfirmed = await confirm({
+      title: confirmTitle,
+      message: confirmMsg,
+      confirmText: "Confirmar",
+      cancelText: "Cancelar",
+      variant: "warning",
+    });
+
+    if (!isConfirmed) {
       return;
     }
 
@@ -340,13 +402,21 @@ export default function OrdenDetallePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo actualizar el estado"));
+        await alert({
+          title: "Error al actualizar estado",
+          message: data.error || "No se pudo actualizar el estado de la orden.",
+          variant: "danger",
+        });
         return;
       }
       setOrder(data.order);
     } catch (err) {
       console.error("Error al actualizar estado:", err);
-      alert("Error de conexión al actualizar estado");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al actualizar el estado.",
+        variant: "danger",
+      });
     } finally {
       setUpdating(false);
     }

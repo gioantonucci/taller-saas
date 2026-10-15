@@ -18,8 +18,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
+import { useAppDialog } from "@/components/AppDialog";
 
 export default function ClienteDetallePage() {
+  const { alert, confirm } = useAppDialog();
   const { id } = useParams();
   const router = useRouter();
   const [client, setClient] = useState<any | null>(null);
@@ -62,11 +64,15 @@ export default function ClienteDetallePage() {
   }, [id]);
 
   const handleSoftDelete = async () => {
-    if (
-      !confirm(
-        "¿Está seguro de eliminar a este cliente? Se mantendrá el historial de órdenes y auditoría intacto."
-      )
-    ) {
+    const isConfirmed = await confirm({
+      title: "Eliminar Cliente",
+      message: "¿Está seguro de eliminar a este cliente? Se mantendrá el historial de órdenes y auditoría intacto.",
+      confirmText: "Eliminar Cliente",
+      cancelText: "Cancelar",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!isConfirmed) {
       return;
     }
     setDeleting(true);
@@ -75,14 +81,27 @@ export default function ClienteDetallePage() {
         method: "DELETE",
       });
       if (res.ok) {
-        alert("Cliente eliminado correctamente.");
+        await alert({
+          title: "Cliente Eliminado",
+          message: "El cliente ha sido eliminado correctamente del sistema.",
+          variant: "success",
+        });
         router.push("/app/clientes");
       } else {
         const data = await res.json();
-        alert(data.error || "No se pudo eliminar el cliente");
+        await alert({
+          title: "Error al eliminar",
+          message: data.error || "No se pudo eliminar el cliente",
+          variant: "danger",
+        });
       }
     } catch (err) {
       console.error("Error al eliminar cliente:", err);
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al eliminar el cliente.",
+        variant: "danger",
+      });
     } finally {
       setDeleting(false);
     }

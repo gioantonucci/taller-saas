@@ -8,6 +8,7 @@ import {
   Car,
 } from "lucide-react";
 import { DamagePin } from "@/types";
+import { useAppDialog } from "@/components/AppDialog";
 
 interface CarDamageBlueprintProps {
   pins: DamagePin[];
@@ -75,6 +76,7 @@ export default function CarDamageBlueprint({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Modal para agregar nuevo pin
+  const { confirm } = useAppDialog();
   const [pendingCoords, setPendingCoords] = useState<{ x: number; y: number } | null>(null);
   const [selectedTipo, setSelectedTipo] = useState<DamagePin["tipo"]>("RAYON");
   const [selectedSeveridad, setSelectedSeveridad] = useState<"LEVE" | "MODERADO" | "GRAVE">("LEVE");
@@ -124,9 +126,18 @@ export default function CarDamageBlueprint({
     setActivePin(null);
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (!onChange || readOnly) return;
-    if (window.confirm("¿Desea borrar todos los marcadores de daño del vehículo?")) {
+    const isConfirmed = await confirm({
+      title: "¿Borrar todos los marcadores?",
+      message: "Se eliminarán todos los pines de daños registrados en el diagrama de carrocería del vehículo.",
+      confirmText: "Borrar marcadores",
+      cancelText: "Cancelar",
+      variant: "danger",
+      icon: "trash",
+    });
+
+    if (isConfirmed) {
       onChange([]);
     }
   };

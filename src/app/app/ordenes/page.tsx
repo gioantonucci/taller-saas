@@ -28,6 +28,7 @@ import {
 import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
+import { useAppDialog } from "@/components/AppDialog";
 
 // Badge Matrícula Compacto pero legible y de tamaño táctil
 function ArgentinePlateBadge({ patente }: { patente: string }) {
@@ -40,6 +41,7 @@ function ArgentinePlateBadge({ patente }: { patente: string }) {
 }
 
 export default function OrdenesPage() {
+  const { alert } = useAppDialog();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -519,7 +521,11 @@ export default function OrdenesPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo marcar como entregado"));
+        await alert({
+          title: "Error al marcar como entregado",
+          message: data.error || "No se pudo marcar como entregado",
+          variant: "danger",
+        });
         return;
       }
       setDeliveredSuccessMsg(
@@ -530,7 +536,11 @@ export default function OrdenesPage() {
       fetchOrders(true);
     } catch (err) {
       console.error("Error al marcar como entregado:", err);
-      alert("Error de conexión al marcar como entregado");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al marcar como entregado.",
+        variant: "danger",
+      });
     } finally {
       setDeliveringOrderId(null);
     }

@@ -18,8 +18,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { quickVehicleAndClientSchema, QuickVehicleAndClientValues } from "@/lib/validations";
+import { useAppDialog } from "@/components/AppDialog";
 
 function VehiculosContent() {
+  const { alert, confirm } = useAppDialog();
   const searchParams = useSearchParams();
   const initialOpen = searchParams.get("nuevo") === "1";
   const initialClientId = searchParams.get("clientId") || "";
@@ -149,9 +151,14 @@ function VehiculosContent() {
   };
 
   const handleSoftDelete = async (v: any) => {
-    const confirmDelete = window.confirm(
-      `¿Confirmás la eliminación del vehículo ${v.marca} ${v.modelo} (${v.patente})?\n\nSe preservará todo el historial de órdenes de trabajo asociadas.`
-    );
+    const confirmDelete = await confirm({
+      title: "Eliminar Vehículo",
+      message: `¿Confirmás la eliminación del vehículo ${v.marca} ${v.modelo} (${v.patente})?\n\nSe preservará todo el historial de órdenes de trabajo asociadas.`,
+      confirmText: "Eliminar Vehículo",
+      cancelText: "Cancelar",
+      variant: "danger",
+      icon: "trash",
+    });
     if (!confirmDelete) return;
 
     try {
@@ -165,10 +172,18 @@ function VehiculosContent() {
         fetchVehicles();
       } else {
         const data = await res.json();
-        alert(data.error || "No se pudo eliminar el vehículo");
+        await alert({
+          title: "Error al eliminar",
+          message: data.error || "No se pudo eliminar el vehículo",
+          variant: "danger",
+        });
       }
     } catch {
-      alert("Error de conexión al eliminar el vehículo");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al eliminar el vehículo.",
+        variant: "danger",
+      });
     }
   };
 

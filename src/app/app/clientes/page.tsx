@@ -20,8 +20,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { clientFormSchema, ClientFormValues } from "@/lib/validations";
+import { useAppDialog } from "@/components/AppDialog";
 
 export default function ClientesPage() {
+  const { alert, confirm } = useAppDialog();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -138,9 +140,14 @@ export default function ClientesPage() {
   };
 
   const handleSoftDelete = async (client: any) => {
-    const confirmDelete = window.confirm(
-      `¿Confirmás la eliminación del cliente ${client.nombre} ${client.apellido} (DNI ${client.dni})?\n\nSe conservará su historial y los vehículos asociados.`
-    );
+    const confirmDelete = await confirm({
+      title: "Eliminar Cliente",
+      message: `¿Confirmás la eliminación del cliente ${client.nombre} ${client.apellido || ""} (DNI ${client.dni})?\n\nSe conservará su historial y los vehículos asociados.`,
+      confirmText: "Eliminar Cliente",
+      cancelText: "Cancelar",
+      variant: "danger",
+      icon: "trash",
+    });
     if (!confirmDelete) return;
 
     try {
@@ -154,10 +161,18 @@ export default function ClientesPage() {
         fetchClients();
       } else {
         const data = await res.json();
-        alert(data.error || "No se pudo eliminar el cliente");
+        await alert({
+          title: "Error al eliminar",
+          message: data.error || "No se pudo eliminar el cliente",
+          variant: "danger",
+        });
       }
     } catch {
-      alert("Error de conexión al eliminar al cliente");
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor al eliminar al cliente.",
+        variant: "danger",
+      });
     }
   };
 

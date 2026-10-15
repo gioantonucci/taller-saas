@@ -25,6 +25,7 @@ import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
 import InAppCameraModal from "@/components/InAppCameraModal";
+import { useAppDialog } from "@/components/AppDialog";
 
 interface PeritajeModalProps {
   order: any;
@@ -43,6 +44,8 @@ export default function PeritajeIngresoModal({
   isMechanic = false,
   readOnly = false,
 }: PeritajeModalProps) {
+  const { confirm, alert } = useAppDialog();
+
   // Inicializar estado del peritaje a partir de la orden existente si existe
   const initialPeritaje: PeritajeIngreso = (() => {
     const defaultData: PeritajeIngreso = {
@@ -277,9 +280,12 @@ export default function PeritajeIngresoModal({
           fileInputCameraRef.current?.click();
         }, 150);
       } else {
-        alert(
-          "⚠️ Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración del sitio."
-        );
+        await alert({
+          title: "Acceso a Cámara Necesario",
+          message: "Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración de permisos del sitio.",
+          variant: "warning",
+          icon: "warning",
+        });
       }
     }
   };
@@ -488,7 +494,12 @@ export default function PeritajeIngresoModal({
 
   const handleSavePeritaje = async () => {
     if (effectiveReadOnly) {
-      alert("❌ Operación denegada: El peritaje técnico de ingreso ya se encuentra cerrado e inmutable. Por normativa legal y de auditoría, los datos del peritaje no pueden ser modificados una vez asentados.");
+      await alert({
+        title: "Peritaje Inmutable",
+        message: "El peritaje técnico de ingreso ya se encuentra cerrado e inmutable. Por normativa legal y de auditoría, los datos del peritaje no pueden ser modificados una vez asentados.",
+        variant: "danger",
+        icon: "lock",
+      });
       return;
     }
 
@@ -496,17 +507,27 @@ export default function PeritajeIngresoModal({
     const targetMechanicId = selectedMechanicId || order?.mechanicId;
 
     if (isPending && !targetMechanicId) {
-      alert("❌ Operación denegada: Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico antes de cerrar el peritaje e iniciar los trabajos.");
+      await alert({
+        title: "Mecánico Responsable Requerido",
+        message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico antes de cerrar el peritaje e iniciar los trabajos técnicos.",
+        variant: "warning",
+        icon: "warning",
+      });
       return;
     }
 
-    const confirmMessage =
-      "⚠️ ATENCIÓN: ASENTAMIENTO Y CIERRE DE PERITAJE DE INGRESO\n\n" +
-      "Al guardar este peritaje legal, quedará CERRADO E INMUTABLE.\n" +
-      "El estado avanzará a 'Peritado / En reparación' y por normativa legal y resguardo del cliente NO SE PODRÁ EDITAR una vez cerrado.\n\n" +
-      "¿Desea confirmar y asentar el peritaje de ingreso definitivamente?";
+    const isConfirmed = await confirm({
+      title: "Asentamiento y Cierre de Peritaje",
+      message:
+        "Al asentar este peritaje legal, el documento quedará CERRADO E INMUTABLE.\n\n" +
+        "El estado de la orden avanzará a 'Peritado / En reparación' y por resguardo legal y de auditoría NO SE PODRÁ MODIFICAR una vez confirmado.",
+      confirmText: "Confirmar y Asentar Definitivamente",
+      cancelText: "Seguir editando",
+      variant: "warning",
+      icon: "shield",
+    });
 
-    if (!window.confirm(confirmMessage)) {
+    if (!isConfirmed) {
       return;
     }
 
@@ -547,16 +568,31 @@ export default function PeritajeIngresoModal({
 
       const data = await res.json();
       if (!res.ok) {
-        alert("❌ Error: " + (data.error || "No se pudo actualizar el peritaje"));
+        await alert({
+          title: "Error al actualizar peritaje",
+          message: data.error || "No se pudo actualizar el peritaje",
+          variant: "danger",
+          icon: "danger",
+        });
         return;
       }
 
       onSaved();
-      alert("✅ Peritaje de ingreso asentado y cerrado con éxito. Documento legal protegido.");
+      await alert({
+        title: "Peritaje Asentado con Éxito",
+        message: "El peritaje de ingreso ha sido registrado y cerrado satisfactoriamente. Documento legal protegido.",
+        variant: "success",
+        icon: "success",
+      });
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error guardando peritaje:", err);
-      alert("Error de conexión al guardar el peritaje");
+      await alert({
+        title: "Error de Conexión",
+        message: "No se pudo conectar con el servidor para guardar el peritaje. Intente nuevamente.",
+        variant: "danger",
+        icon: "danger",
+      });
     } finally {
       setSaving(false);
     }
