@@ -210,6 +210,79 @@ export default function PeritajeIngresoModal({
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const fileInputCameraRef = useRef<HTMLInputElement | null>(null);
+  const [cameraPermissionStatus, setCameraPermissionStatus] = useState<
+    "granted" | "prompt" | "denied" | "unknown"
+  >("unknown");
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: "camera" as any })
+        .then((perm) => {
+          setCameraPermissionStatus(perm.state as any);
+          perm.onchange = () => {
+            setCameraPermissionStatus(perm.state as any);
+          };
+        })
+        .catch(() => {
+          setCameraPermissionStatus("unknown");
+        });
+    }
+  }, []);
+
+  const requestCameraAccess = async (): Promise<boolean> => {
+    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      return false;
+    }
+    setIsRequestingPermission(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      setCameraPermissionStatus("granted");
+      return true;
+    } catch (err: any) {
+      console.warn("Permiso de cámara denegado:", err);
+      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+        setCameraPermissionStatus("denied");
+      }
+      return false;
+    } finally {
+      setIsRequestingPermission(false);
+    }
+  };
+
+  const handleNativeCameraClick = async (e: React.MouseEvent<HTMLLabelElement>) => {
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as any).MSStream;
+
+    if (isIOS) {
+      // En iOS Safari, capture="environment" abre directamente la cámara nativa
+      return;
+    }
+
+    // En Android / Chrome: si el permiso de cámara no ha sido concedido previamente,
+    // solicitamos acceso primero con getUserMedia para que el navegador y Android muestren el diálogo nativo de permisos.
+    if (cameraPermissionStatus !== "granted") {
+      e.preventDefault();
+      const granted = await requestCameraAccess();
+      if (granted) {
+        setTimeout(() => {
+          fileInputCameraRef.current?.click();
+        }, 150);
+      } else {
+        alert(
+          "⚠️ Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración del sitio."
+        );
+      }
+    }
+  };
 
 
 
@@ -360,6 +433,11 @@ export default function PeritajeIngresoModal({
       try {
         inputEl.value = "";
       } catch {}
+      if (fileInputCameraRef.current) {
+        try {
+          fileInputCameraRef.current.value = "";
+        } catch {}
+      }
     }
   };
 
@@ -1334,19 +1412,68 @@ export default function PeritajeIngresoModal({
                     </p>
                   </div>
 
+                  {/* Estado y Solicitud de Permiso de Cámara Nativa */}
+                  {cameraPermissionStatus !== "granted" && (
+                    <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-center justify-between gap-3">
+                      <div className="text-[11px] leading-tight">
+                        <span className="font-bold flex items-center gap-1.5 mb-0.5">
+                          <Camera className="w-3.5 h-3.5 text-amber-700" />
+                          Permiso de Cámara Nativa
+                        </span>
+                        <span className="text-amber-800">
+                          Para que tu celular (Android o iOS) abra la cámara nativa directamente en vez de la galería, solicitá el permiso del navegador:
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={requestCameraAccess}
+                        disabled={isRequestingPermission}
+                        className="px-3 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-[11px] font-bold shrink-0 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        {isRequestingPermission ? "Solicitando..." : "Solicitar Acceso"}
+                      </button>
+                    </div>
+                  )}
+
+                  {cameraPermissionStatus === "granted" && (
+                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 flex items-center gap-2 text-[11px] font-semibold">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Acceso a cámara nativa habilitado (Android / iOS)</span>
+                    </div>
+                  )}
+
+                  {cameraPermissionStatus === "denied" && (
+                    <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-rose-900 text-[11px]">
+                      <span className="font-bold flex items-center gap-1.5 mb-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        Acceso a cámara denegado
+                      </span>
+                      <span>
+                        El permiso de cámara fue bloqueado en este navegador. Habilitalo en los ajustes del navegador o usá el botón de "Subir desde Galería / Archivos".
+                      </span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Botón 1: Sacar foto con la cámara del celular (Visor en vivo directo) */}
-                    <button
-                      type="button"
-                      onClick={() => setIsCameraModalOpen(true)}
-                      disabled={uploading}
+                    {/* Botón 1: Sacar foto con la cámara nativa del celular (Android / iOS) */}
+                    <label
+                      onClick={handleNativeCameraClick}
                       className={`flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Camera className="w-4 h-4 text-sky-400 shrink-0" />
-                      <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara"}</span>
-                    </button>
+                      <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara Nativa"}</span>
+                      <input
+                        ref={fileInputCameraRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
 
                     {/* Botón 2: Subir fotos desde la galería o archivos */}
                     <label
@@ -1365,6 +1492,17 @@ export default function PeritajeIngresoModal({
                         className="sr-only"
                       />
                     </label>
+                  </div>
+
+                  {/* Enlace alternativo para PC / webcam */}
+                  <div className="text-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsCameraModalOpen(true)}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 underline transition-colors cursor-pointer"
+                    >
+                      ¿Estás en computadora / PC? Abrir visor web de cámara
+                    </button>
                   </div>
 
                   {uploadMsg && (
