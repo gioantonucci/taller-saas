@@ -16,6 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 import { UserSession } from "@/types";
+import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 
 interface AppSidebarProps {
   user: UserSession;
@@ -26,6 +27,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [switchTargetRole, setSwitchTargetRole] = useState<string>("");
 
   // Normalizar rol
   const role = String(user.role || "").toUpperCase();
@@ -36,22 +38,32 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       ? "RECEPTION"
       : "MECHANIC";
 
-  // Manejo de Logout funcional
+  // Manejo de Logout funcional con mínima carga visual perceptible
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
+      await Promise.all([
+        fetch("/api/auth/logout", { method: "POST" }),
+        new Promise((r) => setTimeout(r, 600)),
+      ]);
+      window.location.href = "/login";
     } catch (err) {
       console.error("Error al cerrar sesión:", err);
       window.location.href = "/login";
     }
   };
 
-  // Selector rápido para pruebas (evaluación de roles en 1 clic)
+  // Selector rápido para pruebas (evaluación de roles en 1 clic con mínima carga visual)
   const handleQuickSwitch = async (email: string) => {
+    const targetName = email.includes("admin")
+      ? "Administrador"
+      : email.includes("recepcion")
+      ? "Recepción"
+      : "Mecánico";
+
+    setSwitchTargetRole(targetName);
     setIsSwitching(true);
+
     try {
       const password = email.includes("admin")
         ? "admin123"
@@ -59,11 +71,14 @@ export default function AppSidebar({ user }: AppSidebarProps) {
         ? "recepcion123"
         : "mecanico123";
 
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const [res] = await Promise.all([
+        fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }),
+        new Promise((r) => setTimeout(r, 650)),
+      ]);
 
       if (res.ok) {
         const data = await res.json();
@@ -75,6 +90,8 @@ export default function AppSidebar({ user }: AppSidebarProps) {
         } else {
           window.location.href = "/app/dashboard";
         }
+      } else {
+        setIsSwitching(false);
       }
     } catch (err) {
       console.error("Error al cambiar rol:", err);
@@ -153,10 +170,24 @@ export default function AppSidebar({ user }: AppSidebarProps) {
 
   return (
     <>
+      {/* Overlay de Carga al Cerrar Sesión */}
+      <AuthLoadingOverlay
+        isOpen={loggingOut}
+        message="Cerrando sesión..."
+        submessage="Finalizando sesión de forma segura..."
+      />
+
+      {/* Overlay de Carga al Cambiar de Usuario */}
+      <AuthLoadingOverlay
+        isOpen={isSwitching}
+        message="Cambiando de usuario..."
+        submessage={`Cargando perfil y permisos de ${switchTargetRole || "usuario"}...`}
+      />
+
       {/* ========================================================================= */}
       {/* 1. TOP BAR MOBILE (Visible en celulares: md:hidden)                       */}
       {/* ========================================================================= */}
-      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-slate-900 text-white px-4 py-2.5 border-b border-slate-800 shadow-sm">
+      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-slate-900 text-white px-3 sm:px-4 py-2 border-b border-slate-800 shadow-sm">
         <div className="flex items-center gap-2">
           <img
             src="/images/poggi/logo.png"
@@ -177,14 +208,59 @@ export default function AppSidebar({ user }: AppSidebarProps) {
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="text-xs text-rose-300 hover:text-white flex items-center gap-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="text-[11px] font-semibold">Salir</span>
-        </button>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Selector rápido de rol para móvil */}
+          <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60">
+            <button
+              type="button"
+              onClick={() => handleQuickSwitch("admin@taller.com")}
+              disabled={isSwitching || loggingOut}
+              className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                normalizedRole === "ADMIN"
+                  ? "bg-purple-600 text-white shadow-2xs"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Cambiar a Administrador"
+            >
+              Adm
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickSwitch("recepcion@taller.com")}
+              disabled={isSwitching || loggingOut}
+              className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                normalizedRole === "RECEPTION"
+                  ? "bg-sky-600 text-white shadow-2xs"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Cambiar a Recepción"
+            >
+              Rec
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickSwitch("mecanico@taller.com")}
+              disabled={isSwitching || loggingOut}
+              className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                normalizedRole === "MECHANIC"
+                  ? "bg-emerald-600 text-white shadow-2xs"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Cambiar a Mecánico"
+            >
+              Mec
+            </button>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut || isSwitching}
+            className="text-xs text-rose-300 hover:text-white flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-semibold">Salir</span>
+          </button>
+        </div>
       </header>
 
       {/* ========================================================================= */}
@@ -335,7 +411,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
               <button
                 type="button"
                 onClick={() => handleQuickSwitch("admin@taller.com")}
-                disabled={isSwitching}
+                disabled={isSwitching || loggingOut}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                   normalizedRole === "ADMIN"
                     ? "bg-purple-900/60 text-purple-200 border-purple-500"
@@ -348,7 +424,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
               <button
                 type="button"
                 onClick={() => handleQuickSwitch("recepcion@taller.com")}
-                disabled={isSwitching}
+                disabled={isSwitching || loggingOut}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                   normalizedRole === "RECEPTION"
                     ? "bg-sky-900/60 text-sky-200 border-sky-500"
@@ -361,7 +437,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
               <button
                 type="button"
                 onClick={() => handleQuickSwitch("mecanico@taller.com")}
-                disabled={isSwitching}
+                disabled={isSwitching || loggingOut}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                   normalizedRole === "MECHANIC"
                     ? "bg-emerald-900/60 text-emerald-200 border-emerald-500"
@@ -377,7 +453,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
           {/* Botón de Cerrar Sesión */}
           <button
             onClick={handleLogout}
-            disabled={loggingOut}
+            disabled={isSwitching || loggingOut}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/40 hover:text-rose-300 border border-slate-700/80 hover:border-rose-700/50 text-slate-300 text-xs font-bold transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />

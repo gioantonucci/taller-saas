@@ -12,6 +12,7 @@ import {
   Clock,
   UserCheck,
 } from "lucide-react";
+import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 
 function LoginForm() {
   const router = useRouter();
@@ -34,11 +35,15 @@ function LoginForm() {
     const targetPassword = customPass || password;
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: targetEmail, password: targetPassword }),
-      });
+      // Mínima carga visual para indicarle al usuario la transición
+      const [res] = await Promise.all([
+        fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: targetEmail, password: targetPassword }),
+        }),
+        new Promise((r) => setTimeout(r, 600)),
+      ]);
 
       const data = await res.json();
 
@@ -51,15 +56,14 @@ function LoginForm() {
       // Redirección inteligente según el rol del usuario o URL previa
       const role = String(data.user?.role || "").toUpperCase();
       if (from && from.startsWith("/") && !from.startsWith("//")) {
-        router.push(from);
+        window.location.href = from;
       } else if (role === "MECHANIC" || role === "MECANICO") {
-        router.push("/app/taller/hoja-ruta");
+        window.location.href = "/app/taller/hoja-ruta";
       } else if (role === "RECEPTION" || role === "RECEPCION") {
-        router.push("/app/ordenes");
+        window.location.href = "/app/ordenes";
       } else {
-        router.push("/app/dashboard");
+        window.location.href = "/app/dashboard";
       }
-      router.refresh();
     } catch {
       setError("No se pudo conectar con el servidor de autenticación");
       setLoading(false);
@@ -74,6 +78,13 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Overlay de Carga al Iniciar Sesión */}
+      <AuthLoadingOverlay
+        isOpen={loading}
+        message="Iniciando sesión..."
+        submessage="Validando credenciales y preparando el panel..."
+      />
+
       {/* Background decorations */}
       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
@@ -81,15 +92,19 @@ function LoginForm() {
         {/* Logo */}
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2.5 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-sky-950">
-              <Wrench className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-white p-1.5 flex items-center justify-center shadow-xl shadow-slate-950 border border-slate-700">
+              <img
+                src="/images/poggi/logo.png"
+                alt="POGGI"
+                className="w-9 h-9 object-contain"
+              />
             </div>
             <div className="text-left">
               <span className="font-extrabold text-white text-xl tracking-tight block">
-                TALLER <span className="text-sky-400">CENTRAL</span>
+                POGGI <span className="text-[#e5242b]">TALLER INTEGRAL</span>
               </span>
               <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase block">
-                SaaS Automotor • Fase 1
+                Panel de Gestión
               </span>
             </div>
           </Link>
