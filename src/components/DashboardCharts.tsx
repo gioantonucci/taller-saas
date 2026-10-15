@@ -51,8 +51,8 @@ export default function DashboardCharts({
   return (
     <div className="space-y-6">
       {/* SECCIÓN 1: PANELES VISUALES DE GRÁFICOS (ADMIN) */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-5 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
@@ -60,11 +60,11 @@ export default function DashboardCharts({
                 Panel Operativo del Dueño
               </span>
             </div>
-            <h2 className="text-lg font-extrabold text-slate-900 mt-0.5">
+            <h2 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
               Flujo Operativo de Vehículos en Taller
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5">
               <Car className="w-3.5 h-3.5 text-sky-600" />
               <span>Autos: Ingresos vs Entregas</span>
@@ -74,22 +74,23 @@ export default function DashboardCharts({
 
         {/* GRÁFICO: AUTOS INGRESADOS VS ENTREGADOS */}
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-md bg-sky-500" />
-                  <span className="text-slate-600 font-semibold">Autos Ingresados ({totalIngresadosMes})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-md bg-emerald-500" />
-                  <span className="text-slate-600 font-semibold">Autos Entregados / Reparados ({totalEntregadosMes})</span>
-                </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-md bg-sky-500 shrink-0" />
+                <span className="text-slate-700 font-semibold">Ingresados ({totalIngresadosMes})</span>
               </div>
-              <span className="text-[11px] text-slate-400 font-medium">Período: Mes Actual en Curso</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-md bg-emerald-500 shrink-0" />
+                <span className="text-slate-700 font-semibold">Entregados ({totalEntregadosMes})</span>
+              </div>
             </div>
+            <span className="text-[11px] text-slate-400 font-medium">Período: Mes Actual en Curso</span>
+          </div>
 
-            {/* Grilla visual de barras */}
-            <div className="h-64 pt-6 pb-2 flex items-end justify-between gap-3 border-b border-slate-100 px-2 sm:px-6">
+          {/* Grilla visual de barras con scroll horizontal seguro en mobile */}
+          <div className="overflow-x-auto no-scrollbar pb-1">
+            <div className="h-64 pt-6 pb-2 flex items-end justify-between gap-3 border-b border-slate-100 px-1 sm:px-6 min-w-[300px]">
               {graficoAutos.map((item, idx) => {
                 const heightIngresados = Math.round((item.ingresados / maxAutos) * 180);
                 const heightEntregados = Math.round((item.entregados / maxAutos) * 180);
@@ -124,32 +125,33 @@ export default function DashboardCharts({
                 );
               })}
             </div>
+          </div>
 
-            {/* Resumen del Gráfico de Autos */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-              <div className="p-3 bg-sky-50/60 rounded-2xl border border-sky-100">
-                <span className="text-[10px] uppercase font-bold text-sky-700 block">Total Recepcionados</span>
-                <p className="text-xl font-black text-sky-950 mt-0.5">{totalIngresadosMes} vehículos</p>
-              </div>
-              <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-100">
-                <span className="text-[10px] uppercase font-bold text-emerald-700 block">Total Entregados / OK</span>
-                <p className="text-xl font-black text-emerald-950 mt-0.5">{totalEntregadosMes} reparaciones</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Tasa de Rotación</span>
-                <p className="text-xl font-black text-slate-900 mt-0.5">
-                  {totalIngresadosMes > 0 ? `${Math.round((totalEntregadosMes / totalIngresadosMes) * 100)}%` : "0%"}
-                </p>
-              </div>
+          {/* Resumen del Gráfico de Autos */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-2 text-xs">
+            <div className="p-3.5 bg-sky-50/60 rounded-2xl border border-sky-100">
+              <span className="text-[10px] uppercase font-bold text-sky-700 block">Total Recepcionados</span>
+              <p className="text-xl font-black text-sky-950 mt-0.5">{totalIngresadosMes} vehículos</p>
+            </div>
+            <div className="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-100">
+              <span className="text-[10px] uppercase font-bold text-emerald-700 block">Total Entregados / OK</span>
+              <p className="text-xl font-black text-emerald-950 mt-0.5">{totalEntregadosMes} reparaciones</p>
+            </div>
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Tasa de Rotación</span>
+              <p className="text-xl font-black text-slate-900 mt-0.5">
+                {totalIngresadosMes > 0 ? `${Math.round((totalEntregadosMes / totalIngresadosMes) * 100)}%` : "0%"}
+              </p>
             </div>
           </div>
         </div>
+      </div>
 
       {/* SECCIÓN 2: MONITOR DE MECÁNICOS EN TIEMPO REAL */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
               <Wrench className="w-4 h-4" />
             </div>
             <div>
@@ -157,12 +159,12 @@ export default function DashboardCharts({
                 Monitor de Mecánicos en Bahía
               </h2>
               <p className="text-xs text-slate-500">
-                Seguimiento en vivo de órdenes activas y tareas registradas en el turno.
+                Seguimiento en vivo de órdenes activas y tareas del turno.
               </p>
             </div>
           </div>
 
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 flex items-center gap-1.5">
+          <span className="self-start sm:self-auto text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
             <span>{monitorMecanicos.length} mecánicos de turno</span>
           </span>
