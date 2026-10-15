@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         fileSize: file.size,
         fileType: file.type,
         folder,
-        url: uploadResult.url,
+        url: uploadResult.url.startsWith("data:") ? "[data:image;base64]" : uploadResult.url,
         descripcion: `Subida de archivo '${file.name}' a almacenamiento (${folder})`,
       },
     });

@@ -1506,8 +1506,22 @@ export default function PeritajeIngresoModal({
                   </div>
 
                   {uploadMsg && (
-                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-center font-medium text-xs">
-                      {uploadMsg}
+                    <div
+                      className={`p-3 rounded-xl text-center font-medium text-xs flex items-center justify-center gap-2 ${
+                        uploadMsg.toLowerCase().includes("error")
+                          ? "bg-rose-50 text-rose-800 border border-rose-200"
+                          : uploadMsg.includes("Comprimiendo") || uploadMsg.includes("Subiendo")
+                          ? "bg-sky-50 text-sky-800 border border-sky-200"
+                          : "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                      }`}
+                    >
+                      {uploadMsg.toLowerCase().includes("error") && (
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      )}
+                      {uploadMsg.toLowerCase().includes("éxito") && (
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      )}
+                      <span>{uploadMsg}</span>
                     </div>
                   )}
 
