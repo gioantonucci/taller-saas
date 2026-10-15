@@ -110,7 +110,7 @@ async function main() {
       nombre: "Federico",
       apellido: "Álvarez",
       dni: "47289123K",
-      direccion: "Calle Serrano 45, 3º B, 28001 Madrid",
+      direccion: "Carrer de Colom 18, 3º B, 46004 València",
       telefono: "+34 611 223 344",
       email: "federico.alvarez@gmail.com",
       status: "ACTIVE",
@@ -122,7 +122,7 @@ async function main() {
       nombre: "Luciana",
       apellido: "Pérez Moreno",
       dni: "51902341M",
-      direccion: "Gran Vía 88, Ático A, 28013 Madrid",
+      direccion: "Gran Via de les Corts Valencianes 42, 46015 València",
       telefono: "+34 622 334 455",
       email: "luciana.perez@hotmail.com",
       status: "ACTIVE",
@@ -134,7 +134,7 @@ async function main() {
       nombre: "Gustavo",
       apellido: "Rivadavia",
       dni: "09445120P",
-      direccion: "Paseo de la Castellana 210, 28046 Madrid",
+      direccion: "Avinguda de Blasco Ibáñez 88, 46021 València",
       telefono: "+34 633 445 566",
       email: "g.rivadavia@empresa.es",
       status: "ACTIVE",
@@ -146,7 +146,7 @@ async function main() {
       nombre: "Carmen",
       apellido: "Navarro Soler",
       dni: "33891204X",
-      direccion: "Av. de América 12, 1º D, 28028 Madrid",
+      direccion: "Carrer de Russafa 24, 1º D, 46006 València",
       telefono: "+34 644 556 677",
       email: "carmen.navarro@soluciones.es",
       status: "ACTIVE",
@@ -158,7 +158,7 @@ async function main() {
       nombre: "Santiago",
       apellido: "Fernández Beltrán",
       dni: "71290384B",
-      direccion: "Calle Fuencarral 90, 4º C, 28004 Madrid",
+      direccion: "Carrer de Sant Vicent Màrtir 110, 4º C, 46007 València",
       telefono: "+34 655 667 788",
       email: "santiago.fb@yahoo.es",
       status: "ACTIVE",
@@ -1075,7 +1075,7 @@ async function main() {
       {
         monto: 340.0,
         tipo: "EGRESO",
-        concepto: "Pago factura proveedor Recambios Madrid Sur - Pedido distribución y aceites",
+        concepto: "Pago factura proveedor Recambios Levante Valencia - Pedido distribución y aceites",
         categoria: "PAGO_PROVEEDOR",
         metodoPago: "TRANSFERENCIA",
         comprobanteNro: "TRANSF-REC-8841",
@@ -1153,7 +1153,7 @@ async function main() {
 
   console.log("¡Seed profundo completado con éxito!");
   console.log(`Resumen de entidades creadas:
-  - 1 Configuración de Taller (Madrid, España)
+  - 1 Configuración de Taller (Valencia, España)
   - 5 Usuarios (1 Admin, 1 Recepción, 3 Mecánicos)
   - 5 Clientes con direcciones completas
   - 7 Vehículos con matrículas españolas modernas
