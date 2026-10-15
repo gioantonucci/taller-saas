@@ -8,6 +8,19 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '"Google Sans"',
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "'Segoe UI'",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif",
+        ],
+      },
       colors: {
         brand: {
           50: "#f0f7ff",
