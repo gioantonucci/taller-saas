@@ -327,12 +327,12 @@ function VehiculosContent() {
                     </span>
                   </div>
 
-                  {/* Botón Ver Ficha Clínica */}
+                  {/* Botón Ver Ficha */}
                   <Link
                     href={`/app/vehiculos/${v.patente}`}
                     className="w-full py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                   >
-                    <span>Ver Ficha Clínica</span>
+                    <span>Ver Ficha</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -403,10 +403,10 @@ function VehiculosContent() {
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/app/vehiculos/${v.patente}`}
-                            className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 text-xs font-bold transition-all flex items-center gap-1"
+                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 transition-colors flex items-center justify-center"
+                            title="Ver Ficha"
                           >
-                            <span>Ficha Clínica</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-4 h-4" />
                           </Link>
 
                           <button

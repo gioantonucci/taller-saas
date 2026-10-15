@@ -216,7 +216,7 @@ export default function VehiculoHistorialClinicoPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">
-                Ficha Técnica y Historial Clínico
+                Ficha Técnica e Historial del Vehículo
               </span>
               <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-300">
                 {vehicle.patente}
