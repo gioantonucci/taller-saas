@@ -38,21 +38,39 @@ export async function POST(request: NextRequest) {
       "image/gif",
       "image/heic",
       "image/heif",
+      "image/pjpeg",
+      "image/jfif",
       "video/mp4",
       "video/webm",
       "video/quicktime",
       "application/pdf",
     ];
 
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    let detectedMime = (file.type || "").toLowerCase();
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+
+    // Normalizar tipos en navegadores móviles (Android suele enviar MIME vacío o genérico)
+    if (!detectedMime || detectedMime === "application/octet-stream" || detectedMime === "binary/octet-stream") {
+      if (["jpg", "jpeg", "jfif", "pjpeg"].includes(ext)) detectedMime = "image/jpeg";
+      else if (["png"].includes(ext)) detectedMime = "image/png";
+      else if (["webp"].includes(ext)) detectedMime = "image/webp";
+      else if (["heic", "heif"].includes(ext)) detectedMime = "image/heic";
+      else if (["gif"].includes(ext)) detectedMime = "image/gif";
+      else if (["mp4"].includes(ext)) detectedMime = "video/mp4";
+      else if (["mov"].includes(ext)) detectedMime = "video/quicktime";
+      else if (["pdf"].includes(ext)) detectedMime = "application/pdf";
+      else detectedMime = "image/jpeg"; // fallback seguro para fotos de taller
+    }
+
+    if (!ALLOWED_MIME_TYPES.includes(detectedMime) && !detectedMime.startsWith("image/")) {
       return NextResponse.json(
-        { error: "Tipo de archivo no permitido" },
+        { error: `Tipo de archivo no permitido (${file.type || ext || "desconocido"})` },
         { status: 400 }
       );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const uploadResult = await saveStorageFile(buffer, file.name, folder);
+    const uploadResult = await saveStorageFile(buffer, file.name, folder, detectedMime);
 
     await recordAuditLog({
       user: session,

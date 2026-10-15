@@ -150,9 +150,10 @@ export async function deleteVehiclePhoto(filePath: string): Promise<boolean> {
 export async function saveStorageFile(
   fileBuffer: Buffer,
   originalFilename: string,
-  folder: "multimedia" | "remitos" = "multimedia"
+  folder: "multimedia" | "remitos" = "multimedia",
+  mimeType?: string
 ): Promise<UploadResult> {
-  const result = await uploadVehiclePhoto(fileBuffer, originalFilename, undefined, folder);
+  const result = await uploadVehiclePhoto(fileBuffer, originalFilename, mimeType, folder);
   return {
     url: result.url,
     filename: result.filename,

@@ -9,8 +9,13 @@ export async function compressImageClient(
   quality = 0.8
 ): Promise<{ blob: Blob; file: File; originalSize: number; compressedSize: number }> {
   return new Promise((resolve, reject) => {
+    const isImage =
+      (file.type && file.type.startsWith("image/")) ||
+      /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(file.name) ||
+      !file.type;
+
     // Si no es imagen (ej. video o PDF), devolver tal cual
-    if (!file.type.startsWith("image/")) {
+    if (!isImage) {
       return resolve({
         blob: file,
         file,
@@ -68,7 +73,12 @@ export async function compressImageClient(
               });
             }
 
-            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+            const baseName = (file.name || "foto").includes(".")
+              ? (file.name || "foto").replace(/\.[^/.]+$/, "")
+              : (file.name || "foto");
+            const safeName = `${baseName}.jpg`;
+
+            const compressedFile = new File([blob], safeName, {
               type: "image/jpeg",
               lastModified: Date.now(),
             });

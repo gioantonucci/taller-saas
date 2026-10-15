@@ -24,6 +24,7 @@ import {
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
+import InAppCameraModal from "@/components/InAppCameraModal";
 
 interface PeritajeModalProps {
   order: any;
@@ -208,6 +209,7 @@ export default function PeritajeIngresoModal({
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
 
 
 
@@ -358,6 +360,51 @@ export default function PeritajeIngresoModal({
       try {
         inputEl.value = "";
       } catch {}
+    }
+  };
+
+  const handleCameraCapture = async (file: File) => {
+    setUploading(true);
+    setUploadMsg("Comprimiendo y subiendo foto de cámara...");
+    try {
+      const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
+      setUploadMsg(`Subiendo foto (${(compressedSize / 1024).toFixed(0)}KB)...`);
+
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+      formData.append("folder", "multimedia");
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      await fetch(`/api/work-orders/${order.id}/multimedia`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          urlStorage: data.file.url,
+          tipo: "FOTO",
+          etiqueta: "PERITAJE_INGRESO",
+          descripcion: "Fotografía de peritaje tomada con cámara en vivo",
+        }),
+      });
+
+      const newPhotoItem = {
+        id: data.file.id || `uploaded-${Date.now()}`,
+        urlStorage: data.file.url,
+        url: data.file.url,
+        tipo: "FOTO",
+        etiqueta: "PERITAJE_INGRESO",
+        descripcion: "Fotografía de peritaje tomada con cámara en vivo",
+      };
+      setUploadedPhotos((prev) => [newPhotoItem, ...prev]);
+      setUploadMsg("¡Foto capturada y resguardada con éxito en la nube!");
+      setTimeout(() => setUploadMsg(null), 3000);
+      onSaved();
+    } catch (err: any) {
+      setUploadMsg("Error al subir foto de cámara: " + (err.message || "desconocido"));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -1288,23 +1335,18 @@ export default function PeritajeIngresoModal({
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {/* Botón 1: Sacar foto con la cámara del celular */}
-                    <label
+                    {/* Botón 1: Sacar foto con la cámara del celular (Visor en vivo directo) */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCameraModalOpen(true)}
+                      disabled={uploading}
                       className={`flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Camera className="w-4 h-4 text-sky-400 shrink-0" />
                       <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara"}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handlePhotoCapture}
-                        disabled={uploading}
-                        className="sr-only"
-                      />
-                    </label>
+                    </button>
 
                     {/* Botón 2: Subir fotos desde la galería o archivos */}
                     <label
@@ -1316,7 +1358,7 @@ export default function PeritajeIngresoModal({
                       <span>{uploading ? "Procesando..." : "Subir desde Galería / Archivos"}</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif"
                         multiple
                         onChange={handlePhotoCapture}
                         disabled={uploading}
@@ -1445,6 +1487,13 @@ export default function PeritajeIngresoModal({
           </div>
         </div>
       )}
+
+      {/* Modal de Cámara en vivo (WebRTC / In-App Viewfinder) */}
+      <InAppCameraModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onCapture={handleCameraCapture}
+      />
     </div>
   );
 }
