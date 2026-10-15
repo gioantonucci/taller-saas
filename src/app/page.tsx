@@ -267,7 +267,7 @@ export default function PoggiServiceLandingPage() {
         {/* ========================================================================= */}
         {/* 2. CATÁLOGO DE SERVICIOS — BENTO GRID MODERNO ENFOCADO EN SOLUCIONES */}
         {/* ========================================================================= */}
-        <section id="servicios" className="py-20 lg:py-28 relative bg-[#0b0b0d]">
+        <section id="servicios" className="py-20 lg:py-28 relative bg-[#0b0b0d] scroll-mt-24 sm:scroll-mt-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Cabecera de Sección */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-6 border-b border-neutral-800 pb-8">
@@ -343,7 +343,7 @@ export default function PoggiServiceLandingPage() {
         {/* ========================================================================= */}
         {/* 3. ESPECIALIZACIÓN TÉCNICA (ELECTRÓNICA AUTOMOTRIZ) */}
         {/* ========================================================================= */}
-        <section id="especializacion" className="py-20 lg:py-28 bg-[#070708] border-y border-neutral-800">
+        <section id="especializacion" className="py-20 lg:py-28 bg-[#070708] border-y border-neutral-800 scroll-mt-24 sm:scroll-mt-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="rounded-3xl bg-neutral-900/70 border border-neutral-800 overflow-hidden shadow-2xl">
               <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
@@ -418,7 +418,7 @@ export default function PoggiServiceLandingPage() {
         {/* ========================================================================= */}
         {/* 5. TRABAJOS REALIZADOS (GALERÍA TÉCNICA) */}
         {/* ========================================================================= */}
-        <section id="trabajos" className="py-20 lg:py-28 bg-[#070708] border-t border-neutral-800">
+        <section id="trabajos" className="py-20 lg:py-28 bg-[#070708] border-t border-neutral-800 scroll-mt-24 sm:scroll-mt-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-6 border-b border-neutral-800 pb-8">
               <div>
@@ -509,7 +509,7 @@ export default function PoggiServiceLandingPage() {
         {/* ========================================================================= */}
         {/* 6. UBICACIÓN EN VALENCIA (VEN A VISITARNOS) */}
         {/* ========================================================================= */}
-        <section id="ubicacion" className="py-20 lg:py-28 bg-[#0b0b0d] border-t border-neutral-800">
+        <section id="ubicacion" className="py-20 lg:py-28 bg-[#0b0b0d] border-t border-neutral-800 scroll-mt-24 sm:scroll-mt-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mb-12">
               <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#e5242b] mb-2">

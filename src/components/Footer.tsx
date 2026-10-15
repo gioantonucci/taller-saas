@@ -2,16 +2,32 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MapPin, Phone, Mail, Clock, ShieldCheck, ChevronRight } from "lucide-react";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 
 export default function Footer() {
   const { settings } = useTenantSettings();
+  const pathname = usePathname();
 
   const phone = settings.whatsapp || "+34 656 40 62 86";
   const address = settings.direccion || "C. de Sant Pius X, 13, 46017 València, España";
   const email = settings.email || "poggitallerintegral@gmail.com";
   const hours = settings.horarios || "Lunes a viernes · 08:00–18:00";
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("/#")) {
+      const targetId = href.replace("/#", "");
+      if (pathname === "/") {
+        e.preventDefault();
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+          window.history.pushState(null, "", href);
+        }
+      }
+    }
+  };
 
   return (
     <footer className="bg-[#050505] text-neutral-300 pt-16 pb-20 md:pb-12 border-t border-neutral-800">
@@ -19,7 +35,17 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-neutral-800">
           {/* Columna 1: Marca POGGI */}
           <div className="md:col-span-1 space-y-4">
-            <Link href="/" className="flex items-center gap-3">
+            <Link
+              href="/"
+              onClick={(e) => {
+                if (pathname === "/") {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                  window.history.pushState(null, "", "/");
+                }
+              }}
+              className="flex items-center gap-3"
+            >
               <img
                 src="/images/poggi/logo.png"
                 alt="Logo POGGI Taller Integral"
@@ -44,26 +70,41 @@ export default function Footer() {
               Navegación
             </h4>
             <ul className="space-y-2.5 text-xs text-neutral-400">
-
               <li>
-                <a href="/#servicios" className="hover:text-white transition-colors">
+                <Link
+                  href="/#servicios"
+                  onClick={(e) => handleNavClick(e, "/#servicios")}
+                  className="hover:text-white transition-colors"
+                >
                   Nuestros servicios
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/#especializacion" className="hover:text-white transition-colors">
+                <Link
+                  href="/#especializacion"
+                  onClick={(e) => handleNavClick(e, "/#especializacion")}
+                  className="hover:text-white transition-colors"
+                >
                   Especialización Electrónica
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/#trabajos" className="hover:text-white transition-colors">
+                <Link
+                  href="/#trabajos"
+                  onClick={(e) => handleNavClick(e, "/#trabajos")}
+                  className="hover:text-white transition-colors"
+                >
                   Trabajos realizados
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/#ubicacion" className="hover:text-white transition-colors">
+                <Link
+                  href="/#ubicacion"
+                  onClick={(e) => handleNavClick(e, "/#ubicacion")}
+                  className="hover:text-white transition-colors"
+                >
                   Ubicación en Valencia
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/estado" className="hover:text-white transition-colors font-bold text-neutral-200">

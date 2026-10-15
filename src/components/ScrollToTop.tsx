@@ -13,6 +13,25 @@ export default function ScrollToTop() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Si la navegación incluye un ancla / hash (ej. /#servicios),
+    // desplazamos suavemente hacia la sección y evitamos forzar (0, 0).
+    if (typeof window !== "undefined" && window.location.hash) {
+      const targetId = decodeURIComponent(window.location.hash.replace("#", ""));
+      const scrollToSection = () => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      };
+
+      const t0 = setTimeout(scrollToSection, 20);
+      const t1 = setTimeout(scrollToSection, 120);
+      return () => {
+        clearTimeout(t0);
+        clearTimeout(t1);
+      };
+    }
+
     // 1. Desactivar la restauración de scroll automática del navegador para que no retenga el offset previo
     if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
       try {

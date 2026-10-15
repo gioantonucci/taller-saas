@@ -22,12 +22,37 @@ export default function Navbar() {
     { href: "/estado", label: "Seguimiento" },
   ];
 
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith("/#")) {
+      const targetId = href.replace("/#", "");
+      if (pathname === "/") {
+        e.preventDefault();
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+          window.history.pushState(null, "", href);
+        }
+      }
+    }
+    setMobileMenuOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-neutral-800 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-6 sm:py-7 min-h-[92px]">
           {/* Logo POGGI con Isotipo */}
-          <Link href="/" className="flex items-center gap-3 group py-1">
+          <Link
+            href="/"
+            onClick={(e) => {
+              if (pathname === "/") {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                window.history.pushState(null, "", "/");
+              }
+            }}
+            className="flex items-center gap-3 group py-1"
+          >
             <img
               src="/images/poggi/logo.png"
               alt="Logo POGGI"
@@ -44,6 +69,7 @@ export default function Navbar() {
               <Link
                 key={link.label}
                 href={link.href}
+                onClick={(e) => handleNavClick(e, link.href)}
                 className="py-2 text-xs sm:text-[13px] font-black uppercase tracking-wider text-neutral-300 hover:text-[#e5242b] transition-colors"
               >
                 {link.label}
@@ -100,7 +126,7 @@ export default function Navbar() {
             <Link
               key={link.label}
               href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={(e) => handleNavClick(e, link.href)}
               className="block py-2.5 text-sm font-bold uppercase tracking-wider text-neutral-200 hover:text-[#e5242b]"
             >
               {link.label}
