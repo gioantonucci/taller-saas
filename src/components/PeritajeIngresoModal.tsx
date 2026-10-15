@@ -205,10 +205,9 @@ export default function PeritajeIngresoModal({
   }, [isOpen, order?.mechanicId]);
 
   // Cámara, galería y compresión
-  const fileInputCameraRef = useRef<HTMLInputElement>(null);
-  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
 
 
 
@@ -286,7 +285,8 @@ export default function PeritajeIngresoModal({
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const inputEl = e.target;
+    const files = Array.from(inputEl.files || []);
     if (files.length === 0) return;
 
     setUploading(true);
@@ -330,6 +330,18 @@ export default function PeritajeIngresoModal({
               : "Evidencia de peritaje de ingreso (daño o testigo preexistente)",
           }),
         });
+
+        const newPhotoItem = {
+          id: data.file.id || `uploaded-${Date.now()}-${i}`,
+          urlStorage: data.file.url,
+          url: data.file.url,
+          tipo: isVideo ? "VIDEO" : "FOTO",
+          etiqueta: "PERITAJE_INGRESO",
+          descripcion: isVideo
+            ? "Video de evidencia de peritaje de ingreso (ruidos o falla)"
+            : "Evidencia de peritaje de ingreso (daño o testigo preexistente)",
+        };
+        setUploadedPhotos((prev) => [newPhotoItem, ...prev]);
       }
 
       setUploadMsg(
@@ -343,8 +355,9 @@ export default function PeritajeIngresoModal({
       setUploadMsg("Error al subir archivo de peritaje: " + (err.message || "desconocido"));
     } finally {
       setUploading(false);
-      if (fileInputCameraRef.current) fileInputCameraRef.current.value = "";
-      if (fileInputGalleryRef.current) fileInputGalleryRef.current.value = "";
+      try {
+        inputEl.value = "";
+      } catch {}
     }
   };
 
@@ -1274,47 +1287,42 @@ export default function PeritajeIngresoModal({
                     </p>
                   </div>
 
-                  {/* Inputs ocultos: Cámara directa del celular y Selector de archivos / galería */}
-                  <input
-                    ref={fileInputCameraRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    capture="environment"
-                    onChange={handlePhotoCapture}
-                    className="hidden"
-                  />
-
-                  <input
-                    ref={fileInputGalleryRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                    onChange={handlePhotoCapture}
-                    className="hidden"
-                  />
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {/* Botón 1: Sacar foto con la cámara del celular */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputCameraRef.current?.click()}
-                      disabled={uploading}
-                      className="flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
+                    <label
+                      className={`flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
                     >
                       <Camera className="w-4 h-4 text-sky-400 shrink-0" />
                       <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara"}</span>
-                    </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
 
                     {/* Botón 2: Subir fotos desde la galería o archivos */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputGalleryRef.current?.click()}
-                      disabled={uploading}
-                      className="flex items-center justify-center gap-2.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-4 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                    <label
+                      className={`flex items-center justify-center gap-2.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-4 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
                     >
                       <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{uploading ? "Procesando..." : "Subir desde Galería / Archivos"}</span>
-                    </button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
 
                   {uploadMsg && (
@@ -1323,28 +1331,31 @@ export default function PeritajeIngresoModal({
                     </div>
                   )}
 
-                  {/* Muestra de fotos existentes en la orden */}
-                  {order.multimedia?.length > 0 ? (
-                    <div className="pt-2">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                        Fotos de la orden ({order.multimedia.length}):
-                      </span>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                        {order.multimedia.map((item: any) => (
-                          <div key={item.id} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900">
-                            <img src={item.urlStorage || item.url} alt="Evidencia" className="w-full h-full object-cover" />
-                            <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white">
-                              {item.etiqueta || "FOTO"}
-                            </span>
-                          </div>
-                        ))}
+                  {/* Muestra de fotos existentes y recién subidas en la orden */}
+                  {(() => {
+                    const allPhotos = [...uploadedPhotos, ...(order.multimedia || [])];
+                    return allPhotos.length > 0 ? (
+                      <div className="pt-2">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                          Fotos registradas ({allPhotos.length}):
+                        </span>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {allPhotos.map((item: any, idx: number) => (
+                            <div key={item.id || idx} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 group">
+                              <img src={item.urlStorage || item.url} alt="Evidencia" className="w-full h-full object-cover" />
+                              <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white">
+                                {item.etiqueta || "FOTO"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs">
-                      Sin fotografías registradas en el peritaje de esta orden.
-                    </div>
-                  )}
+                    ) : (
+                      <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs">
+                        Sin fotografías registradas en el peritaje de esta orden.
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

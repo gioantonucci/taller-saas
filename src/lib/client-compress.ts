@@ -46,7 +46,12 @@ export async function compressImageClient(
 
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          return reject(new Error("No se pudo obtener el contexto 2D de canvas"));
+          return resolve({
+            blob: file,
+            file,
+            originalSize: file.size,
+            compressedSize: file.size,
+          });
         }
 
         // Pintar imagen redimensionada
@@ -55,7 +60,12 @@ export async function compressImageClient(
         canvas.toBlob(
           (blob) => {
             if (!blob) {
-              return reject(new Error("Error al generar blob comprimido"));
+              return resolve({
+                blob: file,
+                file,
+                originalSize: file.size,
+                compressedSize: file.size,
+              });
             }
 
             const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
@@ -75,9 +85,23 @@ export async function compressImageClient(
         );
       };
 
-      img.onerror = (err) => reject(err);
+      img.onerror = () => {
+        resolve({
+          blob: file,
+          file,
+          originalSize: file.size,
+          compressedSize: file.size,
+        });
+      };
     };
 
-    reader.onerror = (err) => reject(err);
+    reader.onerror = () => {
+      resolve({
+        blob: file,
+        file,
+        originalSize: file.size,
+        compressedSize: file.size,
+      });
+    };
   });
 }
