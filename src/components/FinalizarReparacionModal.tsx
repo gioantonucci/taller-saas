@@ -241,13 +241,13 @@ export default function FinalizarReparacionModal({
               <span className="text-[10px] font-semibold text-slate-500 block mb-1.5">
                 Sumar tiempo rápido:
               </span>
-              <div className="grid grid-cols-6 gap-1.5">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                 {QUICK_HOURS.map((h) => (
                   <button
                     key={h}
                     type="button"
                     onClick={() => handleAddHours(h)}
-                    className="py-1.5 px-1 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-0.5 shadow-2xs active:scale-95"
+                    className="py-2 px-1 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-0.5 shadow-2xs active:scale-95"
                   >
                     <Plus className="w-2.5 h-2.5 opacity-60" />
                     {h}h
@@ -325,19 +325,19 @@ export default function FinalizarReparacionModal({
           </div>
 
           {/* Botones de Acción */}
-          <div className="pt-2 flex items-center gap-2.5">
+          <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 text-center"
+              className="w-full sm:flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 text-center"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting || !canFinalize}
-              className="flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
+              className="w-full sm:flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
             >
               {submitting ? (
                 <>

@@ -24,6 +24,7 @@ import {
   Phone,
   MessageCircle,
   Minus,
+  AlertCircle,
 } from "lucide-react";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
@@ -679,7 +680,7 @@ export default function HojaRutaMecanicoPage() {
                     </div>
 
                     {/* Barra de Indicadores y Botón Principal de Acción Directa */}
-                    <div className="flex items-center justify-between gap-3 pt-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 font-semibold">
                         <span className="flex items-center gap-1">
                           <Fuel className="w-3.5 h-3.5 text-amber-500" />
@@ -702,7 +703,7 @@ export default function HojaRutaMecanicoPage() {
                           e.stopPropagation();
                           syncSelectedOrder(order);
                         }}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 ${
+                        className={`w-full sm:w-auto justify-center px-3.5 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
                           isPeritaje
                             ? "bg-rose-600 hover:bg-rose-500 text-white"
                             : isReparando
@@ -792,7 +793,7 @@ export default function HojaRutaMecanicoPage() {
             </div>
 
             {/* Datos Técnicos y Contacto Directo */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
               <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
                 <Car className="w-4 h-4 text-slate-500 shrink-0" />
                 <div className="truncate">
@@ -806,7 +807,7 @@ export default function HojaRutaMecanicoPage() {
               <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
                 <Fuel className="w-4 h-4 text-amber-500 shrink-0" />
                 <div className="truncate">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Combustible</span>
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Nafta</span>
                   <span className="font-bold text-slate-800 truncate block mt-0.5">
                     {selectedOrder.nivelNafta || "1/2"}
                   </span>
@@ -823,18 +824,18 @@ export default function HojaRutaMecanicoPage() {
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-1">
-                <div className="truncate pr-1">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Cliente</span>
+              <div className="col-span-3 sm:col-span-1 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2">
+                <div className="truncate">
+                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Titular</span>
                   <span className="font-bold text-slate-800 truncate block mt-0.5">
                     {selectedOrder.vehicle.client.nombre} {selectedOrder.vehicle.client.apellido || ""}
                   </span>
                 </div>
                 {selectedOrder.vehicle.client.telefono && (
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <a
                       href={`tel:${selectedOrder.vehicle.client.telefono}`}
-                      className="p-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 transition-colors"
+                      className="p-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 transition-colors shadow-2xs"
                       title="Llamar al cliente"
                     >
                       <Phone className="w-3.5 h-3.5" />
@@ -845,7 +846,7 @@ export default function HojaRutaMecanicoPage() {
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors"
+                      className="p-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors shadow-2xs"
                       title="Enviar WhatsApp"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
@@ -868,7 +869,7 @@ export default function HojaRutaMecanicoPage() {
             {selectedOrder.comentariosDuenio?.trim() && (
               <div className="p-3 bg-amber-50/90 rounded-2xl border border-amber-200/90 text-xs text-amber-950 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-[11px] text-amber-900">
-                  <span>💬</span>
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>Declaración inicial de daños del dueño (Solo lectura):</span>
                 </div>
                 <p className="font-semibold text-slate-800 italic pl-5">
@@ -879,19 +880,21 @@ export default function HojaRutaMecanicoPage() {
 
             {/* Peritaje Registrado: Resumen con botón de Ver Ficha para el Mecánico */}
             {isSelectedOrderPeritajeCerrado && (
-              <div className="p-3.5 bg-slate-900 text-white rounded-2xl flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
+              <div className="p-4 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <div>
-                    <span className="font-extrabold text-xs block text-white flex items-center gap-1.5">
-                      Peritaje de Ingreso Registrado
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-xs text-white">
+                        Peritaje de Ingreso Registrado
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         Solo Lectura
                       </span>
-                    </span>
-                    <span className="text-[10.5px] text-slate-300 block">
+                    </div>
+                    <span className="text-[11px] text-slate-300 block mt-0.5">
                       {parsedPeritajeInfo?.peritadorNombre ? `Peritado por ${parsedPeritajeInfo.peritadorNombre}` : "Constatación legal completada"} • Solo Consulta
                     </span>
                   </div>
@@ -899,9 +902,9 @@ export default function HojaRutaMecanicoPage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-4 h-4" />
                   <span>Ver Peritaje</span>
                 </button>
               </div>
@@ -911,7 +914,7 @@ export default function HojaRutaMecanicoPage() {
           {/* ========================================================================= */}
           {/* TARJETA DE ACCIÓN GUIADA SEGÚN LA ETAPA (PASO A PASO OBLIGATORIO)         */}
           {/* ========================================================================= */}
-          <div className="rounded-3xl p-5 shadow-sm border space-y-3 transition-all bg-white border-slate-200">
+          <div className="rounded-3xl p-4 sm:p-5 shadow-sm border space-y-3 transition-all bg-white border-slate-200">
             {/* ETAPA 1: PENDIENTE DE PERITAJE */}
             {isSelectedOrderInPeritaje && (
               <div className="bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border border-rose-200/80 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
@@ -920,7 +923,7 @@ export default function HojaRutaMecanicoPage() {
                     📋
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md">
                         Etapa 1: Inspección de Ingreso
                       </span>
@@ -928,7 +931,7 @@ export default function HojaRutaMecanicoPage() {
                         Paso Requerido
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900 mt-1">
+                    <h4 className="font-black text-sm text-slate-900">
                       Peritaje Pendiente
                     </h4>
                     <p className="text-xs text-slate-600 mt-0.5">
@@ -940,7 +943,7 @@ export default function HojaRutaMecanicoPage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
                 >
                   <span>Comenzar Peritaje de Ingreso</span>
                   <ArrowRight className="w-4 h-4" />
@@ -956,15 +959,15 @@ export default function HojaRutaMecanicoPage() {
                     🔧
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-blue-800 bg-blue-100 px-2 py-0.5 rounded-md">
                         Etapa 2: Reparación Activa
                       </span>
-                      <span className="text-[10px] font-bold text-slate-500">
+                      <span className="text-[11px] font-bold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded-md border border-blue-200/60 font-mono">
                         {totalHorasInvertidas} hs acumuladas
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900 mt-1">
+                    <h4 className="font-black text-sm text-slate-900">
                       Trabajo Mecánico en Taller
                     </h4>
                     <p className="text-xs text-slate-600 mt-0.5">
@@ -973,15 +976,15 @@ export default function HojaRutaMecanicoPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto pt-2 sm:pt-0">
                   <button
                     type="button"
                     disabled={savingStatus}
                     onClick={() => handleUpdateStatus(selectedOrder.id, "ESPERANDO_REPUESTOS")}
-                    className="px-3.5 py-2.5 rounded-2xl bg-white border border-amber-300 text-amber-800 hover:bg-amber-50 font-bold text-xs shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 active:scale-[0.99] font-bold text-xs shadow-xs transition-all cursor-pointer"
                     title="Pausar trabajo mientras llegan repuestos"
                   >
-                    <PauseCircle className="w-4 h-4 text-amber-600" />
+                    <PauseCircle className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Pausar por Repuestos</span>
                   </button>
 
@@ -991,10 +994,10 @@ export default function HojaRutaMecanicoPage() {
                       setOrderToFinalize(selectedOrder);
                       setFinalizarModalOpen(true);
                     }}
-                    className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                     title="Marcar reparación concluida y lista para entrega"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
                     <span>Finalizar Reparación</span>
                   </button>
                 </div>
@@ -1009,7 +1012,7 @@ export default function HojaRutaMecanicoPage() {
                     ⏸️
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
                         Etapa 3: Trabajo Pausado
                       </span>
@@ -1017,7 +1020,7 @@ export default function HojaRutaMecanicoPage() {
                         Aguardando repuestos
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900 mt-1">
+                    <h4 className="font-black text-sm text-slate-900">
                       En Espera de Repuestos o Insumos
                     </h4>
                     <p className="text-xs text-slate-600 mt-0.5">
@@ -1030,7 +1033,7 @@ export default function HojaRutaMecanicoPage() {
                   type="button"
                   disabled={savingStatus}
                   onClick={() => handleUpdateStatus(selectedOrder.id, "EN_CURSO")}
-                  className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
                 >
                   <PlayCircle className="w-4 h-4 text-white" />
                   <span>Reanudar Reparación en Taller</span>
@@ -1040,16 +1043,16 @@ export default function HojaRutaMecanicoPage() {
 
             {/* ETAPA 4: FINALIZADO */}
             {isSelectedOrderTerminado && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 text-slate-900 flex items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-start sm:items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block mb-1">
                       Etapa 4: Reparación Concluida
                     </span>
-                    <h4 className="font-black text-sm text-emerald-950 mt-1">
+                    <h4 className="font-black text-sm text-emerald-950">
                       Vehículo Listo para Entrega al Cliente
                     </h4>
                     <p className="text-xs text-emerald-800 mt-0.5">
@@ -1057,7 +1060,7 @@ export default function HojaRutaMecanicoPage() {
                     </p>
                   </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs shrink-0 flex items-center gap-1.5">
+                <div className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs self-start sm:self-auto flex items-center gap-1.5 shadow-2xs">
                   <Lock className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Cerrada</span>
                 </div>
@@ -1068,11 +1071,11 @@ export default function HojaRutaMecanicoPage() {
           {/* ========================================================================= */}
           {/* REGISTRO DE TAREAS TÉCNICAS (WORKLOG OPERATIVO) CON CIERRE DE REPARACIÓN  */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-sm space-y-5">
+          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
-                  <Clock className="w-4 h-4" />
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-slate-900">
@@ -1084,43 +1087,19 @@ export default function HojaRutaMecanicoPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">
-                    Horas Totales
-                  </span>
-                  <span className="text-base font-black text-indigo-600">
-                    {totalHorasInvertidas} hs
-                  </span>
-                </div>
-
-                {!isSelectedOrderTerminado ? (
-                  selectedOrderHasPeritaje ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrderToFinalize(selectedOrder);
-                        setFinalizarModalOpen(true);
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                      title="Dar por concluida la reparación técnica y asentar cierre"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Marcar como Finalizado</span>
-                    </button>
-                  ) : null
-                ) : (
-                  <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Reparación Finalizada</span>
-                  </span>
-                )}
+              <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-100 shadow-2xs">
+                <span className="text-[10px] uppercase font-extrabold text-indigo-700 tracking-wider">
+                  Total Horas:
+                </span>
+                <span className="text-xs font-black text-indigo-950 font-mono">
+                  {totalHorasInvertidas} hs
+                </span>
               </div>
             </div>
 
             {/* Formulario de carga rápida si no está finalizado */}
             {isSelectedOrderTerminado ? (
-              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   <div>
@@ -1130,7 +1109,7 @@ export default function HojaRutaMecanicoPage() {
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 rounded-xl bg-emerald-600 text-white font-black text-xs shrink-0">
+                <span className="px-3 py-1 rounded-xl bg-emerald-600 text-white font-black text-xs shrink-0 self-start sm:self-auto">
                   FINALIZADO
                 </span>
               </div>
@@ -1150,7 +1129,7 @@ export default function HojaRutaMecanicoPage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shrink-0 cursor-pointer shadow-md shadow-amber-600/20 flex items-center gap-2 active:scale-95"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shrink-0 cursor-pointer shadow-md shadow-amber-600/20 flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Wrench className="w-4 h-4" />
                   <span>Comenzar Peritaje Ahora</span>
@@ -1178,17 +1157,17 @@ export default function HojaRutaMecanicoPage() {
                     className="w-full px-4 py-3 rounded-2xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder:text-slate-400"
                   />
 
-                  {/* Carrusel horizontal deslizante de sugerencias */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto py-2 -mx-1 px-1 scrollbar-none">
+                  {/* Sugerencias en flex-wrap para que se vean prolijas y no cortadas */}
+                  <div className="flex flex-wrap gap-1.5 pt-2">
                     {QUICK_TASKS.map((quick) => (
                       <button
                         key={quick}
                         type="button"
                         onClick={() => setTareaInput(quick)}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all active:scale-95 cursor-pointer ${
+                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all active:scale-95 cursor-pointer ${
                           tareaInput === quick
                             ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                            : "bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border-slate-200"
+                            : "bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border-slate-200/90 shadow-2xs"
                         }`}
                       >
                         + {quick}
@@ -1208,22 +1187,22 @@ export default function HojaRutaMecanicoPage() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
                     {/* Stepper Numérico */}
-                    <div className="flex items-center rounded-2xl border border-slate-300 bg-white p-1 shadow-xs shrink-0">
+                    <div className="flex items-center justify-between sm:justify-start rounded-2xl border border-slate-300 bg-white p-1 shadow-xs shrink-0 w-full sm:w-auto">
                       <button
                         type="button"
                         onClick={() => {
                           const val = Math.max(0.5, (parseFloat(horasInput) || 1) - 0.5);
                           setHorasInput(val.toFixed(1));
                         }}
-                        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 flex items-center justify-center font-black transition-all cursor-pointer"
+                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 flex items-center justify-center font-black transition-all cursor-pointer"
                         title="Restar 0.5 horas"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
 
-                      <div className="flex items-center px-2">
+                      <div className="flex items-center px-4">
                         <input
                           type="number"
                           step="any"
@@ -1231,9 +1210,9 @@ export default function HojaRutaMecanicoPage() {
                           max="24"
                           value={horasInput}
                           onChange={(e) => setHorasInput(e.target.value)}
-                          className="w-12 text-center text-sm font-black font-mono text-slate-900 focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-14 text-center text-base font-black font-mono text-slate-900 focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
-                        <span className="text-xs font-bold text-slate-400">hs</span>
+                        <span className="text-xs font-bold text-slate-400 ml-1">hs</span>
                       </div>
 
                       <button
@@ -1242,7 +1221,7 @@ export default function HojaRutaMecanicoPage() {
                           const val = (parseFloat(horasInput) || 0) + 0.5;
                           setHorasInput(val.toFixed(1));
                         }}
-                        className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 flex items-center justify-center font-black transition-all cursor-pointer"
+                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 flex items-center justify-center font-black transition-all cursor-pointer"
                         title="Sumar 0.5 horas"
                       >
                         <Plus className="w-4 h-4" />
@@ -1250,7 +1229,7 @@ export default function HojaRutaMecanicoPage() {
                     </div>
 
                     {/* Presets Rápidos de Horas */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 flex-1 scrollbar-none">
+                    <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 w-full flex-1">
                       {QUICK_HOURS.map((h) => {
                         const isSelected = parseFloat(horasInput) === h;
                         return (
@@ -1258,10 +1237,10 @@ export default function HojaRutaMecanicoPage() {
                             key={h}
                             type="button"
                             onClick={() => setHorasInput(h.toFixed(1))}
-                            className={`px-3 py-2 rounded-xl text-xs font-extrabold border transition-all shrink-0 cursor-pointer active:scale-95 ${
+                            className={`py-2 px-2.5 rounded-xl text-xs font-extrabold border text-center transition-all cursor-pointer active:scale-95 ${
                               isSelected
                                 ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                                : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 shadow-2xs"
                             }`}
                           >
                             {h} hs
@@ -1272,11 +1251,11 @@ export default function HojaRutaMecanicoPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
                   <button
                     type="submit"
                     disabled={savingWorkLog}
-                    className="py-3.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                    className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-md shadow-indigo-600/25 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
                     <Check className="w-4 h-4" />
                     <span>{savingWorkLog ? "Guardando tarea..." : "Registrar Trabajo en WorkLog"}</span>
@@ -1288,7 +1267,7 @@ export default function HojaRutaMecanicoPage() {
                       setOrderToFinalize(selectedOrder);
                       setFinalizarModalOpen(true);
                     }}
-                    className="py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Finalizar Reparación</span>
