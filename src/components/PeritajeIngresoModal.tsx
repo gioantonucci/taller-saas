@@ -9,8 +9,6 @@ import {
   Fuel,
   CheckCircle2,
   X,
-  Plus,
-  Trash2,
   ShieldAlert,
   Gauge,
   Lock,
@@ -194,11 +192,6 @@ export default function PeritajeIngresoModal({
     }
   }, [isOpen, order?.mechanicId]);
 
-  // Estados para agregar un nuevo daño de carrocería
-  const [selectedZona, setSelectedZona] = useState("Paragolpe Delantero");
-  const [selectedTipo, setSelectedTipo] = useState<DanioCarroceria["tipo"]>("GOLPE_ABOLLADURA");
-  const [danioDesc, setDanioDesc] = useState("");
-
   // Cámara y compresión
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -267,27 +260,6 @@ export default function PeritajeIngresoModal({
       : "");
 
   if (!isOpen) return null;
-
-  const handleAddDanio = () => {
-    if (!danioDesc.trim()) return;
-    const newDanio: DanioCarroceria = {
-      zona: selectedZona,
-      tipo: selectedTipo,
-      descripcion: danioDesc.trim(),
-    };
-    setPeritaje({
-      ...peritaje,
-      daniosCarroceria: [...(peritaje.daniosCarroceria || []), newDanio],
-    });
-    setDanioDesc("");
-  };
-
-  const handleRemoveDanio = (index: number) => {
-    setPeritaje({
-      ...peritaje,
-      daniosCarroceria: (peritaje.daniosCarroceria || []).filter((_, idx) => idx !== index),
-    });
-  };
 
   const handleToggleTestigo = (key: keyof LucesTestigoTablero) => {
     if (key === "otrosTestigos") return;
@@ -423,30 +395,6 @@ export default function PeritajeIngresoModal({
   };
 
 
-
-  const zonasCarroceria = [
-    "Paragolpe Delantero",
-    "Capot / Frente",
-    "Parrilla y Insignia",
-    "Guardabarros Del. Izquierdo",
-    "Guardabarros Del. Derecho",
-    "Puerta Delantera Izquierda",
-    "Puerta Trasera Izquierda",
-    "Puerta Delantera Derecha",
-    "Puerta Trasera Derecha",
-    "Espejo Retrovisor Izquierdo",
-    "Espejo Retrovisor Derecho",
-    "Zócalos / Faldones",
-    "Techo",
-    "Parabrisas",
-    "Luneta Trasera",
-    "Guardabarros Tras. Izquierdo",
-    "Guardabarros Tras. Derecho",
-    "Portón / Baúl Trasero",
-    "Paragolpe Trasero",
-    "Ópticas Delanteras",
-    "Faros Traseros",
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
@@ -902,9 +850,9 @@ export default function PeritajeIngresoModal({
                   <span className="truncate text-[10px] sm:text-xs">
                     <span className="hidden sm:inline">2. </span>Carrocería
                   </span>
-                  {(peritaje?.daniosCarroceria?.length || 0) > 0 && (
+                  {((peritaje?.damagePins?.length || 0) + (peritaje?.daniosCarroceria?.length || 0)) > 0 && (
                     <span className="px-1 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[9px] font-bold">
-                      {peritaje?.daniosCarroceria?.length || 0}
+                      {(peritaje?.damagePins?.length || 0) + (peritaje?.daniosCarroceria?.length || 0)}
                     </span>
                   )}
                 </button>
@@ -1213,105 +1161,6 @@ export default function PeritajeIngresoModal({
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* Agregar daño manual por lista */}
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Zona de la Carrocería:
-                        </label>
-                        <select
-                          value={selectedZona}
-                          onChange={(e) => setSelectedZona(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold focus:outline-none"
-                        >
-                          {zonasCarroceria.map((z) => (
-                            <option key={z} value={z}>{z}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Tipo de Daño:
-                        </label>
-                        <select
-                          value={selectedTipo}
-                          onChange={(e: any) => setSelectedTipo(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-semibold focus:outline-none"
-                        >
-                          <option value="GOLPE_ABOLLADURA">💥 Golpe / Abolladura</option>
-                          <option value="RAYON_RASPON">⚡ Rayón / Raspón Profundo</option>
-                          <option value="ROTURA_FISURA">🔍 Rotura / Fisura</option>
-                          <option value="FALTANTE">❌ Faltante de Pieza / Tapa</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Descripción específica del daño:
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Ej: Hundimiento de 10 cm en el centro con pintura saltada"
-                          value={danioDesc}
-                          onChange={(e) => setDanioDesc(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddDanio())}
-                          className="flex-1 px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:outline-none bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddDanio}
-                          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 shrink-0 cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Agregar</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lista de daños registrados */}
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                      Daños Registrados en el Acta ({peritaje?.daniosCarroceria?.length || 0}):
-                    </span>
-
-                    {(peritaje?.daniosCarroceria?.length || 0) === 0 ? (
-                      <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
-                        No se han registrado golpes ni rayones previos (Vehículo en estado impecable).
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {(peritaje?.daniosCarroceria || []).map((d, index) => (
-                          <div
-                            key={index}
-                            className="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between shadow-sm"
-                          >
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 text-xs">{d.zona}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">
-                                  {d.tipo.replace(/_/g, " ")}
-                                </span>
-                              </div>
-                              <p className="text-slate-600 text-[11px] mt-0.5">{d.descripcion}</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDanio(index)}
-                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
