@@ -418,7 +418,7 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
   const obs = peritaje.observacionesGenerales?.trim();
   if (obs) {
     if (y > 245) { doc.addPage(); y = 15; }
-    y = sectionHeader(doc, y, "4. OBSERVACIONES GENERALES DE RECEPCIÓN", C.indigo600);
+    y = sectionHeader(doc, y, "4. OBSERVACIONES TÉCNICAS DEL VEHÍCULO", C.indigo600);
     const obsLines = doc.splitTextToSize(obs, PAGE_W - 2*MARGIN - 8);
     const obsH = obsLines.length * 4 + 8;
     pill(doc, MARGIN, y, PAGE_W - 2*MARGIN, obsH, C.sky50, C.slate200);

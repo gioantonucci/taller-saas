@@ -76,7 +76,7 @@ export default function PeritajeIngresoModal({
         matafuegoVigente: true,
         tapaCombustible: true,
       },
-      observacionesGenerales: order?.detallesIngreso || "",
+      observacionesGenerales: "",
       comentariosDuenio: order?.comentariosDuenio || "",
     };
 
@@ -87,6 +87,10 @@ export default function PeritajeIngresoModal({
             ? JSON.parse(order.checklistDanio)
             : order.checklistDanio;
         if (parsed && typeof parsed === "object") {
+          const rawObs = parsed.observacionesGenerales?.trim() || "";
+          const isCopiedFromReception =
+            Boolean(rawObs && order?.detallesIngreso && rawObs === order.detallesIngreso.trim());
+
           return {
             ...defaultData,
             ...parsed,
@@ -106,7 +110,7 @@ export default function PeritajeIngresoModal({
             },
             nivelCombustible: parsed.nivelCombustible || order.nivelNafta || defaultData.nivelCombustible,
             kilometrajeTablero: parsed.kilometrajeTablero || order.kilometraje || defaultData.kilometrajeTablero,
-            observacionesGenerales: parsed.observacionesGenerales || defaultData.observacionesGenerales,
+            observacionesGenerales: isCopiedFromReception ? "" : rawObs,
             comentariosDuenio: parsed.comentariosDuenio || defaultData.comentariosDuenio,
           } as PeritajeIngreso;
         }
@@ -145,7 +149,14 @@ export default function PeritajeIngresoModal({
             },
             nivelCombustible: parsed.nivelCombustible || order.nivelNafta || prev.nivelCombustible,
             kilometrajeTablero: parsed.kilometrajeTablero || order.kilometraje || prev.kilometrajeTablero,
-            observacionesGenerales: parsed.observacionesGenerales || prev.observacionesGenerales,
+            observacionesGenerales:
+              parsed.observacionesGenerales &&
+              parsed.observacionesGenerales.trim() !== (order?.detallesIngreso || "").trim()
+                ? parsed.observacionesGenerales
+                : prev.observacionesGenerales &&
+                  prev.observacionesGenerales.trim() !== (order?.detallesIngreso || "").trim()
+                ? prev.observacionesGenerales
+                : "",
             comentariosDuenio: parsed.comentariosDuenio || prev.comentariosDuenio,
           }));
         }
@@ -1217,11 +1228,11 @@ export default function PeritajeIngresoModal({
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Observaciones Generales de Recepción:
+                      Observaciones del Mecánico sobre el Vehículo:
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Detallar pertenencias dejadas en habitáculo, ruidos preexistentes al arrancar..."
+                      placeholder="El mecánico puede ingresar aquí cualquier observación sobre el vehículo (estado general, ruidos, desgastes o detalles detectados)..."
                       value={peritaje.observacionesGenerales}
                       onChange={(e) =>
                         setPeritaje({ ...peritaje, observacionesGenerales: e.target.value })
