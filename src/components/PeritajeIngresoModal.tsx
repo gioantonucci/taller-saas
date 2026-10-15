@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Eye,
   Clock,
+  Upload,
 } from "lucide-react";
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
@@ -203,8 +204,9 @@ export default function PeritajeIngresoModal({
     }
   }, [isOpen, order?.mechanicId]);
 
-  // Cámara y compresión
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Cámara, galería y compresión
+  const fileInputCameraRef = useRef<HTMLInputElement>(null);
+  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
@@ -284,48 +286,65 @@ export default function PeritajeIngresoModal({
   };
 
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setUploading(true);
-    setUploadMsg("Comprimiendo imagen de peritaje en navegador...");
 
     try {
-      const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
-      setUploadMsg(`Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadMsg(
+          files.length > 1
+            ? `Comprimiendo imagen ${i + 1} de ${files.length}...`
+            : "Comprimiendo imagen de peritaje en navegador..."
+        );
 
-      const formData = new FormData();
-      formData.append("file", compressedFile);
-      formData.append("folder", "multimedia");
+        const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
+        setUploadMsg(
+          files.length > 1
+            ? `Subiendo imagen ${i + 1} de ${files.length}...`
+            : `Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`
+        );
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+        const formData = new FormData();
+        formData.append("file", compressedFile);
+        formData.append("folder", "multimedia");
 
-      const isVideo = file.type.startsWith("video/");
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
-      // Guardar en multimedia de la orden
-      await fetch(`/api/work-orders/${order.id}/multimedia`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          urlStorage: data.file.url,
-          tipo: isVideo ? "VIDEO" : "FOTO",
-          etiqueta: "PERITAJE_INGRESO",
-          descripcion: isVideo
-            ? "Video de evidencia de peritaje de ingreso (ruidos o falla)"
-            : "Evidencia de peritaje de ingreso (daño o testigo preexistente)",
-        }),
-      });
+        const isVideo = file.type.startsWith("video/");
 
-      setUploadMsg("¡Archivo multimedia de peritaje resguardado en la nube con éxito!");
+        // Guardar en multimedia de la orden
+        await fetch(`/api/work-orders/${order.id}/multimedia`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urlStorage: data.file.url,
+            tipo: isVideo ? "VIDEO" : "FOTO",
+            etiqueta: "PERITAJE_INGRESO",
+            descripcion: isVideo
+              ? "Video de evidencia de peritaje de ingreso (ruidos o falla)"
+              : "Evidencia de peritaje de ingreso (daño o testigo preexistente)",
+          }),
+        });
+      }
+
+      setUploadMsg(
+        files.length > 1
+          ? `¡${files.length} archivos resguardados en la nube con éxito!`
+          : "¡Archivo multimedia de peritaje resguardado en la nube con éxito!"
+      );
       setTimeout(() => setUploadMsg(null), 3000);
       onSaved();
     } catch (err: any) {
       setUploadMsg("Error al subir archivo de peritaje: " + (err.message || "desconocido"));
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (fileInputCameraRef.current) fileInputCameraRef.current.value = "";
+      if (fileInputGalleryRef.current) fileInputGalleryRef.current.value = "";
     }
   };
 
@@ -1255,8 +1274,9 @@ export default function PeritajeIngresoModal({
                     </p>
                   </div>
 
+                  {/* Inputs ocultos: Cámara directa del celular y Selector de archivos / galería */}
                   <input
-                    ref={fileInputRef}
+                    ref={fileInputCameraRef}
                     type="file"
                     accept="image/*,video/*"
                     capture="environment"
@@ -1264,15 +1284,38 @@ export default function PeritajeIngresoModal({
                     className="hidden"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    <Camera className="w-4 h-4 text-sky-400" />
-                    <span>{uploading ? "Comprimiendo y subiendo multimedia..." : "Tomar Foto / Video con Cámara"}</span>
-                  </button>
+                  <input
+                    ref={fileInputGalleryRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handlePhotoCapture}
+                    className="hidden"
+                  />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Botón 1: Sacar foto con la cámara del celular */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputCameraRef.current?.click()}
+                      disabled={uploading}
+                      className="flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4 text-sky-400 shrink-0" />
+                      <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara"}</span>
+                    </button>
+
+                    {/* Botón 2: Subir fotos desde la galería o archivos */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputGalleryRef.current?.click()}
+                      disabled={uploading}
+                      className="flex items-center justify-center gap-2.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-4 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{uploading ? "Procesando..." : "Subir desde Galería / Archivos"}</span>
+                    </button>
+                  </div>
 
                   {uploadMsg && (
                     <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-center font-medium text-xs">
