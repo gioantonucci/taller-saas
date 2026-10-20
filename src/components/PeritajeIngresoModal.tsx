@@ -22,6 +22,7 @@ import {
   Upload,
   Video,
   Play,
+  Info,
 } from "lucide-react";
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
@@ -215,6 +216,8 @@ export default function PeritajeIngresoModal({
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraInitialMode, setCameraInitialMode] = useState<"FOTO" | "VIDEO">("FOTO");
+  const MAX_PAYLOAD_SIZE = 4.5 * 1024 * 1024; // 4.5 MB límite estricto de Serverless en Vercel
   const fileInputCameraRef = useRef<HTMLInputElement | null>(null);
   const fileInputVideoCameraRef = useRef<HTMLInputElement | null>(null);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState<
@@ -421,6 +424,18 @@ export default function PeritajeIngresoModal({
               : `Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`
           );
         } else {
+          // Pre-validación de tamaño para videos (evita error 413 de Vercel)
+          if (file.size > MAX_PAYLOAD_SIZE) {
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+            await alert({
+              title: "Video demasiado grande",
+              message: `El video "${file.name}" pesa ${sizeMb} MB, lo que supera el límite de 4.5 MB soportado por el servidor en la nube.\n\n💡 Opciones:\n1. Usá la opción "Video en Vivo (Recomendado)" que comprime automáticamente hasta 30 segundos.\n2. O grabá una toma más breve (de 5 a 10 segundos) o en menor resolución (HD 720p) desde la cámara del celular.`,
+              variant: "warning",
+              icon: "warning",
+            });
+            continue;
+          }
+
           setUploadMsg(
             files.length > 1
               ? `Subiendo video ${i + 1} de ${files.length} (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`
@@ -433,8 +448,26 @@ export default function PeritajeIngresoModal({
         formData.append("folder", "multimedia");
 
         const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        let data: any = null;
+        if (!res.ok) {
+          let errMsg = `Error del servidor (${res.status})`;
+          try {
+            const text = await res.text();
+            try {
+              const parsed = JSON.parse(text);
+              errMsg = parsed.error || errMsg;
+            } catch {
+              if (res.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("Too Large")) {
+                errMsg = "El video es demasiado grande para el servidor (máx. 4.5MB en Vercel). Grabá un video más corto o usá la cámara en vivo integrada.";
+              } else if (text) {
+                errMsg = text.slice(0, 120);
+              }
+            }
+          } catch {}
+          throw new Error(errMsg);
+        } else {
+          data = await res.json();
+        }
 
         // Guardar en multimedia de la orden
         await fetch(`/api/work-orders/${order.id}/multimedia`, {
@@ -493,6 +526,18 @@ export default function PeritajeIngresoModal({
   const handleCameraCapture = async (file: File, tipo: "FOTO" | "VIDEO" = "FOTO") => {
     setUploading(true);
     const isVideo = tipo === "VIDEO" || file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+
+    if (isVideo && file.size > MAX_PAYLOAD_SIZE) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      setUploading(false);
+      await alert({
+        title: "Video demasiado grande",
+        message: `El video grabado (${sizeMb} MB) supera el límite de 4.5 MB. Grabá una toma más breve (hasta 25-30 segundos).`,
+        variant: "warning",
+      });
+      return;
+    }
+
     setUploadMsg(isVideo ? `Subiendo video grabado (${(file.size / (1024 * 1024)).toFixed(1)}MB)...` : "Comprimiendo y subiendo foto de cámara...");
     try {
       let fileToUpload: File | Blob = file;
@@ -509,8 +554,26 @@ export default function PeritajeIngresoModal({
       formData.append("folder", "multimedia");
 
       const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      let data: any = null;
+      if (!res.ok) {
+        let errMsg = `Error del servidor (${res.status})`;
+        try {
+          const text = await res.text();
+          try {
+            const parsed = JSON.parse(text);
+            errMsg = parsed.error || errMsg;
+          } catch {
+            if (res.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("Too Large")) {
+              errMsg = "El video es demasiado grande para el servidor (máx. 4.5MB en Vercel). Grabá un video más corto o usá la cámara en vivo integrada.";
+            } else if (text) {
+              errMsg = text.slice(0, 120);
+            }
+          }
+        } catch {}
+        throw new Error(errMsg);
+      } else {
+        data = await res.json();
+      }
 
       await fetch(`/api/work-orders/${order.id}/multimedia`, {
         method: "POST",
@@ -1571,16 +1634,16 @@ export default function PeritajeIngresoModal({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {/* Botón 1: Sacar foto con la cámara nativa del celular (Android / iOS) */}
                     <label
                       onClick={handleNativeCameraClick}
-                      className={`flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Camera className="w-4 h-4 text-sky-400 shrink-0" />
-                      <span>{uploading ? "Procesando..." : "Sacar Foto"}</span>
+                      <span>{uploading ? "..." : "Sacar Foto"}</span>
                       <input
                         ref={fileInputCameraRef}
                         type="file"
@@ -1592,15 +1655,31 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Botón 2: Grabar video con la cámara nativa del celular */}
-                    <label
-                      onClick={handleNativeVideoCameraClick}
-                      className={`flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-bold py-3.5 px-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
+                    {/* Botón 2: Grabar video con la cámara integrada (comprimida y optimizada <4.5MB) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraInitialMode("VIDEO");
+                        setIsCameraModalOpen(true);
+                      }}
+                      disabled={uploading}
+                      className={`flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Video className="w-4 h-4 text-white shrink-0 animate-pulse" />
-                      <span>{uploading ? "Procesando..." : "Grabar Video"}</span>
+                      <span>Video en Vivo</span>
+                    </button>
+
+                    {/* Botón 3: Grabar video con la cámara nativa del celular */}
+                    <label
+                      onClick={handleNativeVideoCameraClick}
+                      className={`flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <Video className="w-4 h-4 text-rose-300 shrink-0" />
+                      <span>Video Celular</span>
                       <input
                         ref={fileInputVideoCameraRef}
                         type="file"
@@ -1612,14 +1691,14 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Botón 3: Subir fotos o videos desde la galería o archivos */}
+                    {/* Botón 4: Subir fotos o videos desde la galería o archivos */}
                     <label
-                      className={`flex items-center justify-center gap-2 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-3 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-2 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer text-center ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{uploading ? "Procesando..." : "Subir Fotos / Videos"}</span>
+                      <span>Galería / Archivos</span>
                       <input
                         type="file"
                         accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
@@ -1631,14 +1710,25 @@ export default function PeritajeIngresoModal({
                     </label>
                   </div>
 
+                  {/* Consejo de optimización para videos en la nube */}
+                  <div className="flex items-start gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 leading-snug">
+                    <Info className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Consejo para videos:</strong> En la nube el límite es de <strong>4.5 MB</strong> por archivo. Con <strong>"Video en Vivo"</strong> el video se comprime y optimiza automáticamente (hasta 30 seg). Si grabás con la cámara nativa del celular, hacé tomas breves de 5 a 10 seg.
+                    </span>
+                  </div>
+
                   {/* Enlace alternativo para PC / webcam */}
-                  <div className="text-center pt-1">
+                  <div className="text-center pt-0.5">
                     <button
                       type="button"
-                      onClick={() => setIsCameraModalOpen(true)}
+                      onClick={() => {
+                        setCameraInitialMode("FOTO");
+                        setIsCameraModalOpen(true);
+                      }}
                       className="text-[11px] text-slate-500 hover:text-slate-800 underline transition-colors cursor-pointer"
                     >
-                      ¿Estás en computadora / PC? Abrir cámara y grabadora de video web
+                      ¿Estás en computadora / PC? Abrir cámara web para sacar fotos
                     </button>
                   </div>
 
@@ -1839,6 +1929,7 @@ export default function PeritajeIngresoModal({
         isOpen={isCameraModalOpen}
         onClose={() => setIsCameraModalOpen(false)}
         onCapture={handleCameraCapture}
+        initialMode={cameraInitialMode}
       />
     </div>
   );

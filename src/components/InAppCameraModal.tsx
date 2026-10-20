@@ -8,18 +8,20 @@ interface InAppCameraModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCapture: (file: File, tipo: "FOTO" | "VIDEO") => Promise<void> | void;
+  initialMode?: "FOTO" | "VIDEO";
 }
 
 export default function InAppCameraModal({
   isOpen,
   onClose,
   onCapture,
+  initialMode = "FOTO",
 }: InAppCameraModalProps) {
   const { alert } = useAppDialog();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
-  const [captureMode, setCaptureMode] = useState<"FOTO" | "VIDEO">("FOTO");
+  const [captureMode, setCaptureMode] = useState<"FOTO" | "VIDEO">(initialMode || "FOTO");
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -66,23 +68,33 @@ export default function InAppCameraModal({
       }
 
       let newStream: MediaStream;
-      try {
-        newStream = await navigator.mediaDevices.getUserMedia({
-          video: {
+      const videoConstraints: MediaTrackConstraints = withAudio
+        ? {
+            facingMode: { ideal: mode },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            frameRate: { ideal: 24, max: 30 },
+          }
+        : {
             facingMode: { ideal: mode },
             width: { ideal: 1920 },
             height: { ideal: 1080 },
-          },
-          audio: withAudio,
+          };
+
+      try {
+        newStream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+          audio: withAudio
+            ? {
+                echoCancellation: true,
+                noiseSuppression: true,
+              }
+            : false,
         });
       } catch (audioErr) {
         // Fallback sin audio si el micrófono genera error de permisos
         newStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: mode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+          video: videoConstraints,
           audio: false,
         });
       }
@@ -124,7 +136,9 @@ export default function InAppCameraModal({
   // Manejar apertura y cierre
   useEffect(() => {
     if (isOpen) {
-      startCamera(facingMode, captureMode === "VIDEO");
+      const modeToUse = initialMode || "FOTO";
+      setCaptureMode(modeToUse);
+      startCamera(facingMode, modeToUse === "VIDEO");
     } else {
       stopStream(stream);
       setStream(null);
@@ -144,7 +158,7 @@ export default function InAppCameraModal({
         clearInterval(timerRef.current);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, initialMode]);
 
   // Cambiar entre Foto y Video
   const handleSwitchMode = (mode: "FOTO" | "VIDEO") => {
@@ -214,7 +228,19 @@ export default function InAppCameraModal({
         }
       }
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      let recorder: MediaRecorder;
+      const recorderOptions: MediaRecorderOptions = {
+        mimeType,
+        videoBitsPerSecond: 800_000, // 800 kbps: excelente balance 720p y bajo peso (~100 KB/s)
+        audioBitsPerSecond: 64_000,
+      };
+
+      try {
+        recorder = new MediaRecorder(stream, recorderOptions);
+      } catch {
+        recorder = new MediaRecorder(stream, { mimeType });
+      }
+
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
           recordedChunksRef.current.push(event.data);
@@ -235,9 +261,9 @@ export default function InAppCameraModal({
 
       timerRef.current = setInterval(() => {
         setRecordingSeconds((prev) => {
-          if (prev >= 60) {
+          if (prev >= 29) {
             stopRecording();
-            return 60;
+            return 30;
           }
           return prev + 1;
         });
@@ -265,9 +291,19 @@ export default function InAppCameraModal({
   // Confirmar y subir foto o video capturado
   const handleConfirmMedia = async () => {
     if (!capturedBlob) return;
+
+    const isVid = captureMode === "VIDEO";
+    if (isVid && capturedBlob.size > 4.5 * 1024 * 1024) {
+      await alert({
+        title: "Video demasiado grande",
+        message: `El video grabado (${(capturedBlob.size / (1024 * 1024)).toFixed(1)} MB) supera el límite de 4.5 MB soportado por el servidor en la nube. Por favor, grabá una toma más breve (de hasta 20 o 25 segundos).`,
+        variant: "warning",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      const isVid = captureMode === "VIDEO";
       const rawMime = capturedBlob.type || (isVid ? "video/webm" : "image/jpeg");
       const cleanMime = rawMime.split(";")[0].trim().toLowerCase();
       const ext = isVid
@@ -378,7 +414,7 @@ export default function InAppCameraModal({
         {isRecording && (
           <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-rose-600/90 text-white font-mono font-bold text-xs px-3 py-1.5 rounded-full shadow-lg backdrop-blur-xs animate-pulse">
             <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-            <span>REC {formatTimer(recordingSeconds)} / 01:00</span>
+            <span>REC {formatTimer(recordingSeconds)} / 00:30</span>
           </div>
         )}
 
@@ -424,7 +460,10 @@ export default function InAppCameraModal({
             )}
             <div className="absolute top-6 left-6 bg-emerald-600/95 text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-md shadow-md backdrop-blur-xs flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5" />
-              <span>{captureMode === "VIDEO" ? "Video Registrado" : "Foto Capturada"}</span>
+              <span>
+                {captureMode === "VIDEO" ? "Video Registrado" : "Foto Capturada"}
+                {capturedBlob ? ` (${(capturedBlob.size / (1024 * 1024)).toFixed(1)} MB)` : ""}
+              </span>
             </div>
           </div>
         ) : (
@@ -535,7 +574,7 @@ export default function InAppCameraModal({
                   ? "Tocar para tomar foto"
                   : isRecording
                   ? "Tocar para finalizar grabación"
-                  : "Tocar para iniciar grabación (máx 1 min)"}
+                  : "Tocar para iniciar grabación (máx 30 seg)"}
               </span>
             </div>
           )
