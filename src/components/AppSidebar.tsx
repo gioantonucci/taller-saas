@@ -111,21 +111,21 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       href: "/app/ordenes",
       label: "Órdenes",
       icon: ClipboardList,
-      roles: ["ADMIN", "RECEPTION"],
+      roles: ["ADMIN", "RECEPTION", "MECHANIC"],
       mobileBadge: "Órdenes",
     },
     {
       href: "/app/clientes",
       label: "Clientes",
       icon: Users,
-      roles: ["ADMIN", "RECEPTION"],
+      roles: ["ADMIN", "RECEPTION", "MECHANIC"],
       mobileBadge: "Clientes",
     },
     {
       href: "/app/vehiculos",
       label: "Vehículos",
       icon: Car,
-      roles: ["ADMIN", "RECEPTION"],
+      roles: ["ADMIN", "RECEPTION", "MECHANIC"],
       mobileBadge: "Vehículos",
     },
     {
@@ -264,53 +264,51 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. BOTTOM NAVIGATION BAR MOBILE (Solo para roles con múltiples secciones: ADMIN / RECEPTION) */}
+      {/* 2. BOTTOM NAVIGATION BAR MOBILE                                           */}
       {/* ========================================================================= */}
-      {normalizedRole !== "MECHANIC" && (
-        <nav
-          aria-label="Navegación inferior móvil"
-          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5"
-        >
-          <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
+      <nav
+        aria-label="Navegación inferior móvil"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5"
+      >
+        <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
+          {filteredNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => {
-                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-                    if (document.documentElement) document.documentElement.scrollTop = 0;
-                    if (document.body) document.body.scrollTop = 0;
-                  }}
-                  className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all min-w-[56px] text-center ${
-                    isActive
-                      ? normalizedRole === "ADMIN"
-                        ? "text-purple-400 bg-purple-500/15 font-bold"
-                        : normalizedRole === "RECEPTION"
-                        ? "text-sky-400 bg-sky-500/15 font-bold"
-                        : "text-emerald-400 bg-emerald-500/15 font-bold"
-                      : "text-slate-400 hover:text-slate-200"
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                  if (document.documentElement) document.documentElement.scrollTop = 0;
+                  if (document.body) document.body.scrollTop = 0;
+                }}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all min-w-[56px] text-center ${
+                  isActive
+                    ? normalizedRole === "ADMIN"
+                      ? "text-purple-400 bg-purple-500/15 font-bold"
+                      : normalizedRole === "RECEPTION"
+                      ? "text-sky-400 bg-sky-500/15 font-bold"
+                      : "text-emerald-400 bg-emerald-500/15 font-bold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Icon
+                  className={`w-5 h-5 transition-transform ${
+                    isActive ? "scale-110" : ""
                   }`}
-                >
-                  <Icon
-                    className={`w-5 h-5 transition-transform ${
-                      isActive ? "scale-110" : ""
-                    }`}
-                  />
-                  <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[70px]">
-                    {item.mobileBadge || item.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      )}
+                />
+                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[70px]">
+                  {item.mobileBadge || item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
 
       {/* ========================================================================= */}
       {/* 3. SIDEBAR DESKTOP (Visible en pantallas medianas y grandes: md:flex)     */}

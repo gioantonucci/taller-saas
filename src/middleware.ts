@@ -27,10 +27,15 @@ export async function middleware(request: NextRequest) {
       // Control de Acceso Basado en Roles (RBAC)
       // =========================================================================
 
-      // 1. Rol MECHANIC: Solo tiene acceso a la Hoja de Ruta (/app/taller/*)
+      // 1. Rol MECHANIC: Acceso a Clientes, Vehículos, Órdenes y Hoja de Ruta (/app/taller/*)
+      // Restringido de: /app/admin/*, /app/dashboard, /app/configuracion
       if (role === "MECHANIC" || role === "MECANICO") {
-        if (!pathname.startsWith("/app/taller")) {
-          return NextResponse.redirect(new URL("/app/taller/hoja-ruta", request.url));
+        if (
+          pathname.startsWith("/app/admin") ||
+          pathname.startsWith("/app/dashboard") ||
+          pathname.startsWith("/app/configuracion")
+        ) {
+          return NextResponse.redirect(new URL("/app/ordenes", request.url));
         }
       }
 

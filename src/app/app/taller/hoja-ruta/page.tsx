@@ -120,7 +120,7 @@ export default function HojaRutaMecanicoPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/work-orders");
+      const res = await fetch("/api/work-orders?scope=mine");
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders || []);

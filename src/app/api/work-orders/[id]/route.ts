@@ -577,16 +577,6 @@ export async function PATCH(
     }
 
     if (body.comentariosDuenio !== undefined && body.comentariosDuenio !== currentOrder.comentariosDuenio) {
-      const userRole = normalizeRole(session.role);
-      if (userRole === "MECHANIC") {
-        return NextResponse.json(
-          {
-            error:
-              "Permiso denegado: El mecánico no puede editar la declaración inicial del dueño. Solo tiene acceso de lectura.",
-          },
-          { status: 403 }
-        );
-      }
       previousValues.comentariosDuenio = currentOrder.comentariosDuenio;
       newValues.comentariosDuenio = body.comentariosDuenio;
       updateData.comentariosDuenio = body.comentariosDuenio;

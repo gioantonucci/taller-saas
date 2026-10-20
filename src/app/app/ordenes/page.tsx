@@ -53,6 +53,23 @@ export default function OrdenesPage() {
   const [deliveredSuccessMsg, setDeliveredSuccessMsg] = useState<string | null>(null);
   const [orderToDeliver, setOrderToDeliver] = useState<any | null>(null);
 
+  // Usuario actual logueado
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+      }
+    } catch (err) {
+      console.error("Error al obtener usuario:", err);
+    }
+  };
+
+  const isMechanic = currentUser?.role === "MECHANIC" || currentUser?.role === "MECANICO";
+
   // Clientes y Vehículos precargados para selección
   const [existingClients, setExistingClients] = useState<any[]>([]);
   const [existingVehicles, setExistingVehicles] = useState<any[]>([]);
@@ -264,6 +281,10 @@ export default function OrdenesPage() {
     setClientDropdownOpen(false);
     setVehicleSearchQuery("");
     setVehicleDropdownOpen(false);
+    setOrderForm((prev) => ({
+      ...prev,
+      mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
+    }));
     setModalOpen(true);
   };
 
@@ -478,6 +499,7 @@ export default function OrdenesPage() {
     fetchOrders();
     fetchMechanics();
     fetchClientsAndVehicles();
+    fetchCurrentUser();
   }, []);
 
   useEffect(() => {
@@ -706,7 +728,7 @@ export default function OrdenesPage() {
         detallesIngreso: "",
         comentariosDuenio: "",
         costoManoDeObra: "0",
-        mechanicId: "",
+        mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
       });
 
       fetchOrders(true);
@@ -2093,27 +2115,52 @@ export default function OrdenesPage() {
                   </div>
 
                   {/* Asignación de Mecánico */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                        <Wrench className="w-4 h-4 text-sky-600" />
-                        <span>Asignar Mecánico Responsable</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
+                  {isMechanic ? (
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-emerald-900 flex items-center gap-1.5">
+                          <Wrench className="w-4 h-4 text-emerald-600" />
+                          <span>Mecánico Responsable Asignado</span>
+                        </span>
+                        <span className="text-[10px] bg-emerald-200 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full">
+                          Autoasignado
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white border border-emerald-300 font-semibold text-xs text-slate-800 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px]">
+                          {currentUser?.nombre?.[0] || "M"}
+                        </div>
+                        <span>
+                          {currentUser?.nombre} {currentUser?.apellido || ""} (Vos)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 leading-relaxed">
+                        Como estás recibiendo el vehículo, la orden se asignará automáticamente a tu Hoja de Ruta.
+                      </p>
                     </div>
-                    <select
-                      value={orderForm.mechanicId}
-                      onChange={(e) => setOrderForm({ ...orderForm, mechanicId: e.target.value })}
-                      className="w-full p-3 rounded-xl border border-slate-300 font-medium text-xs bg-white text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer"
-                    >
-                      <option value="">-- Sin asignar (dejar en espera para asignar más tarde) --</option>
-                      {mechanics.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          🔧 {m.nombre} {m.apellido || ""} ({m.email})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                          <Wrench className="w-4 h-4 text-sky-600" />
+                          <span>Asignar Mecánico Responsable</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
+                      </div>
+                      <select
+                        value={orderForm.mechanicId}
+                        onChange={(e) => setOrderForm({ ...orderForm, mechanicId: e.target.value })}
+                        className="w-full p-3 rounded-xl border border-slate-300 font-medium text-xs bg-white text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="">-- Sin asignar (dejar en espera para asignar más tarde) --</option>
+                        {mechanics.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            🔧 {m.nombre} {m.apellido || ""} ({m.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Resumen Final de Confirmación */}
                   <div className="rounded-2xl border border-slate-200 overflow-hidden text-xs shadow-2xs">
@@ -2184,6 +2231,20 @@ export default function OrdenesPage() {
                           <p className="text-amber-900 font-medium mt-0.5">{orderForm.comentariosDuenio}</p>
                         </div>
                       )}
+
+                      {/* Mecánico Asignado */}
+                      <div className="pt-2 flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Mecánico Asignado</span>
+                          <span className="font-extrabold text-slate-900 text-xs">
+                            {isMechanic
+                              ? `${currentUser?.nombre} ${currentUser?.apellido || ""} (Autoasignado)`
+                              : orderForm.mechanicId
+                              ? mechanics.find((m) => m.id === orderForm.mechanicId)?.nombre + " " + (mechanics.find((m) => m.id === orderForm.mechanicId)?.apellido || "")
+                              : "Sin asignar (a definir)"}
+                          </span>
+                        </div>
+                      </div>
 
                       {/* Conflicto de vehículo activo en taller */}
                       {(selectedVehicleActiveOrder || newPlateActiveOrder) && (

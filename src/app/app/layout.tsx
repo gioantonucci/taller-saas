@@ -22,12 +22,8 @@ export default async function AppLayout({
       <InactivityHandler />
       <AppSidebar user={session} />
 
-      {/* Contenido principal: en mobile se reduce el padding inferior para mecánicos al no tener barra inferior flotante */}
-      <main
-        className={`flex-1 md:pl-64 lg:pl-72 flex flex-col min-w-0 ${
-          isMechanic ? "pb-6" : "pb-20"
-        } md:pb-8`}
-      >
+      {/* Contenido principal con padding inferior en mobile para no tapar con la barra de navegación */}
+      <main className="flex-1 md:pl-64 lg:pl-72 flex flex-col min-w-0 pb-20 md:pb-8">
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </div>

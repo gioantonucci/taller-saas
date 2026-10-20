@@ -54,10 +54,6 @@ export async function PATCH(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    if (session.role === "MECANICO" || session.role === "MECHANIC") {
-      return NextResponse.json({ error: "Sin permisos para modificar clientes" }, { status: 403 });
-    }
-
     const { id } = params;
     const body = await request.json();
 
@@ -143,10 +139,6 @@ export async function DELETE(
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    if (session.role === "MECANICO" || session.role === "MECHANIC") {
-      return NextResponse.json({ error: "Sin permisos para eliminar clientes" }, { status: 403 });
     }
 
     const { id } = params;

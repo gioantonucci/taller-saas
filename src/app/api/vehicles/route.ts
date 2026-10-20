@@ -62,13 +62,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    if (session.role === "MECANICO" || session.role === "MECHANIC") {
-      return NextResponse.json(
-        { error: "No tiene permisos para dar de alta vehículos" },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
 
     // Validación de entrada con Zod

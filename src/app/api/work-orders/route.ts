@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const estado = searchParams.get("estado");
     const search = searchParams.get("search");
     const mechanicId = searchParams.get("mechanicId");
+    const scope = searchParams.get("scope");
 
     const where: any = {};
 
@@ -35,10 +36,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Si es mecánico y no se especificó otro, filtrar por sus asignadas
-    if ((session.role === "MECANICO" || session.role === "MECHANIC") && !mechanicId) {
+    // Filtrar por mecánico si se especifica en parámetros o scope específico de hoja de ruta
+    if (scope === "mine" || mechanicId === "mine") {
       where.mechanicId = session.id;
-    } else if (mechanicId) {
+    } else if (mechanicId && mechanicId !== "TODOS") {
       where.mechanicId = mechanicId;
     }
 
@@ -86,13 +87,6 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    if (session.role === "MECANICO" || session.role === "MECHANIC") {
-      return NextResponse.json(
-        { error: "Los mecánicos no tienen permiso para crear nuevas órdenes de trabajo" },
-        { status: 403 }
-      );
     }
 
     const body = await request.json();
@@ -272,19 +266,24 @@ export async function POST(request: NextRequest) {
     });
     const nextNumeroOrden = (lastOrder?.numeroOrden || 1000) + 1;
 
-    // 5. Crear la orden de trabajo
+    // 5. Determinar asignación de mecánico:
+    // REGLA: Si la orden es recibida/creada por un mecánico, se autoasigna automáticamente a él.
+    const isMechanic = session.role === "MECANICO" || session.role === "MECHANIC";
+    const resolvedMechanicId = isMechanic ? session.id : (mechanicId || null);
+
+    // 6. Crear la orden de trabajo
     const newWorkOrder = await prisma.workOrder.create({
       data: {
         numeroOrden: nextNumeroOrden,
         vehicleId: resolvedVehicleId,
-        mechanicId: mechanicId || null,
+        mechanicId: resolvedMechanicId,
         adminId: session.id,
         estado: "PENDIENTE_PERITAJE",
         nivelNafta: nivelNafta || "1/2",
         kilometraje: kilometraje ? parseInt(kilometraje, 10) : null,
         detallesIngreso: detallesIngreso || "Ingreso para diagnóstico y peritaje",
         comentariosDuenio: comentariosDuenio || null,
-        checklistDanio: checklistDanio ? JSON.stringify(checklistDanio) : null,
+        checklistDanio: checklistDanio ? (typeof checklistDanio === "string" ? checklistDanio : JSON.stringify(checklistDanio)) : null,
         costoManoDeObra: costoManoDeObra ? parseFloat(costoManoDeObra) : 0,
         totalPresupuesto: costoManoDeObra ? parseFloat(costoManoDeObra) : 0,
       },
@@ -296,7 +295,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 5. Registrar log de auditoría
+    // 7. Registrar log de auditoría
     await recordAuditLog({
       user: session,
       accion: "CREATE",
@@ -308,6 +307,7 @@ export async function POST(request: NextRequest) {
         vehicleId: newWorkOrder.vehicleId,
         patente: newWorkOrder.vehicle.patente,
         estado: newWorkOrder.estado,
+        mechanicId: newWorkOrder.mechanicId,
         kilometraje: newWorkOrder.kilometraje,
         nivelNafta: newWorkOrder.nivelNafta,
         detallesIngreso: newWorkOrder.detallesIngreso,
@@ -318,8 +318,11 @@ export async function POST(request: NextRequest) {
           patente: newWorkOrder.vehicle.patente,
           cliente: `${newWorkOrder.vehicle.client.nombre} ${newWorkOrder.vehicle.client.apellido}`,
           estado: newWorkOrder.estado,
+          mecanicoAsignado: newWorkOrder.mechanic
+            ? `${newWorkOrder.mechanic.nombre} ${newWorkOrder.mechanic.apellido || ""}`.trim()
+            : "Sin asignar",
         },
-        descripcion: `Apertura de Orden #${newWorkOrder.numeroOrden} para ${newWorkOrder.vehicle.marca} ${newWorkOrder.vehicle.modelo}`,
+        descripcion: `Apertura de Orden #${newWorkOrder.numeroOrden} (${newWorkOrder.vehicle.patente}) por ${session.nombre} (${session.role})${isMechanic ? " - Autoasignada al mecánico receptor" : ""}`,
       },
     });
 
