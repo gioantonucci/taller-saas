@@ -218,6 +218,7 @@ export default function PeritajeIngresoModal({
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [cameraInitialMode, setCameraInitialMode] = useState<"FOTO" | "VIDEO">("FOTO");
   const MAX_PAYLOAD_SIZE = 4.5 * 1024 * 1024; // 4.5 MB límite estricto de Serverless en Vercel
+  const fileInputUnifiedCameraRef = useRef<HTMLInputElement | null>(null);
   const fileInputCameraRef = useRef<HTMLInputElement | null>(null);
   const fileInputVideoCameraRef = useRef<HTMLInputElement | null>(null);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState<
@@ -262,6 +263,34 @@ export default function PeritajeIngresoModal({
       return false;
     } finally {
       setIsRequestingPermission(false);
+    }
+  };
+
+  const handleNativeUnifiedCameraClick = async (e: React.MouseEvent<HTMLLabelElement>) => {
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as any).MSStream;
+
+    if (isIOS) {
+      return;
+    }
+
+    if (cameraPermissionStatus !== "granted") {
+      e.preventDefault();
+      const granted = await requestCameraAccess();
+      if (granted) {
+        setTimeout(() => {
+          fileInputUnifiedCameraRef.current?.click();
+        }, 150);
+      } else {
+        await alert({
+          title: "Acceso a Cámara Necesario",
+          message: "Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración de permisos del sitio.",
+          variant: "warning",
+          icon: "warning",
+        });
+      }
     }
   };
 
@@ -396,6 +425,94 @@ export default function PeritajeIngresoModal({
     });
   };
 
+  const uploadFileWithChunking = async (
+    fileToUpload: File | Blob,
+    originalName: string,
+    isVideo: boolean,
+    onProgress: (msg: string) => void
+  ): Promise<any> => {
+    const CHUNK_SIZE = 2.5 * 1024 * 1024; // 2.5 MB por fragmento
+
+    // Si es un video y supera los 3.5 MB, subirlo fragmentado para no tocar el límite de 4.5 MB de Vercel
+    if (isVideo && fileToUpload.size > 3.5 * 1024 * 1024) {
+      const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
+      const uploadId = `vid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      let finalResult: any = null;
+
+      for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+        const percent = Math.round((chunkIdx / totalChunks) * 100);
+        onProgress(`Subiendo video (${percent}% - fragmento ${chunkIdx + 1} de ${totalChunks})...`);
+
+        const start = chunkIdx * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, fileToUpload.size);
+        const chunkBlob = fileToUpload.slice(start, end);
+
+        const chunkFormData = new FormData();
+        chunkFormData.append("chunk", chunkBlob);
+        chunkFormData.append("uploadId", uploadId);
+        chunkFormData.append("chunkIndex", String(chunkIdx));
+        chunkFormData.append("totalChunks", String(totalChunks));
+        chunkFormData.append("fileName", originalName);
+        chunkFormData.append("mimeType", (fileToUpload as File).type || "video/mp4");
+        chunkFormData.append("folder", "multimedia");
+
+        const chunkRes = await fetch("/api/upload/chunk", {
+          method: "POST",
+          body: chunkFormData,
+        });
+
+        if (!chunkRes.ok) {
+          const text = await chunkRes.text().catch(() => "");
+          let errText = `Error al subir fragmento ${chunkIdx + 1}`;
+          try {
+            const parsed = JSON.parse(text);
+            errText = parsed.error || errText;
+          } catch {
+            if (text) errText = text.slice(0, 100);
+          }
+          throw new Error(errText);
+        }
+
+        const chunkData = await chunkRes.json();
+        if (chunkData.complete && chunkData.file) {
+          finalResult = chunkData.file;
+        }
+      }
+
+      if (!finalResult) {
+        throw new Error("No se pudo completar el ensamblado del video en el servidor");
+      }
+      return finalResult;
+    }
+
+    // Subida directa estándar (< 3.5 MB o foto)
+    const formData = new FormData();
+    formData.append("file", fileToUpload);
+    formData.append("folder", "multimedia");
+
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    if (!res.ok) {
+      let errMsg = `Error del servidor (${res.status})`;
+      try {
+        const text = await res.text();
+        try {
+          const parsed = JSON.parse(text);
+          errMsg = parsed.error || errMsg;
+        } catch {
+          if (res.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("Too Large")) {
+            errMsg = "El archivo supera el límite de transferencia directa (máx. 4.5MB en Vercel).";
+          } else if (text) {
+            errMsg = text.slice(0, 120);
+          }
+        }
+      } catch {}
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+    return data.file;
+  };
+
   const handlePhotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputEl = e.target;
     const files = Array.from(inputEl.files || []);
@@ -424,18 +541,6 @@ export default function PeritajeIngresoModal({
               : `Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`
           );
         } else {
-          // Pre-validación de tamaño para videos (evita error 413 de Vercel)
-          if (file.size > MAX_PAYLOAD_SIZE) {
-            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-            await alert({
-              title: "Video demasiado grande",
-              message: `El video "${file.name}" pesa ${sizeMb} MB, lo que supera el límite de 4.5 MB soportado por el servidor en la nube.\n\n💡 Opciones:\n1. Usá la opción "Video en Vivo (Recomendado)" que comprime automáticamente hasta 30 segundos.\n2. O grabá una toma más breve (de 5 a 10 segundos) o en menor resolución (HD 720p) desde la cámara del celular.`,
-              variant: "warning",
-              icon: "warning",
-            });
-            continue;
-          }
-
           setUploadMsg(
             files.length > 1
               ? `Subiendo video ${i + 1} de ${files.length} (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`
@@ -443,38 +548,19 @@ export default function PeritajeIngresoModal({
           );
         }
 
-        const formData = new FormData();
-        formData.append("file", fileToUpload);
-        formData.append("folder", "multimedia");
-
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        let data: any = null;
-        if (!res.ok) {
-          let errMsg = `Error del servidor (${res.status})`;
-          try {
-            const text = await res.text();
-            try {
-              const parsed = JSON.parse(text);
-              errMsg = parsed.error || errMsg;
-            } catch {
-              if (res.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("Too Large")) {
-                errMsg = "El video es demasiado grande para el servidor (máx. 4.5MB en Vercel). Grabá un video más corto o usá la cámara en vivo integrada.";
-              } else if (text) {
-                errMsg = text.slice(0, 120);
-              }
-            }
-          } catch {}
-          throw new Error(errMsg);
-        } else {
-          data = await res.json();
-        }
+        const uploadedFile = await uploadFileWithChunking(
+          fileToUpload,
+          file.name,
+          isVideo,
+          (msg) => setUploadMsg(msg)
+        );
 
         // Guardar en multimedia de la orden
         await fetch(`/api/work-orders/${order.id}/multimedia`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            urlStorage: data.file.url,
+            urlStorage: uploadedFile.url,
             tipo: isVideo ? "VIDEO" : "FOTO",
             etiqueta: "PERITAJE_INGRESO",
             descripcion: isVideo
@@ -484,9 +570,9 @@ export default function PeritajeIngresoModal({
         });
 
         const newPhotoItem = {
-          id: data.file.id || `uploaded-${Date.now()}-${i}`,
-          urlStorage: data.file.url,
-          url: data.file.url,
+          id: uploadedFile.id || `uploaded-${Date.now()}-${i}`,
+          urlStorage: uploadedFile.url,
+          url: uploadedFile.url,
           tipo: isVideo ? "VIDEO" : "FOTO",
           etiqueta: "PERITAJE_INGRESO",
           descripcion: isVideo
@@ -510,6 +596,11 @@ export default function PeritajeIngresoModal({
       try {
         inputEl.value = "";
       } catch {}
+      if (fileInputUnifiedCameraRef.current) {
+        try {
+          fileInputUnifiedCameraRef.current.value = "";
+        } catch {}
+      }
       if (fileInputCameraRef.current) {
         try {
           fileInputCameraRef.current.value = "";
@@ -527,17 +618,6 @@ export default function PeritajeIngresoModal({
     setUploading(true);
     const isVideo = tipo === "VIDEO" || file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
 
-    if (isVideo && file.size > MAX_PAYLOAD_SIZE) {
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-      setUploading(false);
-      await alert({
-        title: "Video demasiado grande",
-        message: `El video grabado (${sizeMb} MB) supera el límite de 4.5 MB. Grabá una toma más breve (hasta 25-30 segundos).`,
-        variant: "warning",
-      });
-      return;
-    }
-
     setUploadMsg(isVideo ? `Subiendo video grabado (${(file.size / (1024 * 1024)).toFixed(1)}MB)...` : "Comprimiendo y subiendo foto de cámara...");
     try {
       let fileToUpload: File | Blob = file;
@@ -549,37 +629,18 @@ export default function PeritajeIngresoModal({
         setUploadMsg(`Subiendo video (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`);
       }
 
-      const formData = new FormData();
-      formData.append("file", fileToUpload);
-      formData.append("folder", "multimedia");
-
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      let data: any = null;
-      if (!res.ok) {
-        let errMsg = `Error del servidor (${res.status})`;
-        try {
-          const text = await res.text();
-          try {
-            const parsed = JSON.parse(text);
-            errMsg = parsed.error || errMsg;
-          } catch {
-            if (res.status === 413 || text.includes("FUNCTION_PAYLOAD_TOO_LARGE") || text.includes("Too Large")) {
-              errMsg = "El video es demasiado grande para el servidor (máx. 4.5MB en Vercel). Grabá un video más corto o usá la cámara en vivo integrada.";
-            } else if (text) {
-              errMsg = text.slice(0, 120);
-            }
-          }
-        } catch {}
-        throw new Error(errMsg);
-      } else {
-        data = await res.json();
-      }
+      const uploadedFile = await uploadFileWithChunking(
+        fileToUpload,
+        file.name,
+        isVideo,
+        (msg) => setUploadMsg(msg)
+      );
 
       await fetch(`/api/work-orders/${order.id}/multimedia`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          urlStorage: data.file.url,
+          urlStorage: uploadedFile.url,
           tipo: isVideo ? "VIDEO" : "FOTO",
           etiqueta: "PERITAJE_INGRESO",
           descripcion: isVideo
@@ -589,9 +650,9 @@ export default function PeritajeIngresoModal({
       });
 
       const newPhotoItem = {
-        id: data.file.id || `uploaded-${Date.now()}`,
-        urlStorage: data.file.url,
-        url: data.file.url,
+        id: uploadedFile.id || `uploaded-${Date.now()}`,
+        urlStorage: uploadedFile.url,
+        url: uploadedFile.url,
         tipo: isVideo ? "VIDEO" : "FOTO",
         etiqueta: "PERITAJE_INGRESO",
         descripcion: isVideo
@@ -1634,20 +1695,29 @@ export default function PeritajeIngresoModal({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    {/* Botón 1: Sacar foto con la cámara nativa del celular (Android / iOS) */}
+                  <div className="space-y-2.5">
+                    {/* Botón Principal: Abrir la Cámara Nativa del Celular para Foto o Video */}
                     <label
-                      onClick={handleNativeCameraClick}
-                      className={`flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
+                      onClick={handleNativeUnifiedCameraClick}
+                      className={`w-full flex items-center justify-center gap-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 hover:from-slate-900 hover:to-slate-900 active:scale-[0.99] text-white font-extrabold py-4 px-4 rounded-2xl text-sm shadow-lg border border-slate-800 transition-all cursor-pointer ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
-                      <Camera className="w-4 h-4 text-sky-400 shrink-0" />
-                      <span>{uploading ? "..." : "Sacar Foto"}</span>
+                      <div className="w-8 h-8 rounded-full bg-rose-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                        <Camera className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-bold tracking-tight">
+                          {uploading ? "Procesando subida..." : "Abrir Cámara del Celular"}
+                        </span>
+                        <span className="text-[11px] font-normal text-slate-400">
+                          Sacá una foto o grabá un video directamente con la cámara
+                        </span>
+                      </div>
                       <input
-                        ref={fileInputCameraRef}
+                        ref={fileInputUnifiedCameraRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*"
                         capture="environment"
                         onChange={handlePhotoCapture}
                         disabled={uploading}
@@ -1655,67 +1725,66 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Botón 2: Grabar video con la cámara integrada (comprimida y optimizada <4.5MB) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCameraInitialMode("VIDEO");
-                        setIsCameraModalOpen(true);
-                      }}
-                      disabled={uploading}
-                      className={`flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
-                        uploading ? "opacity-50 pointer-events-none" : ""
-                      }`}
-                    >
-                      <Video className="w-4 h-4 text-white shrink-0 animate-pulse" />
-                      <span>Video en Vivo</span>
-                    </button>
+                    {/* Accesos directos a la cámara nativa y selector de archivos */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Acceso directo a Cámara de Fotos */}
+                      <label
+                        onClick={handleNativeCameraClick}
+                        className={`flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-800 font-bold py-3 px-2 rounded-xl text-xs border border-slate-300 transition-all cursor-pointer text-center ${
+                          uploading ? "opacity-50 pointer-events-none" : ""
+                        }`}
+                      >
+                        <Camera className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Solo Foto</span>
+                        <input
+                          ref={fileInputCameraRef}
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handlePhotoCapture}
+                          disabled={uploading}
+                          className="sr-only"
+                        />
+                      </label>
 
-                    {/* Botón 3: Grabar video con la cámara nativa del celular */}
-                    <label
-                      onClick={handleNativeVideoCameraClick}
-                      className={`flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 active:scale-[0.99] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
-                        uploading ? "opacity-50 pointer-events-none" : ""
-                      }`}
-                    >
-                      <Video className="w-4 h-4 text-rose-300 shrink-0" />
-                      <span>Video Celular</span>
-                      <input
-                        ref={fileInputVideoCameraRef}
-                        type="file"
-                        accept="video/*"
-                        capture="environment"
-                        onChange={handlePhotoCapture}
-                        disabled={uploading}
-                        className="sr-only"
-                      />
-                    </label>
+                      {/* Acceso directo a Cámara de Video */}
+                      <label
+                        onClick={handleNativeVideoCameraClick}
+                        className={`flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-800 font-bold py-3 px-2 rounded-xl text-xs border border-rose-200 transition-all cursor-pointer text-center ${
+                          uploading ? "opacity-50 pointer-events-none" : ""
+                        }`}
+                      >
+                        <Video className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        <span>Solo Video</span>
+                        <input
+                          ref={fileInputVideoCameraRef}
+                          type="file"
+                          accept="video/*"
+                          capture="environment"
+                          onChange={handlePhotoCapture}
+                          disabled={uploading}
+                          className="sr-only"
+                        />
+                      </label>
 
-                    {/* Botón 4: Subir fotos o videos desde la galería o archivos */}
-                    <label
-                      className={`flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-2 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer text-center ${
-                        uploading ? "opacity-50 pointer-events-none" : ""
-                      }`}
-                    >
-                      <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Galería / Archivos</span>
-                      <input
-                        type="file"
-                        accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
-                        multiple
-                        onChange={handlePhotoCapture}
-                        disabled={uploading}
-                        className="sr-only"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Consejo de optimización para videos en la nube */}
-                  <div className="flex items-start gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 leading-snug">
-                    <Info className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Consejo para videos:</strong> En la nube el límite es de <strong>4.5 MB</strong> por archivo. Con <strong>"Video en Vivo"</strong> el video se comprime y optimiza automáticamente (hasta 30 seg). Si grabás con la cámara nativa del celular, hacé tomas breves de 5 a 10 seg.
-                    </span>
+                      {/* Galería / Archivos */}
+                      <label
+                        className={`flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 font-bold py-3 px-2 rounded-xl text-xs border border-slate-300 transition-all cursor-pointer text-center ${
+                          uploading ? "opacity-50 pointer-events-none" : ""
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>Galería</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
+                          multiple
+                          onChange={handlePhotoCapture}
+                          disabled={uploading}
+                          className="sr-only"
+                        />
+                      </label>
+                    </div>
                   </div>
 
                   {/* Enlace alternativo para PC / webcam */}
