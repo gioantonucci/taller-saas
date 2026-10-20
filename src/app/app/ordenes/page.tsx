@@ -30,7 +30,6 @@ import {
 import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
-import OkEntregaModal from "@/components/OkEntregaModal";
 import { useAppDialog } from "@/components/AppDialog";
 
 // Badge Matrícula Compacto pero legible y de tamaño táctil
@@ -55,7 +54,6 @@ export default function OrdenesPage() {
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
   const [deliveredSuccessMsg, setDeliveredSuccessMsg] = useState<string | null>(null);
   const [orderToDeliver, setOrderToDeliver] = useState<any | null>(null);
-  const [orderForOkEntrega, setOrderForOkEntrega] = useState<any | null>(null);
 
   // Usuario actual logueado
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -533,34 +531,6 @@ export default function OrdenesPage() {
   };
 
   const handleMarkAsDelivered = async (orden: any) => {
-    let controlCalidad: any = null;
-    if (orden.checklistDanio) {
-      try {
-        const p =
-          typeof orden.checklistDanio === "string"
-            ? JSON.parse(orden.checklistDanio)
-            : orden.checklistDanio;
-        controlCalidad = p?.controlCalidadSalida || null;
-      } catch {
-        controlCalidad = null;
-      }
-    }
-
-    if (controlCalidad && !controlCalidad.okEncargado) {
-      if (!isMechanic) {
-        setOrderForOkEntrega(orden);
-      } else {
-        await alert({
-          title: "OK del Encargado Requerido",
-          message:
-            "El vehículo no puede ser entregado al cliente hasta que el Encargado de Taller (Recepción o Administración) haya revisado la encuesta de control de calidad y otorgado el OK de entrega previo.",
-          variant: "warning",
-          icon: "warning",
-        });
-      }
-      return;
-    }
-
     setOrderToDeliver(orden);
   };
 
@@ -1130,84 +1100,36 @@ export default function OrdenesPage() {
                   )}
 
                   {/* Botón Destacado: Avisar al Cliente si está Terminado y Botón Entregar */}
-                  {(orden.estado === "FINALIZADO" || orden.estado === "TERMINADO" || orden.estado === "REPARADO") && (() => {
-                    let controlCalidad: any = null;
-                    if (orden.checklistDanio) {
-                      try {
-                        const p = typeof orden.checklistDanio === "string" ? JSON.parse(orden.checklistDanio) : orden.checklistDanio;
-                        controlCalidad = p?.controlCalidadSalida || null;
-                      } catch {
-                        controlCalidad = null;
-                      }
-                    }
-                    const isPendingOk = Boolean(controlCalidad && !controlCalidad.okEncargado);
+                  {(orden.estado === "FINALIZADO" || orden.estado === "TERMINADO" || orden.estado === "REPARADO") && (
+                    <div className="mt-3 space-y-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleNotifyClient(orden);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-sm transition-all cursor-pointer"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{notifiedOrders[orden.id] ? "Aviso Enviado al Cliente ✓" : "Dar Aviso al Cliente (WhatsApp)"}</span>
+                      </button>
 
-                    return (
-                      <div className="mt-3 space-y-2">
-                        {isPendingOk && (
-                          <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs font-semibold flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5">
-                              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                              <span>Pendiente OK Encargado</span>
-                            </div>
-                            {!isMechanic && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setOrderForOkEntrega(orden);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] shadow-2xs cursor-pointer"
-                              >
-                                Dar OK
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleNotifyClient(orden);
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-sm transition-all cursor-pointer"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>{notifiedOrders[orden.id] ? "Aviso Enviado al Cliente ✓" : "Dar Aviso al Cliente (WhatsApp)"}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={deliveringOrderId === orden.id}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleMarkAsDelivered(orden);
-                          }}
-                          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-extrabold text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer ${
-                            isPendingOk
-                              ? "bg-slate-200 text-slate-600 border border-slate-300"
-                              : "bg-slate-900 hover:bg-slate-800 text-white"
-                          }`}
-                        >
-                          {isPendingOk ? (
-                            <>
-                              <Lock className="w-4 h-4 text-slate-500" />
-                              <span>Entregar (Requiere OK Encargado)</span>
-                            </>
-                          ) : (
-                            <>
-                              <PackageCheck className="w-4 h-4 text-emerald-400" />
-                              <span>{deliveringOrderId === orden.id ? "Archivando..." : "Marcar como Entregado / Archivar"}</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })()}
+                      <button
+                        type="button"
+                        disabled={deliveringOrderId === orden.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleMarkAsDelivered(orden);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-extrabold text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer bg-slate-900 hover:bg-slate-800 text-white"
+                      >
+                        <PackageCheck className="w-4 h-4 text-emerald-400" />
+                        <span>{deliveringOrderId === orden.id ? "Archivando..." : "Marcar como Entregado / Archivar"}</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Indicador si la orden ya fue Entregada y Archivada */}
                   {(orden.estado === "ENTREGADO" || orden.estado === "ARCHIVADO") && (
@@ -1320,65 +1242,27 @@ export default function OrdenesPage() {
                       {/* 6. Acciones */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {isFinished && (() => {
-                            let controlCalidad: any = null;
-                            if (orden.checklistDanio) {
-                              try {
-                                const p =
-                                  typeof orden.checklistDanio === "string"
-                                    ? JSON.parse(orden.checklistDanio)
-                                    : orden.checklistDanio;
-                                controlCalidad = p?.controlCalidadSalida || null;
-                              } catch {
-                                controlCalidad = null;
-                              }
-                            }
-                            const isPendingOk = Boolean(controlCalidad && !controlCalidad.okEncargado);
-
-                            return (
-                              <>
-                                {isPendingOk && !isMechanic && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setOrderForOkEntrega(orden)}
-                                    className="p-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
-                                    title="Dar OK de Entrega (Encargado de Taller)"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleNotifyClient(orden)}
-                                  className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
-                                  title={notifiedOrders[orden.id] ? "Aviso enviado por WhatsApp ✓" : "Avisar al cliente por WhatsApp"}
-                                >
-                                  <MessageCircle className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={deliveringOrderId === orden.id}
-                                  onClick={() => handleMarkAsDelivered(orden)}
-                                  className={`p-2 rounded-xl text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105 disabled:opacity-50 ${
-                                    isPendingOk
-                                      ? "bg-slate-400 hover:bg-slate-500"
-                                      : "bg-slate-900 hover:bg-slate-800"
-                                  }`}
-                                  title={
-                                    isPendingOk
-                                      ? "Requiere OK del Encargado para entregar"
-                                      : "Marcar vehículo como entregado al cliente y archivar orden"
-                                  }
-                                >
-                                  {isPendingOk ? (
-                                    <Lock className="w-3.5 h-3.5 text-amber-200" />
-                                  ) : (
-                                    <PackageCheck className="w-3.5 h-3.5 text-emerald-400" />
-                                  )}
-                                </button>
-                              </>
-                            );
-                          })()}
+                          {isFinished && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleNotifyClient(orden)}
+                                className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
+                                title={notifiedOrders[orden.id] ? "Aviso enviado por WhatsApp ✓" : "Avisar al cliente por WhatsApp"}
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deliveringOrderId === orden.id}
+                                onClick={() => handleMarkAsDelivered(orden)}
+                                className="p-2 rounded-xl text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105 disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
+                                title="Marcar vehículo como entregado al cliente y archivar orden"
+                              >
+                                <PackageCheck className="w-3.5 h-3.5 text-emerald-400" />
+                              </button>
+                            </>
+                          )}
                           <Link
                             href={`/app/ordenes/${orden.id}`}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
@@ -2448,18 +2332,6 @@ export default function OrdenesPage() {
         }
       />
 
-      {/* Modal de OK de Entrega del Encargado de Taller */}
-      {orderForOkEntrega && (
-        <OkEntregaModal
-          isOpen={Boolean(orderForOkEntrega)}
-          onClose={() => setOrderForOkEntrega(null)}
-          order={orderForOkEntrega}
-          onSuccess={() => {
-            setOrderForOkEntrega(null);
-            fetchOrders();
-          }}
-        />
-      )}
 
       {/* Modal de Consulta Local de Peritaje Realizado (Solo Lectura) */}
       {peritajeModalOrder && (

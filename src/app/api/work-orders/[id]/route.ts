@@ -291,29 +291,6 @@ export async function PATCH(
       updateData.estado = body.estado;
 
       if (isTargetEntregado) {
-        // Validación de control de calidad y OK del Encargado de Taller
-        let currentChecklist: any = null;
-        try {
-          const raw = body.checklistDanio !== undefined ? body.checklistDanio : currentOrder.checklistDanio;
-          currentChecklist = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
-        } catch {
-          currentChecklist = null;
-        }
-
-        if (
-          currentChecklist &&
-          currentChecklist.controlCalidadSalida &&
-          !currentChecklist.controlCalidadSalida.okEncargado
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Operación denegada: El vehículo no puede ser entregado al cliente hasta que el Encargado de Taller haya revisado la encuesta de control de calidad y otorgado el OK de entrega.",
-            },
-            { status: 400 }
-          );
-        }
-
         updateData.fechaEntrega = new Date();
       } else if (body.estado === "FINALIZADO" || body.estado === "TERMINADO" || body.estado === "REPARADO") {
         const mechanicIdToUse = body.mechanicId !== undefined ? body.mechanicId : currentOrder.mechanicId;
@@ -648,10 +625,6 @@ export async function PATCH(
         fechaEncuesta: body.controlCalidadSalida.fechaEncuesta || new Date().toISOString(),
         mecanicoId: session.id,
         mecanicoNombre: `${session.nombre} ${session.apellido || ""}`.trim(),
-        okEncargado: false,
-        okEncargadoPorId: null,
-        okEncargadoPorNombre: null,
-        fechaOkEncargado: null,
       };
 
       const checklistStr = JSON.stringify(parsedChecklist);
@@ -666,57 +639,7 @@ export async function PATCH(
         entidadId: id,
         detallesCambio: {
           controlCalidadSalida: parsedChecklist.controlCalidadSalida,
-          descripcion: `Encuesta de control de calidad completada por mecánico ${session.nombre} ${session.apellido || ""}. Pendiente de OK del Encargado de Taller.`,
-        },
-      });
-    }
-
-    // Aprobación y OK de entrega por parte del Encargado de Taller
-    if (body.okEncargadoEntrega !== undefined) {
-      const userRole = normalizeRole(session.role);
-      if (userRole === "MECHANIC") {
-        return NextResponse.json(
-          {
-            error:
-              "Permiso denegado: Solo el Encargado de Taller (Recepción o Administración) puede dar el OK para entregar el auto.",
-          },
-          { status: 403 }
-        );
-      }
-
-      let parsedChecklist: any = {};
-      try {
-        const base = updateData.checklistDanio || currentOrder.checklistDanio;
-        parsedChecklist = base
-          ? (typeof base === "string" ? JSON.parse(base) : base)
-          : {};
-      } catch {
-        parsedChecklist = {};
-      }
-
-      const existingControl = parsedChecklist.controlCalidadSalida || {};
-      parsedChecklist.controlCalidadSalida = {
-        ...existingControl,
-        okEncargado: Boolean(body.okEncargadoEntrega),
-        okEncargadoPorId: session.id,
-        okEncargadoPorNombre: `${session.nombre} ${session.apellido || ""}`.trim(),
-        fechaOkEncargado: new Date().toISOString(),
-        notaEncargado: body.notaEncargado ? String(body.notaEncargado).trim() : existingControl.notaEncargado || null,
-      };
-
-      const checklistStr = JSON.stringify(parsedChecklist);
-      previousValues.checklistDanio = currentOrder.checklistDanio;
-      newValues.checklistDanio = checklistStr;
-      updateData.checklistDanio = checklistStr;
-
-      await recordAuditLog({
-        user: session,
-        accion: "UPDATE",
-        entidadAfectada: "WorkOrder",
-        entidadId: id,
-        detallesCambio: {
-          controlCalidadSalida: parsedChecklist.controlCalidadSalida,
-          descripcion: `OK de Entrega otorgado por el Encargado de Taller ${session.nombre} ${session.apellido || ""}`,
+          descripcion: `Cierre de reparación y checklist de salida completado por mecánico ${session.nombre} ${session.apellido || ""}.`,
         },
       });
     }

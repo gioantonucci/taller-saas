@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
-import OkEntregaModal from "@/components/OkEntregaModal";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
 
@@ -109,7 +108,6 @@ export default function HojaRutaMecanicoPage() {
   const [peritajeModalOpen, setPeritajeModalOpen] = useState(false);
   const [finalizarModalOpen, setFinalizarModalOpen] = useState(false);
   const [orderToFinalize, setOrderToFinalize] = useState<any | null>(null);
-  const [okEntregaModalOpen, setOkEntregaModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Estados para Registro de Horas (WorkLog)
@@ -1142,26 +1140,10 @@ export default function HojaRutaMecanicoPage() {
                         <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
                           Control de Calidad y Recordatorios de Salida
                         </span>
-                        {selectedOrderControlCalidad.okEncargado ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
-                            ✓ OK Otorgado
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-extrabold border border-red-200">
-                            ⚠ Pendiente OK Encargado
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                          ✓ Asentado en Orden
+                        </span>
                       </div>
-                      {!selectedOrderControlCalidad.okEncargado && isEncargado && (
-                        <button
-                          type="button"
-                          onClick={() => setOkEntregaModalOpen(true)}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Dar OK de Entrega</span>
-                        </button>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
@@ -1481,18 +1463,6 @@ export default function HojaRutaMecanicoPage() {
         onSuccess={handleFinalizarSuccess}
       />
 
-      {/* Modal de OK de Entrega (Encargado de Taller) */}
-      {selectedOrder && (
-        <OkEntregaModal
-          isOpen={okEntregaModalOpen}
-          onClose={() => setOkEntregaModalOpen(false)}
-          order={selectedOrder}
-          onSuccess={(updatedOrder) => {
-            handleFinalizarSuccess(updatedOrder);
-            fetchOrders();
-          }}
-        />
-      )}
     </div>
   );
 }
