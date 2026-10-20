@@ -27,7 +27,6 @@ import {
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
-import InAppCameraModal from "@/components/InAppCameraModal";
 import { useAppDialog } from "@/components/AppDialog";
 
 interface PeritajeModalProps {
@@ -215,10 +214,6 @@ export default function PeritajeIngresoModal({
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
-  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
-  const [cameraInitialMode, setCameraInitialMode] = useState<"FOTO" | "VIDEO">("FOTO");
-  const MAX_PAYLOAD_SIZE = 4.5 * 1024 * 1024; // 4.5 MB límite estricto de Serverless en Vercel
-  const fileInputUnifiedCameraRef = useRef<HTMLInputElement | null>(null);
   const fileInputCameraRef = useRef<HTMLInputElement | null>(null);
   const fileInputVideoCameraRef = useRef<HTMLInputElement | null>(null);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState<
@@ -263,34 +258,6 @@ export default function PeritajeIngresoModal({
       return false;
     } finally {
       setIsRequestingPermission(false);
-    }
-  };
-
-  const handleNativeUnifiedCameraClick = async (e: React.MouseEvent<HTMLLabelElement>) => {
-    const isIOS =
-      typeof navigator !== "undefined" &&
-      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
-      !(window as any).MSStream;
-
-    if (isIOS) {
-      return;
-    }
-
-    if (cameraPermissionStatus !== "granted") {
-      e.preventDefault();
-      const granted = await requestCameraAccess();
-      if (granted) {
-        setTimeout(() => {
-          fileInputUnifiedCameraRef.current?.click();
-        }, 150);
-      } else {
-        await alert({
-          title: "Acceso a Cámara Necesario",
-          message: "Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración de permisos del sitio.",
-          variant: "warning",
-          icon: "warning",
-        });
-      }
     }
   };
 
@@ -596,11 +563,6 @@ export default function PeritajeIngresoModal({
       try {
         inputEl.value = "";
       } catch {}
-      if (fileInputUnifiedCameraRef.current) {
-        try {
-          fileInputUnifiedCameraRef.current.value = "";
-        } catch {}
-      }
       if (fileInputCameraRef.current) {
         try {
           fileInputCameraRef.current.value = "";
@@ -611,62 +573,6 @@ export default function PeritajeIngresoModal({
           fileInputVideoCameraRef.current.value = "";
         } catch {}
       }
-    }
-  };
-
-  const handleCameraCapture = async (file: File, tipo: "FOTO" | "VIDEO" = "FOTO") => {
-    setUploading(true);
-    const isVideo = tipo === "VIDEO" || file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
-
-    setUploadMsg(isVideo ? `Subiendo video grabado (${(file.size / (1024 * 1024)).toFixed(1)}MB)...` : "Comprimiendo y subiendo foto de cámara...");
-    try {
-      let fileToUpload: File | Blob = file;
-      if (!isVideo) {
-        const { file: compressedFile, compressedSize } = await compressImageClient(file);
-        fileToUpload = compressedFile;
-        setUploadMsg(`Subiendo foto (${(compressedSize / 1024).toFixed(0)}KB)...`);
-      } else {
-        setUploadMsg(`Subiendo video (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`);
-      }
-
-      const uploadedFile = await uploadFileWithChunking(
-        fileToUpload,
-        file.name,
-        isVideo,
-        (msg) => setUploadMsg(msg)
-      );
-
-      await fetch(`/api/work-orders/${order.id}/multimedia`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          urlStorage: uploadedFile.url,
-          tipo: isVideo ? "VIDEO" : "FOTO",
-          etiqueta: "PERITAJE_INGRESO",
-          descripcion: isVideo
-            ? "Video de peritaje tomado con cámara en vivo (ruidos o falla)"
-            : "Fotografía de peritaje tomada con cámara en vivo",
-        }),
-      });
-
-      const newPhotoItem = {
-        id: uploadedFile.id || `uploaded-${Date.now()}`,
-        urlStorage: uploadedFile.url,
-        url: uploadedFile.url,
-        tipo: isVideo ? "VIDEO" : "FOTO",
-        etiqueta: "PERITAJE_INGRESO",
-        descripcion: isVideo
-          ? "Video de peritaje tomado con cámara en vivo (ruidos o falla)"
-          : "Fotografía de peritaje tomada con cámara en vivo",
-      };
-      setUploadedPhotos((prev) => [newPhotoItem, ...prev]);
-      setUploadMsg(isVideo ? "¡Video de peritaje resguardado con éxito en la nube!" : "¡Foto capturada y resguardada con éxito en la nube!");
-      setTimeout(() => setUploadMsg(null), 3000);
-      onSaved();
-    } catch (err: any) {
-      setUploadMsg("Error al subir archivo de cámara: " + (err.message || "desconocido"));
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -1302,11 +1208,6 @@ export default function PeritajeIngresoModal({
                   <span className="truncate text-[10px] sm:text-xs">
                     <span className="hidden sm:inline">4. </span>Fotos / Videos
                   </span>
-                  {order.multimedia?.length > 0 && (
-                    <span className="px-1 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                      {order.multimedia.length}
-                    </span>
-                  )}
                 </button>
               </div>
             </div>
@@ -1653,71 +1554,21 @@ export default function PeritajeIngresoModal({
                     </p>
                   </div>
 
-                  {/* Estado y Solicitud de Permiso de Cámara Nativa */}
-                  {cameraPermissionStatus !== "granted" && (
-                    <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 flex items-center justify-between gap-3">
-                      <div className="text-[11px] leading-tight">
-                        <span className="font-bold flex items-center gap-1.5 mb-0.5">
-                          <Camera className="w-3.5 h-3.5 text-amber-700" />
-                          Permiso de Cámara Nativa
-                        </span>
-                        <span className="text-amber-800">
-                          Para que tu celular (Android o iOS) abra la cámara nativa directamente en vez de la galería, solicitá el permiso del navegador:
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={requestCameraAccess}
-                        disabled={isRequestingPermission}
-                        className="px-3 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-[11px] font-bold shrink-0 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                      >
-                        {isRequestingPermission ? "Solicitando..." : "Solicitar Acceso"}
-                      </button>
-                    </div>
-                  )}
-
-                  {cameraPermissionStatus === "granted" && (
-                    <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 flex items-center gap-2 text-[11px] font-semibold">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Acceso a cámara nativa habilitado (Android / iOS)</span>
-                    </div>
-                  )}
-
-                  {cameraPermissionStatus === "denied" && (
-                    <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-rose-900 text-[11px]">
-                      <span className="font-bold flex items-center gap-1.5 mb-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
-                        Acceso a cámara denegado
-                      </span>
-                      <span>
-                        El permiso de cámara fue bloqueado en este navegador. Habilitalo en los ajustes del navegador o usá el botón de "Subir desde Galería / Archivos".
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="space-y-2.5">
-                    {/* Botón Principal: Abrir la Cámara Nativa del Celular para Foto o Video */}
+                  {/* Botones de captura nativa: Foto, Video y Galería */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* Botón 1: Foto */}
                     <label
-                      onClick={handleNativeUnifiedCameraClick}
-                      className={`w-full flex items-center justify-center gap-3 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 hover:from-slate-900 hover:to-slate-900 active:scale-[0.99] text-white font-extrabold py-4 px-4 rounded-2xl text-sm shadow-lg border border-slate-800 transition-all cursor-pointer ${
+                      onClick={handleNativeCameraClick}
+                      className={`flex flex-col items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-rose-600 flex items-center justify-center text-white shrink-0 shadow-sm">
-                        <Camera className="w-4 h-4" />
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span className="text-sm font-bold tracking-tight">
-                          {uploading ? "Procesando subida..." : "Abrir Cámara del Celular"}
-                        </span>
-                        <span className="text-[11px] font-normal text-slate-400">
-                          Sacá una foto o grabá un video directamente con la cámara
-                        </span>
-                      </div>
+                      <Camera className="w-5 h-5 text-sky-400 shrink-0" />
+                      <span>Foto</span>
                       <input
-                        ref={fileInputUnifiedCameraRef}
+                        ref={fileInputCameraRef}
                         type="file"
-                        accept="image/*,video/*"
+                        accept="image/*"
                         capture="environment"
                         onChange={handlePhotoCapture}
                         disabled={uploading}
@@ -1725,80 +1576,43 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Accesos directos a la cámara nativa y selector de archivos */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {/* Acceso directo a Cámara de Fotos */}
-                      <label
-                        onClick={handleNativeCameraClick}
-                        className={`flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 active:scale-[0.99] text-slate-800 font-bold py-3 px-2 rounded-xl text-xs border border-slate-300 transition-all cursor-pointer text-center ${
-                          uploading ? "opacity-50 pointer-events-none" : ""
-                        }`}
-                      >
-                        <Camera className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                        <span>Solo Foto</span>
-                        <input
-                          ref={fileInputCameraRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handlePhotoCapture}
-                          disabled={uploading}
-                          className="sr-only"
-                        />
-                      </label>
-
-                      {/* Acceso directo a Cámara de Video */}
-                      <label
-                        onClick={handleNativeVideoCameraClick}
-                        className={`flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 active:scale-[0.99] text-rose-800 font-bold py-3 px-2 rounded-xl text-xs border border-rose-200 transition-all cursor-pointer text-center ${
-                          uploading ? "opacity-50 pointer-events-none" : ""
-                        }`}
-                      >
-                        <Video className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                        <span>Solo Video</span>
-                        <input
-                          ref={fileInputVideoCameraRef}
-                          type="file"
-                          accept="video/*"
-                          capture="environment"
-                          onChange={handlePhotoCapture}
-                          disabled={uploading}
-                          className="sr-only"
-                        />
-                      </label>
-
-                      {/* Galería / Archivos */}
-                      <label
-                        className={`flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 font-bold py-3 px-2 rounded-xl text-xs border border-slate-300 transition-all cursor-pointer text-center ${
-                          uploading ? "opacity-50 pointer-events-none" : ""
-                        }`}
-                      >
-                        <Upload className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Galería</span>
-                        <input
-                          type="file"
-                          accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
-                          multiple
-                          onChange={handlePhotoCapture}
-                          disabled={uploading}
-                          className="sr-only"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Enlace alternativo para PC / webcam */}
-                  <div className="text-center pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCameraInitialMode("FOTO");
-                        setIsCameraModalOpen(true);
-                      }}
-                      className="text-[11px] text-slate-500 hover:text-slate-800 underline transition-colors cursor-pointer"
+                    {/* Botón 2: Video */}
+                    <label
+                      onClick={handleNativeVideoCameraClick}
+                      className={`flex flex-col items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-bold py-3.5 px-2 rounded-2xl text-xs shadow-md transition-all cursor-pointer text-center ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
                     >
-                      ¿Estás en computadora / PC? Abrir cámara web para sacar fotos
-                    </button>
+                      <Video className="w-5 h-5 text-white shrink-0" />
+                      <span>Video</span>
+                      <input
+                        ref={fileInputVideoCameraRef}
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
+
+                    {/* Botón 3: Galería */}
+                    <label
+                      className={`flex flex-col items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-800 font-bold py-3.5 px-2 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer text-center ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <Upload className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <span>Galería</span>
+                      <input
+                        type="file"
+                        accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
+                        multiple
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
                   </div>
 
                   {uploadMsg && (
@@ -1992,14 +1806,6 @@ export default function PeritajeIngresoModal({
           </div>
         </div>
       )}
-
-      {/* Modal de Cámara en vivo (WebRTC / In-App Viewfinder) */}
-      <InAppCameraModal
-        isOpen={isCameraModalOpen}
-        onClose={() => setIsCameraModalOpen(false)}
-        onCapture={handleCameraCapture}
-        initialMode={cameraInitialMode}
-      />
     </div>
   );
 }
