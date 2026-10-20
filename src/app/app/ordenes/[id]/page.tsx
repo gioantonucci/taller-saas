@@ -30,6 +30,7 @@ import {
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
+import OkEntregaModal from "@/components/OkEntregaModal";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
 
@@ -43,6 +44,7 @@ export default function OrdenDetallePage() {
   const [activeModalImg, setActiveModalImg] = useState<string | null>(null);
   const [peritajeModalOpen, setPeritajeModalOpen] = useState(false);
   const [isFinalizarModalOpen, setIsFinalizarModalOpen] = useState(false);
+  const [okEntregaModalOpen, setOkEntregaModalOpen] = useState(false);
 
   // Modal para asignación formal de mecánico
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -232,12 +234,53 @@ export default function OrdenDetallePage() {
     }
   };
 
+  const controlCalidadSalida = (() => {
+    if (!order?.checklistDanio) return null;
+    try {
+      const parsed =
+        typeof order.checklistDanio === "string"
+          ? JSON.parse(order.checklistDanio)
+          : order.checklistDanio;
+      return parsed?.controlCalidadSalida || null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const isOkEncargadoRequerido = Boolean(
+    controlCalidadSalida && !controlCalidadSalida.okEncargado
+  );
+
   const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [deliverySuccessMsg, setDeliverySuccessMsg] = useState<string | null>(null);
 
-  const handleMarkAsDelivered = () => {
+  const handleMarkAsDelivered = async () => {
     if (!order) return;
+    if (isOkEncargadoRequerido) {
+      if (canReassignMechanic) {
+        const doReview = await confirm({
+          title: "OK del Encargado Requerido",
+          message:
+            "El vehículo no puede ser entregado al cliente hasta que el Encargado de Taller dé el OK de entrega. ¿Deseás revisar la encuesta de control de calidad ahora?",
+          confirmText: "Revisar y Dar OK",
+          cancelText: "Cerrar",
+          variant: "warning",
+        });
+        if (doReview) {
+          setOkEntregaModalOpen(true);
+        }
+      } else {
+        await alert({
+          title: "OK del Encargado Requerido",
+          message:
+            "El vehículo no puede ser entregado al cliente hasta que el Encargado de Taller (Recepción o Administración) haya revisado la encuesta de control de calidad y otorgado el OK de entrega.",
+          variant: "warning",
+          icon: "warning",
+        });
+      }
+      return;
+    }
     setDeliveryModalOpen(true);
   };
 
@@ -870,16 +913,65 @@ export default function OrdenDetallePage() {
               }
 
               if (isFinished) {
+                if (isOkEncargadoRequerido) {
+                  return (
+                    <div className="space-y-2">
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-1.5 text-xs text-rose-950">
+                        <div className="flex items-center gap-1.5 font-extrabold text-rose-800">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>Pendiente de OK del Encargado</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-tight">
+                          El mecánico concluyó la reparación y completó la encuesta de salida. Requiere el OK del Encargado de Taller para entrega.
+                        </p>
+                        {canReassignMechanic ? (
+                          <button
+                            type="button"
+                            onClick={() => setOkEntregaModalOpen(true)}
+                            className="w-full mt-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                            <span>Revisar y Dar OK de Entrega</span>
+                          </button>
+                        ) : (
+                          <div className="text-[10px] text-amber-800 font-semibold bg-amber-100/70 p-1.5 rounded-md border border-amber-200">
+                            ⏳ Aguardando que el Encargado de Taller otorgue el OK de entrega.
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleMarkAsDelivered}
+                        className="w-full py-2.5 px-4 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
+                        title="Requiere el OK previo del Encargado de Taller"
+                      >
+                        <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>Entregar Vehículo (Requiere OK)</span>
+                      </button>
+                    </div>
+                  );
+                }
+
                 return (
-                  <button
-                    type="button"
-                    disabled={updating}
-                    onClick={handleMarkAsDelivered}
-                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <PackageCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Entregar Vehículo y Archivar Orden</span>
-                  </button>
+                  <div className="space-y-2">
+                    {controlCalidadSalida?.okEncargado && (
+                      <div className="p-2 px-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="truncate">
+                          OK de Entrega por {controlCalidadSalida.okEncargadoPorNombre || "Encargado"}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={handleMarkAsDelivered}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <PackageCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Entregar Vehículo y Archivar Orden</span>
+                    </button>
+                  </div>
                 );
               }
 
@@ -1217,6 +1309,164 @@ export default function OrdenDetallePage() {
         );
       })()}
 
+      {/* SECCIÓN CONTROL DE CALIDAD Y RECORDATORIOS DE SALIDA (OK ENCARGADO DE TALLER) */}
+      {controlCalidadSalida && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  controlCalidadSalida.okEncargado
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-red-50 text-red-600"
+                }`}
+              >
+                <FileCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                  <span>Control de Calidad y Recordatorios de Salida</span>
+                  {controlCalidadSalida.okEncargado ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                      ✓ OK Otorgado
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-extrabold border border-red-200">
+                      ⚠ Pendiente OK Encargado
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Encuesta técnica completada por el mecánico tras la prueba de ruta previo a la entrega al cliente.
+                </p>
+              </div>
+            </div>
+
+            {!controlCalidadSalida.okEncargado && canReassignMechanic && (
+              <button
+                type="button"
+                onClick={() => setOkEntregaModalOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm transition-all cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>Dar OK de Entrega</span>
+              </button>
+            )}
+          </div>
+
+          {/* Grilla con las 4 preguntas respondidas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* 1. Reset de servicio */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-slate-800">1. ¿Se realizó reset de servicio?</span>
+              <span
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                  controlCalidadSalida.realizoResetServicio
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : "bg-slate-200 text-slate-700 border border-slate-300"
+                }`}
+              >
+                {controlCalidadSalida.realizoResetServicio ? "✓ Sí" : "✗ No"}
+              </span>
+            </div>
+
+            {/* 2. Condujo en carretera */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-slate-800">2. ¿Se condujo en carretera?</span>
+              <span
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                  controlCalidadSalida.condujoCarretera
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : "bg-slate-200 text-slate-700 border border-slate-300"
+                }`}
+              >
+                {controlCalidadSalida.condujoCarretera ? "✓ Sí, se probó" : "✗ No"}
+              </span>
+            </div>
+
+            {/* 3. Desperfecto solucionado */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-slate-800">3. ¿Desperfecto solucionado?</span>
+              <span
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                  controlCalidadSalida.desperfectoSolucionado
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : "bg-amber-100 text-amber-800 border border-amber-300"
+                }`}
+              >
+                {controlCalidadSalida.desperfectoSolucionado ? "✓ Solucionado" : "⚠ Con observaciones"}
+              </span>
+            </div>
+
+            {/* 4. Desperfecto nuevo */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+              <span className="font-bold text-slate-800">4. ¿Apareció nuevo desperfecto tras prueba?</span>
+              <span
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                  controlCalidadSalida.desperfectoNuevoDetectado
+                    ? "bg-rose-100 text-rose-800 border border-rose-300"
+                    : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                }`}
+              >
+                {controlCalidadSalida.desperfectoNuevoDetectado ? "⚠ Sí, nuevo detectado" : "✓ No"}
+              </span>
+            </div>
+          </div>
+
+          {controlCalidadSalida.desperfectoNuevoDetectado && controlCalidadSalida.detalleNuevoDesperfecto && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-950">
+              <strong className="block text-rose-900 mb-0.5">Observación del técnico tras prueba de ruta:</strong>
+              {controlCalidadSalida.detalleNuevoDesperfecto}
+            </div>
+          )}
+
+          {/* Estado de Aprobación por Encargado de Taller */}
+          {controlCalidadSalida.okEncargado ? (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-950">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  <strong>OK de Entrega otorgado</strong> por {controlCalidadSalida.okEncargadoPorNombre || "Encargado de Taller"}
+                  {controlCalidadSalida.fechaOkEncargado && (
+                    <span className="text-emerald-800 ml-1">
+                      el {new Date(controlCalidadSalida.fechaOkEncargado).toLocaleDateString("es-AR", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </span>
+              </div>
+              {controlCalidadSalida.notaEncargado && (
+                <span className="text-[11px] text-emerald-800 italic">
+                  &ldquo;{controlCalidadSalida.notaEncargado}&rdquo;
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-950">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Pendiente de OK del Encargado de Taller:</strong> La entrega física al cliente está bloqueada hasta recibir el visto bueno técnico.
+                </span>
+              </div>
+              {canReassignMechanic && (
+                <button
+                  type="button"
+                  onClick={() => setOkEntregaModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  Dar OK de Entrega
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* SECCIÓN BITÁCORA Y NOTAS DIARIAS DEL PROCESO DE ARREGLO */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
@@ -1413,6 +1663,19 @@ export default function OrdenDetallePage() {
         <FinalizarReparacionModal
           isOpen={isFinalizarModalOpen}
           onClose={() => setIsFinalizarModalOpen(false)}
+          order={order}
+          onSuccess={(updatedOrder) => {
+            setOrder(updatedOrder);
+            fetchOrder();
+          }}
+        />
+      )}
+
+      {/* Modal para que el Encargado de Taller dé el OK de Entrega */}
+      {order && (
+        <OkEntregaModal
+          isOpen={okEntregaModalOpen}
+          onClose={() => setOkEntregaModalOpen(false)}
           order={order}
           onSuccess={(updatedOrder) => {
             setOrder(updatedOrder);

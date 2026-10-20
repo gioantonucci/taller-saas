@@ -58,6 +58,13 @@ export default function FinalizarReparacionModal({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Solapa en rojo: Recordatorios y Control de Calidad de Salida
+  const [resetServicio, setResetServicio] = useState<boolean | null>(null);
+  const [condujoCarretera, setCondujoCarretera] = useState<boolean | null>(null);
+  const [desperfectoSolucionado, setDesperfectoSolucionado] = useState<boolean | null>(null);
+  const [desperfectoNuevo, setDesperfectoNuevo] = useState<boolean | null>(null);
+  const [detalleNuevoDesperfecto, setDetalleNuevoDesperfecto] = useState<string>("");
+
   if (!isOpen || !order) return null;
 
   const hasMechanic = Boolean(order.mechanicId || order.mechanic);
@@ -102,6 +109,26 @@ export default function FinalizarReparacionModal({
     e.preventDefault();
     setErrorMsg(null);
 
+    // Validación de la encuesta obligatoria de control de salida
+    if (
+      resetServicio === null ||
+      condujoCarretera === null ||
+      desperfectoSolucionado === null ||
+      desperfectoNuevo === null
+    ) {
+      setErrorMsg(
+        "Debés responder los 4 recordatorios obligatorios de la solapa roja de Control de Calidad antes de enviar."
+      );
+      return;
+    }
+
+    if (desperfectoNuevo === true && !detalleNuevoDesperfecto.trim()) {
+      setErrorMsg(
+        "Por favor, detallá el nuevo desperfecto que apareció durante la prueba en carretera."
+      );
+      return;
+    }
+
     const parsedHours = parseFloat(horas);
     if (isNaN(parsedHours) || parsedHours < 0) {
       setErrorMsg("Por favor, ingresá una cantidad de horas válida (mayor o igual a 0).");
@@ -119,7 +146,15 @@ export default function FinalizarReparacionModal({
             horasInvertidas: parsedHours,
             descripcionTarea:
               nota.trim() ||
-              "Reparación completada, control de calidad y cierre de orden.",
+              "Reparación completada y encuesta de control de calidad realizada.",
+          },
+          controlCalidadSalida: {
+            realizoResetServicio: resetServicio,
+            condujoCarretera: condujoCarretera,
+            desperfectoSolucionado: desperfectoSolucionado,
+            desperfectoNuevoDetectado: desperfectoNuevo,
+            detalleNuevoDesperfecto: detalleNuevoDesperfecto.trim(),
+            fechaEncuesta: new Date().toISOString(),
           },
         }),
       });
@@ -201,6 +236,178 @@ export default function FinalizarReparacionModal({
               <div className="font-medium">{errorMsg}</div>
             </div>
           )}
+
+          {/* SOLAPA EN ROJO: RECORDATORIOS DE CONTROL DE CALIDAD Y PRUEBA */}
+          <div className="rounded-2xl border-2 border-red-500 bg-red-50/40 overflow-hidden shadow-sm">
+            {/* Cabecera / Solapa en rojo */}
+            <div className="bg-red-600 text-white px-4 py-3 flex items-center justify-between shadow-xs">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
+                </span>
+                <span className="text-xs font-black uppercase tracking-wider">
+                  Recordatorios Obligatorios de Salida
+                </span>
+              </div>
+              <span className="text-[10px] bg-red-800 text-red-100 font-extrabold px-2.5 py-0.5 rounded-full border border-red-400">
+                Control de Calidad
+              </span>
+            </div>
+
+            <div className="p-3.5 sm:p-4 space-y-3.5">
+              <div className="bg-red-100/80 border border-red-200/90 p-2.5 rounded-xl text-red-950 text-[11px] font-medium leading-relaxed">
+                ⚠️ <strong>Atención mecánico:</strong> Respondé los siguientes 4 puntos antes de concluir la orden. Una vez enviada la encuesta, el <strong>Encargado de Taller</strong> deberá verificar estos puntos para dar el <strong>OK de entrega</strong> del auto.
+              </div>
+
+              {/* Pregunta 1 */}
+              <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
+                <span className="font-extrabold text-slate-900 block text-xs">
+                  1. ¿Se realizó reset de servicio?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetServicio(true)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      resetServicio === true
+                        ? "bg-red-600 text-white shadow-sm ring-2 ring-red-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {resetServicio === true && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Sí, realizado</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResetServicio(false)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      resetServicio === false
+                        ? "bg-slate-800 text-white shadow-sm ring-2 ring-slate-800"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {resetServicio === false && <X className="w-3.5 h-3.5" />}
+                    <span>No / No aplica</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Pregunta 2 */}
+              <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
+                <span className="font-extrabold text-slate-900 block text-xs">
+                  2. ¿Se condujo en carretera?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCondujoCarretera(true)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      condujoCarretera === true
+                        ? "bg-red-600 text-white shadow-sm ring-2 ring-red-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {condujoCarretera === true && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Sí, se probó</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCondujoCarretera(false)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      condujoCarretera === false
+                        ? "bg-slate-800 text-white shadow-sm ring-2 ring-slate-800"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {condujoCarretera === false && <X className="w-3.5 h-3.5" />}
+                    <span>No se probó</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Pregunta 3 */}
+              <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
+                <span className="font-extrabold text-slate-900 block text-xs">
+                  3. ¿Verificar si se solucionó el desperfecto?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDesperfectoSolucionado(true)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      desperfectoSolucionado === true
+                        ? "bg-red-600 text-white shadow-sm ring-2 ring-red-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {desperfectoSolucionado === true && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Sí, solucionado</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDesperfectoSolucionado(false)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      desperfectoSolucionado === false
+                        ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {desperfectoSolucionado === false && <AlertTriangle className="w-3.5 h-3.5" />}
+                    <span>No / Observaciones</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Pregunta 4 */}
+              <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
+                <span className="font-extrabold text-slate-900 block text-xs">
+                  4. ¿Apareció algún desperfecto no marcado por el cliente luego de la prueba?
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDesperfectoNuevo(false)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      desperfectoNuevo === false
+                        ? "bg-slate-800 text-white shadow-sm ring-2 ring-slate-800"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {desperfectoNuevo === false && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>No, ninguno</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDesperfectoNuevo(true)}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      desperfectoNuevo === true
+                        ? "bg-red-600 text-white shadow-sm ring-2 ring-red-600"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {desperfectoNuevo === true && <AlertTriangle className="w-3.5 h-3.5" />}
+                    <span>Sí, se detectó</span>
+                  </button>
+                </div>
+
+                {desperfectoNuevo === true && (
+                  <div className="pt-2 animate-in fade-in duration-200 space-y-1">
+                    <label className="text-[11px] font-bold text-red-900 block">
+                      Detalle del desperfecto detectado tras la prueba: *
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={detalleNuevoDesperfecto}
+                      onChange={(e) => setDetalleNuevoDesperfecto(e.target.value)}
+                      placeholder="Describí el ruido, vibración, testigo encendido o falla observada..."
+                      className="w-full text-xs font-medium text-slate-800 bg-white border border-red-300 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Bloque 1: Horas Trabajadas */}
           <div className="bg-slate-50/70 p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 space-y-2.5">
@@ -312,14 +519,13 @@ export default function FinalizarReparacionModal({
             </div>
           )}
 
-          {/* Alerta de Cierre Definitivo */}
-          <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex items-start gap-2.5 text-[11px] text-amber-900">
+          {/* Alerta de Flujo: Pendiente de OK del Encargado */}
+          <div className="p-3 bg-amber-50/90 border border-amber-200/90 rounded-2xl flex items-start gap-2.5 text-[11px] text-amber-950">
             <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <span className="font-extrabold block">Atención: Cierre permanente</span>
-              <p className="text-amber-800 leading-tight">
-                Al confirmar, la orden pasa a estado <strong>Listo</strong> y queda <strong>cerrada</strong>.
-                No se podrá volver al peritaje ni registrar horas de trabajo posteriores.
+              <span className="font-extrabold block">Flujo de Control y Entrega</span>
+              <p className="text-amber-900 leading-tight">
+                Al confirmar, la orden pasa a estado <strong>Listo</strong> y queda registrada la encuesta. El <strong>Encargado de Taller</strong> (Recepción o Administración) deberá verificar estos puntos y dar el <strong>OK definitivo</strong> para habilitar la entrega del auto al cliente.
               </p>
             </div>
           </div>
@@ -337,17 +543,17 @@ export default function FinalizarReparacionModal({
             <button
               type="submit"
               disabled={submitting || !canFinalize}
-              className="w-full sm:flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
+              className="w-full sm:flex-2 py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs shadow-lg shadow-red-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
             >
               {submitting ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Guardando y Cerrando...</span>
+                  <span>Enviando Encuesta y Cerrando...</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirmar y Finalizar Reparación</span>
+                  <span>Finalizar y Enviar a Control de Calidad</span>
                 </>
               )}
             </button>

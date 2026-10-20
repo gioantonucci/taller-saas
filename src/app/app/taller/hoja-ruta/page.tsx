@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
+import OkEntregaModal from "@/components/OkEntregaModal";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
 
@@ -108,14 +109,26 @@ export default function HojaRutaMecanicoPage() {
   const [peritajeModalOpen, setPeritajeModalOpen] = useState(false);
   const [finalizarModalOpen, setFinalizarModalOpen] = useState(false);
   const [orderToFinalize, setOrderToFinalize] = useState<any | null>(null);
-
-
+  const [okEntregaModalOpen, setOkEntregaModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Estados para Registro de Horas (WorkLog)
   const [horasInput, setHorasInput] = useState("1.0");
   const [tareaInput, setTareaInput] = useState("");
   const [savingWorkLog, setSavingWorkLog] = useState(false);
   const [workLogSuccess, setWorkLogSuccess] = useState(false);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+      }
+    } catch (err) {
+      console.error("Error al obtener usuario actual:", err);
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -142,6 +155,7 @@ export default function HojaRutaMecanicoPage() {
 
   useEffect(() => {
     fetchOrders();
+    fetchCurrentUser();
   }, []);
 
   const handleFinalizarSuccess = (updatedOrder: any) => {
@@ -211,6 +225,26 @@ export default function HojaRutaMecanicoPage() {
         selectedOrder.estado === "TERMINADO" ||
         selectedOrder.estado === "REPARADO")
   );
+
+  const isEncargado = Boolean(
+    currentUser &&
+      (currentUser.role === "ADMIN" ||
+        currentUser.role === "RECEPCION" ||
+        currentUser.role === "RECEPTION")
+  );
+
+  const selectedOrderControlCalidad = (() => {
+    if (!selectedOrder?.checklistDanio) return null;
+    try {
+      const p =
+        typeof selectedOrder.checklistDanio === "string"
+          ? JSON.parse(selectedOrder.checklistDanio)
+          : selectedOrder.checklistDanio;
+      return p?.controlCalidadSalida || null;
+    } catch {
+      return null;
+    }
+  })();
 
   // Actualizar estado de la orden
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -1076,27 +1110,95 @@ export default function HojaRutaMecanicoPage() {
 
             {/* ETAPA 4: FINALIZADO */}
             {isSelectedOrderTerminado && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <CheckCircle2 className="w-5 h-5" />
+              <div className="space-y-3">
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block mb-1">
+                        Etapa 4: Reparación Concluida
+                      </span>
+                      <h4 className="font-black text-sm text-emerald-950">
+                        Vehículo Listo para Entrega al Cliente
+                      </h4>
+                      <p className="text-xs text-emerald-800 mt-0.5">
+                        El trabajo técnico concluyó exitosamente. Recepción puede realizar la entrega y archivo final.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block mb-1">
-                      Etapa 4: Reparación Concluida
-                    </span>
-                    <h4 className="font-black text-sm text-emerald-950">
-                      Vehículo Listo para Entrega al Cliente
-                    </h4>
-                    <p className="text-xs text-emerald-800 mt-0.5">
-                      El trabajo técnico concluyó exitosamente. Recepción puede realizar la entrega y archivo final.
-                    </p>
+                  <div className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs self-start sm:self-auto flex items-center gap-1.5 shadow-2xs">
+                    <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Cerrada</span>
                   </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs self-start sm:self-auto flex items-center gap-1.5 shadow-2xs">
-                  <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Cerrada</span>
-                </div>
+
+                {/* Resumen de Control de Calidad y Salida */}
+                {selectedOrderControlCalidad && (
+                  <div className="rounded-2xl border border-red-200 bg-white p-4 shadow-xs space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                          Control de Calidad y Recordatorios de Salida
+                        </span>
+                        {selectedOrderControlCalidad.okEncargado ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                            ✓ OK Otorgado
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-extrabold border border-red-200">
+                            ⚠ Pendiente OK Encargado
+                          </span>
+                        )}
+                      </div>
+                      {!selectedOrderControlCalidad.okEncargado && isEncargado && (
+                        <button
+                          type="button"
+                          onClick={() => setOkEntregaModalOpen(true)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Dar OK de Entrega</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-slate-500 block text-[10px]">1. Reset servicio:</span>
+                        <strong className={selectedOrderControlCalidad.realizoResetServicio ? "text-emerald-700" : "text-slate-700"}>
+                          {selectedOrderControlCalidad.realizoResetServicio ? "✓ Realizado" : "✗ No"}
+                        </strong>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-slate-500 block text-[10px]">2. Prueba carretera:</span>
+                        <strong className={selectedOrderControlCalidad.condujoCarretera ? "text-emerald-700" : "text-slate-700"}>
+                          {selectedOrderControlCalidad.condujoCarretera ? "✓ Se probó" : "✗ No"}
+                        </strong>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-slate-500 block text-[10px]">3. Desperfecto:</span>
+                        <strong className={selectedOrderControlCalidad.desperfectoSolucionado ? "text-emerald-700" : "text-amber-700"}>
+                          {selectedOrderControlCalidad.desperfectoSolucionado ? "✓ Solucionado" : "⚠ Observaciones"}
+                        </strong>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-slate-500 block text-[10px]">4. Desperfecto nuevo:</span>
+                        <strong className={selectedOrderControlCalidad.desperfectoNuevoDetectado ? "text-rose-700" : "text-emerald-700"}>
+                          {selectedOrderControlCalidad.desperfectoNuevoDetectado ? "⚠ Sí, detectado" : "✓ No"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {selectedOrderControlCalidad.desperfectoNuevoDetectado && selectedOrderControlCalidad.detalleNuevoDesperfecto && (
+                      <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-950">
+                        <strong className="block text-rose-900 text-[11px]">Observación de prueba:</strong>
+                        {selectedOrderControlCalidad.detalleNuevoDesperfecto}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1378,6 +1480,19 @@ export default function HojaRutaMecanicoPage() {
         order={orderToFinalize}
         onSuccess={handleFinalizarSuccess}
       />
+
+      {/* Modal de OK de Entrega (Encargado de Taller) */}
+      {selectedOrder && (
+        <OkEntregaModal
+          isOpen={okEntregaModalOpen}
+          onClose={() => setOkEntregaModalOpen(false)}
+          order={selectedOrder}
+          onSuccess={(updatedOrder) => {
+            handleFinalizarSuccess(updatedOrder);
+            fetchOrders();
+          }}
+        />
+      )}
     </div>
   );
 }
