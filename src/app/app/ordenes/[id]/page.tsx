@@ -98,6 +98,8 @@ export default function OrdenDetallePage() {
   const currentRole = (currentUser?.role || "").toUpperCase();
   const isMechanic = currentRole === "MECHANIC" || currentRole === "MECANICO";
   const isAdmin = currentRole === "ADMIN";
+  const isReception = currentRole === "RECEPTION" || currentRole === "RECEPCION";
+  const canReassignMechanic = isAdmin || isReception;
   const isMechanicOrAdmin = isMechanic || isAdmin;
 
   const isClosed = Boolean(
@@ -321,14 +323,23 @@ export default function OrdenDetallePage() {
       newStatus === "ESPERANDO_REPUESTOS";
 
     if (isTargetRepair && !order.mechanicId && !order.mechanic) {
-      await alert({
-        title: "Mecánico Responsable Requerido",
-        message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico para iniciar los trabajos técnicos.",
-        variant: "warning",
-        icon: "warning",
-      });
-      setSelectedMechanicToAssign("");
-      setAssignModalOpen(true);
+      if (canReassignMechanic) {
+        await alert({
+          title: "Mecánico Responsable Requerido",
+          message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Debe designar un mecánico para iniciar los trabajos técnicos.",
+          variant: "warning",
+          icon: "warning",
+        });
+        setSelectedMechanicToAssign("");
+        setAssignModalOpen(true);
+      } else {
+        await alert({
+          title: "Mecánico Responsable Requerido",
+          message: "Un vehículo no puede estar en reparación sin un mecánico responsable asignado. Recepción o Administración deben realizar la designación.",
+          variant: "warning",
+          icon: "warning",
+        });
+      }
       return;
     }
 
@@ -738,44 +749,46 @@ export default function OrdenDetallePage() {
             )}
           </div>
 
-          <div className="pt-3.5 border-t border-slate-100 mt-2">
-            {isClosed ? (
-              <div className="w-full py-2.5 px-4 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 cursor-default">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Asignación Cerrada</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedMechanicToAssign(order.mechanicId || "");
-                  setAssignModalOpen(true);
-                }}
-                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  order.mechanic
-                    ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                    : order.estado === "EN_REPARACION" ||
-                      order.estado === "EN_CURSO" ||
-                      order.estado === "ESPERANDO_REPUESTOS" ||
-                      order.estado === "EN_ESPERA_REPUESTOS"
-                    ? "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 animate-pulse"
-                    : "bg-sky-600 hover:bg-sky-700 text-white shadow-sm shadow-sky-600/20"
-                }`}
-              >
-                <UserCheck className="w-4 h-4" />
-                <span>
-                  {order.mechanic
-                    ? "Cambiar Mecánico"
-                    : order.estado === "EN_REPARACION" ||
-                      order.estado === "EN_CURSO" ||
-                      order.estado === "ESPERANDO_REPUESTOS" ||
-                      order.estado === "EN_ESPERA_REPUESTOS"
-                    ? "Asignar Mecánico Requerido"
-                    : "Asignar Mecánico"}
-                </span>
-              </button>
-            )}
-          </div>
+          {(isClosed || canReassignMechanic) && (
+            <div className="pt-3.5 border-t border-slate-100 mt-2">
+              {isClosed ? (
+                <div className="w-full py-2.5 px-4 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 cursor-default">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Asignación Cerrada</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMechanicToAssign(order.mechanicId || "");
+                    setAssignModalOpen(true);
+                  }}
+                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    order.mechanic
+                      ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
+                      : order.estado === "EN_REPARACION" ||
+                        order.estado === "EN_CURSO" ||
+                        order.estado === "ESPERANDO_REPUESTOS" ||
+                        order.estado === "EN_ESPERA_REPUESTOS"
+                      ? "bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/30 animate-pulse"
+                      : "bg-sky-600 hover:bg-sky-700 text-white shadow-sm shadow-sky-600/20"
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>
+                    {order.mechanic
+                      ? "Cambiar Mecánico"
+                      : order.estado === "EN_REPARACION" ||
+                        order.estado === "EN_CURSO" ||
+                        order.estado === "ESPERANDO_REPUESTOS" ||
+                        order.estado === "EN_ESPERA_REPUESTOS"
+                      ? "Asignar Mecánico Requerido"
+                      : "Asignar Mecánico"}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Fila 2 - Columna 2: Estado de la Orden */}
@@ -904,18 +917,26 @@ export default function OrdenDetallePage() {
                 }
 
                 if (!order.mechanicId && !order.mechanic) {
+                  if (canReassignMechanic) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMechanicToAssign("");
+                          setAssignModalOpen(true);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer animate-pulse"
+                      >
+                        <UserCheck className="w-4 h-4 shrink-0" />
+                        <span>Asignar Mecánico Requerido</span>
+                      </button>
+                    );
+                  }
                   return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMechanicToAssign("");
-                        setAssignModalOpen(true);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer animate-pulse"
-                    >
-                      <UserCheck className="w-4 h-4 shrink-0" />
-                      <span>Asignar Mecánico Requerido</span>
-                    </button>
+                    <div className="w-full py-2.5 px-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Pendiente de asignación (Recepción/Admin)</span>
+                    </div>
                   );
                 }
 
@@ -953,18 +974,26 @@ export default function OrdenDetallePage() {
 
               if (currentStatusKey === "EN_ESPERA_REPUESTOS") {
                 if (!order.mechanicId && !order.mechanic) {
+                  if (canReassignMechanic) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMechanicToAssign("");
+                          setAssignModalOpen(true);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer animate-pulse"
+                      >
+                        <UserCheck className="w-4 h-4 shrink-0" />
+                        <span>Asignar Mecánico Requerido</span>
+                      </button>
+                    );
+                  }
                   return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedMechanicToAssign("");
-                        setAssignModalOpen(true);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer animate-pulse"
-                    >
-                      <UserCheck className="w-4 h-4 shrink-0" />
-                      <span>Asignar Mecánico Requerido</span>
-                    </button>
+                    <div className="w-full py-2.5 px-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Pendiente de asignación (Recepción/Admin)</span>
+                    </div>
                   );
                 }
 
@@ -1355,7 +1384,7 @@ export default function OrdenDetallePage() {
       )}
 
       {/* Modal para Asignar Mecánico Responsable */}
-      {assignModalOpen && order && (
+      {assignModalOpen && order && canReassignMechanic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div
             className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col"

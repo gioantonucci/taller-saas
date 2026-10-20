@@ -338,6 +338,17 @@ export async function PATCH(
     }
 
     if (body.mechanicId !== undefined && body.mechanicId !== currentOrder.mechanicId) {
+      const userRole = normalizeRole(session.role);
+      if (userRole === "MECHANIC") {
+        return NextResponse.json(
+          {
+            error:
+              "Permiso denegado: El mecánico no puede reasignar órdenes. Esta acción está reservada exclusivamente para Recepción y Administración.",
+          },
+          { status: 403 }
+        );
+      }
+
       if (isCurrentTerminado || isCurrentEntregado) {
         return NextResponse.json(
           {
