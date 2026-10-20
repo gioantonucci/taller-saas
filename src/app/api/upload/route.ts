@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       "application/pdf",
     ];
 
-    let detectedMime = (file.type || "").toLowerCase();
+    let detectedMime = (file.type || "").toLowerCase().split(";")[0].trim();
     const ext = (file.name.split(".").pop() || "").toLowerCase();
 
     // Normalizar tipos en navegadores móviles (Android suele enviar MIME vacío o genérico)
@@ -56,13 +56,18 @@ export async function POST(request: NextRequest) {
       else if (["webp"].includes(ext)) detectedMime = "image/webp";
       else if (["heic", "heif"].includes(ext)) detectedMime = "image/heic";
       else if (["gif"].includes(ext)) detectedMime = "image/gif";
-      else if (["mp4"].includes(ext)) detectedMime = "video/mp4";
+      else if (["mp4", "m4v"].includes(ext)) detectedMime = "video/mp4";
+      else if (["webm"].includes(ext)) detectedMime = "video/webm";
       else if (["mov"].includes(ext)) detectedMime = "video/quicktime";
       else if (["pdf"].includes(ext)) detectedMime = "application/pdf";
       else detectedMime = "image/jpeg"; // fallback seguro para fotos de taller
     }
 
-    if (!ALLOWED_MIME_TYPES.includes(detectedMime) && !detectedMime.startsWith("image/")) {
+    if (
+      !ALLOWED_MIME_TYPES.includes(detectedMime) &&
+      !detectedMime.startsWith("image/") &&
+      !detectedMime.startsWith("video/")
+    ) {
       return NextResponse.json(
         { error: `Tipo de archivo no permitido (${file.type || ext || "desconocido"})` },
         { status: 400 }

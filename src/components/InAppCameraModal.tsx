@@ -268,14 +268,15 @@ export default function InAppCameraModal({
     setSaving(true);
     try {
       const isVid = captureMode === "VIDEO";
+      const rawMime = capturedBlob.type || (isVid ? "video/webm" : "image/jpeg");
+      const cleanMime = rawMime.split(";")[0].trim().toLowerCase();
       const ext = isVid
-        ? capturedBlob.type.includes("mp4") ? ".mp4" : ".webm"
+        ? cleanMime.includes("mp4") ? ".mp4" : ".webm"
         : ".jpg";
-      const mime = isVid ? (capturedBlob.type || "video/webm") : "image/jpeg";
       const filename = `peritaje-${isVid ? "video" : "camara"}-${Date.now()}${ext}`;
 
       const file = new File([capturedBlob], filename, {
-        type: mime,
+        type: cleanMime,
         lastModified: Date.now(),
       });
 
