@@ -20,6 +20,8 @@ import {
   Eye,
   Clock,
   Upload,
+  Video,
+  Play,
 } from "lucide-react";
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
@@ -214,6 +216,7 @@ export default function PeritajeIngresoModal({
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const fileInputCameraRef = useRef<HTMLInputElement | null>(null);
+  const fileInputVideoCameraRef = useRef<HTMLInputElement | null>(null);
   const [cameraPermissionStatus, setCameraPermissionStatus] = useState<
     "granted" | "prompt" | "denied" | "unknown"
   >("unknown");
@@ -266,12 +269,9 @@ export default function PeritajeIngresoModal({
       !(window as any).MSStream;
 
     if (isIOS) {
-      // En iOS Safari, capture="environment" abre directamente la cámara nativa
       return;
     }
 
-    // En Android / Chrome: si el permiso de cámara no ha sido concedido previamente,
-    // solicitamos acceso primero con getUserMedia para que el navegador y Android muestren el diálogo nativo de permisos.
     if (cameraPermissionStatus !== "granted") {
       e.preventDefault();
       const granted = await requestCameraAccess();
@@ -283,6 +283,34 @@ export default function PeritajeIngresoModal({
         await alert({
           title: "Acceso a Cámara Necesario",
           message: "Para abrir la cámara nativa, debes permitir el acceso a la cámara en el navegador. Si fue bloqueado, habilítalo en la configuración de permisos del sitio.",
+          variant: "warning",
+          icon: "warning",
+        });
+      }
+    }
+  };
+
+  const handleNativeVideoCameraClick = async (e: React.MouseEvent<HTMLLabelElement>) => {
+    const isIOS =
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent) &&
+      !(window as any).MSStream;
+
+    if (isIOS) {
+      return;
+    }
+
+    if (cameraPermissionStatus !== "granted") {
+      e.preventDefault();
+      const granted = await requestCameraAccess();
+      if (granted) {
+        setTimeout(() => {
+          fileInputVideoCameraRef.current?.click();
+        }, 150);
+      } else {
+        await alert({
+          title: "Acceso a Cámara Necesario",
+          message: "Para grabar video con la cámara nativa, debes permitir el acceso a la cámara en el navegador.",
           variant: "warning",
           icon: "warning",
         });
@@ -323,7 +351,7 @@ export default function PeritajeIngresoModal({
 
   const effectiveReadOnly = Boolean(readOnly || isPeritajeCerrado);
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<{ url: string; tipo?: string; descripcion?: string } | null>(null);
 
   const activeTestigosList = [
     { key: "checkEngine", label: "Check Engine", active: peritaje.lucesTestigo?.checkEngine },
@@ -375,28 +403,38 @@ export default function PeritajeIngresoModal({
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        setUploadMsg(
-          files.length > 1
-            ? `Comprimiendo imagen ${i + 1} de ${files.length}...`
-            : "Comprimiendo imagen de peritaje en navegador..."
-        );
+        const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|avi|quicktime)$/i.test(file.name);
 
-        const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
-        setUploadMsg(
-          files.length > 1
-            ? `Subiendo imagen ${i + 1} de ${files.length}...`
-            : `Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`
-        );
+        let fileToUpload: File | Blob = file;
+        if (!isVideo) {
+          setUploadMsg(
+            files.length > 1
+              ? `Comprimiendo imagen ${i + 1} de ${files.length}...`
+              : "Comprimiendo imagen de peritaje en navegador..."
+          );
+
+          const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
+          fileToUpload = compressedFile;
+          setUploadMsg(
+            files.length > 1
+              ? `Subiendo imagen ${i + 1} de ${files.length}...`
+              : `Comprimido: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB. Subiendo...`
+          );
+        } else {
+          setUploadMsg(
+            files.length > 1
+              ? `Subiendo video ${i + 1} de ${files.length} (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`
+              : `Subiendo video de peritaje (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`
+          );
+        }
 
         const formData = new FormData();
-        formData.append("file", compressedFile);
+        formData.append("file", fileToUpload);
         formData.append("folder", "multimedia");
 
         const res = await fetch("/api/upload", { method: "POST", body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-
-        const isVideo = file.type.startsWith("video/");
 
         // Guardar en multimedia de la orden
         await fetch(`/api/work-orders/${order.id}/multimedia`, {
@@ -444,18 +482,30 @@ export default function PeritajeIngresoModal({
           fileInputCameraRef.current.value = "";
         } catch {}
       }
+      if (fileInputVideoCameraRef.current) {
+        try {
+          fileInputVideoCameraRef.current.value = "";
+        } catch {}
+      }
     }
   };
 
-  const handleCameraCapture = async (file: File) => {
+  const handleCameraCapture = async (file: File, tipo: "FOTO" | "VIDEO" = "FOTO") => {
     setUploading(true);
-    setUploadMsg("Comprimiendo y subiendo foto de cámara...");
+    const isVideo = tipo === "VIDEO" || file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+    setUploadMsg(isVideo ? `Subiendo video grabado (${(file.size / (1024 * 1024)).toFixed(1)}MB)...` : "Comprimiendo y subiendo foto de cámara...");
     try {
-      const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
-      setUploadMsg(`Subiendo foto (${(compressedSize / 1024).toFixed(0)}KB)...`);
+      let fileToUpload: File | Blob = file;
+      if (!isVideo) {
+        const { file: compressedFile, compressedSize } = await compressImageClient(file);
+        fileToUpload = compressedFile;
+        setUploadMsg(`Subiendo foto (${(compressedSize / 1024).toFixed(0)}KB)...`);
+      } else {
+        setUploadMsg(`Subiendo video (${(file.size / (1024 * 1024)).toFixed(1)}MB)...`);
+      }
 
       const formData = new FormData();
-      formData.append("file", compressedFile);
+      formData.append("file", fileToUpload);
       formData.append("folder", "multimedia");
 
       const res = await fetch("/api/upload", { method: "POST", body: formData });
@@ -467,9 +517,11 @@ export default function PeritajeIngresoModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           urlStorage: data.file.url,
-          tipo: "FOTO",
+          tipo: isVideo ? "VIDEO" : "FOTO",
           etiqueta: "PERITAJE_INGRESO",
-          descripcion: "Fotografía de peritaje tomada con cámara en vivo",
+          descripcion: isVideo
+            ? "Video de peritaje tomado con cámara en vivo (ruidos o falla)"
+            : "Fotografía de peritaje tomada con cámara en vivo",
         }),
       });
 
@@ -477,16 +529,18 @@ export default function PeritajeIngresoModal({
         id: data.file.id || `uploaded-${Date.now()}`,
         urlStorage: data.file.url,
         url: data.file.url,
-        tipo: "FOTO",
+        tipo: isVideo ? "VIDEO" : "FOTO",
         etiqueta: "PERITAJE_INGRESO",
-        descripcion: "Fotografía de peritaje tomada con cámara en vivo",
+        descripcion: isVideo
+          ? "Video de peritaje tomado con cámara en vivo (ruidos o falla)"
+          : "Fotografía de peritaje tomada con cámara en vivo",
       };
       setUploadedPhotos((prev) => [newPhotoItem, ...prev]);
-      setUploadMsg("¡Foto capturada y resguardada con éxito en la nube!");
+      setUploadMsg(isVideo ? "¡Video de peritaje resguardado con éxito en la nube!" : "¡Foto capturada y resguardada con éxito en la nube!");
       setTimeout(() => setUploadMsg(null), 3000);
       onSaved();
     } catch (err: any) {
-      setUploadMsg("Error al subir foto de cámara: " + (err.message || "desconocido"));
+      setUploadMsg("Error al subir archivo de cámara: " + (err.message || "desconocido"));
     } finally {
       setUploading(false);
     }
@@ -961,31 +1015,58 @@ export default function PeritajeIngresoModal({
                   </div>
                 )}
 
-                {/* Fotografías de Evidencia */}
+                {/* Fotografías y Videos de Evidencia */}
                 {allEvidencePhotos.length > 0 && (
                   <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-2.5">
                     <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
                       <Camera className="w-4 h-4 text-emerald-600" />
-                      <span>Fotografías de Evidencia ({allEvidencePhotos.length})</span>
+                      <span>Evidencias Multimedia ({allEvidencePhotos.length})</span>
                     </span>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {allEvidencePhotos.map((photoUrl: string, idx: number) => (
-                        <div
-                          key={idx}
-                          onClick={() => setSelectedImage(photoUrl)}
-                          className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 group cursor-pointer hover:opacity-90 transition-opacity"
-                        >
-                          <img
-                            src={photoUrl}
-                            alt={`Evidencia ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white flex items-center gap-1">
-                            <Eye className="w-2.5 h-2.5" />
-                            Foto {idx + 1}
-                          </span>
-                        </div>
-                      ))}
+                      {allEvidencePhotos.map((mediaUrl: string, idx: number) => {
+                        const isVid = /\.(mp4|webm|mov|m4v|avi)$/i.test(mediaUrl) || mediaUrl.includes("video");
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setSelectedMedia({ url: mediaUrl, tipo: isVid ? "VIDEO" : "FOTO" })}
+                            className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 group cursor-pointer hover:opacity-90 transition-all shadow-xs"
+                          >
+                            {isVid ? (
+                              <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                                <video
+                                  src={mediaUrl}
+                                  preload="metadata"
+                                  className="w-full h-full object-cover opacity-75"
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-7 h-7 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <img
+                                src={mediaUrl}
+                                alt={`Evidencia ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white flex items-center gap-1">
+                              {isVid ? (
+                                <>
+                                  <Video className="w-2.5 h-2.5 text-rose-400" />
+                                  <span>Video {idx + 1}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="w-2.5 h-2.5 text-sky-400" />
+                                  <span>Foto {idx + 1}</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1095,7 +1176,7 @@ export default function PeritajeIngresoModal({
                     }`}
                   />
                   <span className="truncate text-[10px] sm:text-xs">
-                    <span className="hidden sm:inline">4. </span>Fotos
+                    <span className="hidden sm:inline">4. </span>Fotos / Videos
                   </span>
                   {order.multimedia?.length > 0 && (
                     <span className="px-1 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
@@ -1490,16 +1571,16 @@ export default function PeritajeIngresoModal({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {/* Botón 1: Sacar foto con la cámara nativa del celular (Android / iOS) */}
                     <label
                       onClick={handleNativeCameraClick}
-                      className={`flex items-center justify-center gap-2.5 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold py-3.5 px-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Camera className="w-4 h-4 text-sky-400 shrink-0" />
-                      <span>{uploading ? "Procesando..." : "Sacar Foto con Cámara Nativa"}</span>
+                      <span>{uploading ? "Procesando..." : "Sacar Foto"}</span>
                       <input
                         ref={fileInputCameraRef}
                         type="file"
@@ -1511,17 +1592,37 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Botón 2: Subir fotos desde la galería o archivos */}
+                    {/* Botón 2: Grabar video con la cámara nativa del celular */}
                     <label
-                      className={`flex items-center justify-center gap-2.5 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-4 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer ${
+                      onClick={handleNativeVideoCameraClick}
+                      className={`flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-bold py-3.5 px-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer ${
+                        uploading ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <Video className="w-4 h-4 text-white shrink-0 animate-pulse" />
+                      <span>{uploading ? "Procesando..." : "Grabar Video"}</span>
+                      <input
+                        ref={fileInputVideoCameraRef}
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        onChange={handlePhotoCapture}
+                        disabled={uploading}
+                        className="sr-only"
+                      />
+                    </label>
+
+                    {/* Botón 3: Subir fotos o videos desde la galería o archivos */}
+                    <label
+                      className={`flex items-center justify-center gap-2 bg-white hover:bg-slate-100 active:scale-[0.99] text-slate-800 font-bold py-3.5 px-3 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
                     >
                       <Upload className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{uploading ? "Procesando..." : "Subir desde Galería / Archivos"}</span>
+                      <span>{uploading ? "Procesando..." : "Subir Fotos / Videos"}</span>
                       <input
                         type="file"
-                        accept="image/*,image/jpeg,image/png,image/webp,image/heic,image/heif"
+                        accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
                         multiple
                         onChange={handlePhotoCapture}
                         disabled={uploading}
@@ -1537,7 +1638,7 @@ export default function PeritajeIngresoModal({
                       onClick={() => setIsCameraModalOpen(true)}
                       className="text-[11px] text-slate-500 hover:text-slate-800 underline transition-colors cursor-pointer"
                     >
-                      ¿Estás en computadora / PC? Abrir visor web de cámara
+                      ¿Estás en computadora / PC? Abrir cámara y grabadora de video web
                     </button>
                   </div>
 
@@ -1561,28 +1662,74 @@ export default function PeritajeIngresoModal({
                     </div>
                   )}
 
-                  {/* Muestra de fotos existentes y recién subidas en la orden */}
+                  {/* Muestra de fotos y videos existentes y recién subidos en la orden */}
                   {(() => {
-                    const allPhotos = [...uploadedPhotos, ...(order.multimedia || [])];
-                    return allPhotos.length > 0 ? (
+                    const allMedia = [...uploadedPhotos, ...(order.multimedia || [])];
+                    const videoCount = allMedia.filter(
+                      (item: any) => item.tipo === "VIDEO" || /\.(mp4|webm|mov)$/i.test(item.urlStorage || item.url || "")
+                    ).length;
+                    const photoCount = allMedia.length - videoCount;
+
+                    return allMedia.length > 0 ? (
                       <div className="pt-2">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                          Fotos registradas ({allPhotos.length}):
-                        </span>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {allPhotos.map((item: any, idx: number) => (
-                            <div key={item.id || idx} className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 group">
-                              <img src={item.urlStorage || item.url} alt="Evidencia" className="w-full h-full object-cover" />
-                              <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white">
-                                {item.etiqueta || "FOTO"}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            Archivos registrados ({allMedia.length}):
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-400">
+                            {photoCount} {photoCount === 1 ? "foto" : "fotos"} • {videoCount} {videoCount === 1 ? "video" : "videos"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                          {allMedia.map((item: any, idx: number) => {
+                            const isVid =
+                              item.tipo === "VIDEO" ||
+                              /\.(mp4|webm|mov|m4v)$/i.test(item.urlStorage || item.url || "");
+                            const mediaUrl = item.urlStorage || item.url;
+                            return (
+                              <div
+                                key={item.id || idx}
+                                onClick={() => setSelectedMedia({ url: mediaUrl, tipo: isVid ? "VIDEO" : "FOTO", descripcion: item.descripcion })}
+                                className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-900 group cursor-pointer hover:opacity-90 transition-all shadow-xs"
+                              >
+                                {isVid ? (
+                                  <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                                    <video
+                                      src={mediaUrl}
+                                      preload="metadata"
+                                      className="w-full h-full object-cover opacity-75"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <div className="w-8 h-8 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <Play className="w-4 h-4 fill-white ml-0.5" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={mediaUrl}
+                                    alt="Evidencia"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                  />
+                                )}
+                                <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-white flex items-center gap-1">
+                                  {isVid ? (
+                                    <>
+                                      <Video className="w-2.5 h-2.5 text-rose-400" />
+                                      <span>VIDEO</span>
+                                    </>
+                                  ) : (
+                                    <span>{item.etiqueta || "FOTO"}</span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ) : (
                       <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs">
-                        Sin fotografías registradas en el peritaje de esta orden.
+                        Sin fotografías o videos registrados en el peritaje de esta orden.
                       </div>
                     );
                   })()}
@@ -1653,24 +1800,35 @@ export default function PeritajeIngresoModal({
         )}
       </div>
 
-      {/* Visualizador ampliado de fotografía */}
-      {selectedImage && (
+      {/* Visualizador ampliado de fotografía o reproductor de video */}
+      {selectedMedia && (
         <div
-          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
-          onClick={() => setSelectedImage(null)}
+          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setSelectedMedia(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={selectedImage}
-              alt="Foto de peritaje ampliada"
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl"
-            />
+          <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            {selectedMedia.tipo === "VIDEO" || /\.(mp4|webm|mov|m4v)$/i.test(selectedMedia.url) ? (
+              <video
+                src={selectedMedia.url}
+                controls
+                autoPlay
+                playsInline
+                className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl bg-black"
+              />
+            ) : (
+              <img
+                src={selectedMedia.url}
+                alt="Foto de peritaje ampliada"
+                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"
+              />
+            )}
             <button
               type="button"
-              onClick={() => setSelectedImage(null)}
-              className="mt-3 px-5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs cursor-pointer transition-colors"
+              onClick={() => setSelectedMedia(null)}
+              className="px-6 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white font-bold text-xs cursor-pointer transition-colors flex items-center gap-1.5 shadow-lg"
             >
-              Cerrar imagen
+              <X className="w-4 h-4" />
+              <span>Cerrar</span>
             </button>
           </div>
         </div>

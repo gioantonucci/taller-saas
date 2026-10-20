@@ -21,6 +21,9 @@ import {
   Check,
   User,
   ExternalLink,
+  Video,
+  Play,
+  X,
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -29,6 +32,7 @@ export default function EstadoOrdenClientePage() {
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeMedia, setActiveMedia] = useState<{ url: string; tipo: string; descripcion?: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -437,34 +441,98 @@ export default function EstadoOrdenClientePage() {
             <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#e5242b]">
                 <Camera className="w-4 h-4" />
-                <span>Evidencias Fotográficas de Peritaje ({order.multimedia.length})</span>
+                <span>Evidencias Multimedia de Peritaje ({order.multimedia.length})</span>
               </div>
               <span className="text-[10px] font-mono text-neutral-500">Inspección digital</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {order.multimedia.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="relative rounded-2xl overflow-hidden border border-neutral-800 aspect-video bg-neutral-950 group shadow-md"
-                >
-                  <img
-                    src={item.urlStorage}
-                    alt={item.descripcion || "Foto de peritaje"}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-2.5 text-[10px] text-white">
-                    <span className="font-black uppercase tracking-wider text-[#e5242b]">
-                      {item.etiqueta || "PERITAJE"}
-                    </span>
-                    {item.descripcion && (
-                      <span className="text-neutral-300 truncate mt-0.5">
-                        {item.descripcion}
-                      </span>
+              {order.multimedia.map((item: any) => {
+                const isVid =
+                  item.tipo === "VIDEO" ||
+                  /\.(mp4|webm|mov|m4v)$/i.test(item.urlStorage || "");
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveMedia({ url: item.urlStorage, tipo: isVid ? "VIDEO" : "FOTO", descripcion: item.descripcion })}
+                    className="relative rounded-2xl overflow-hidden border border-neutral-800 aspect-video bg-neutral-950 group shadow-md cursor-pointer hover:border-neutral-700 transition-all"
+                  >
+                    {isVid ? (
+                      <div className="w-full h-full relative flex items-center justify-center bg-black">
+                        <video
+                          src={item.urlStorage}
+                          preload="metadata"
+                          className="w-full h-full object-cover opacity-75"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[#e5242b] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-4 h-4 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.urlStorage}
+                        alt={item.descripcion || "Foto de peritaje"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                      />
                     )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-2.5 text-[10px] text-white">
+                      <span className="font-black uppercase tracking-wider text-[#e5242b] flex items-center gap-1">
+                        {isVid ? <Video className="w-2.5 h-2.5" /> : null}
+                        <span>{item.etiqueta || (isVid ? "VIDEO" : "PERITAJE")}</span>
+                      </span>
+                      {item.descripcion && (
+                        <span className="text-neutral-300 truncate mt-0.5">
+                          {item.descripcion}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de visualización de evidencia para el cliente */}
+        {activeMedia && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-150"
+            onClick={() => setActiveMedia(null)}
+          >
+            <div
+              className="max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {activeMedia.tipo === "VIDEO" || /\.(mp4|webm|mov|m4v)$/i.test(activeMedia.url) ? (
+                <video
+                  src={activeMedia.url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="rounded-2xl max-w-full max-h-[80vh] shadow-2xl bg-black"
+                />
+              ) : (
+                <img
+                  src={activeMedia.url}
+                  alt="Evidencia Full"
+                  className="rounded-2xl max-w-full max-h-[80vh] object-contain shadow-2xl"
+                />
+              )}
+              {activeMedia.descripcion && (
+                <p className="text-xs text-neutral-300 font-medium text-center">
+                  {activeMedia.descripcion}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveMedia(null)}
+                className="mt-1 px-6 py-2 rounded-full bg-white text-neutral-900 font-bold text-xs shadow-xl hover:bg-neutral-200 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                <span>Cerrar Vista</span>
+              </button>
             </div>
           </div>
         )}

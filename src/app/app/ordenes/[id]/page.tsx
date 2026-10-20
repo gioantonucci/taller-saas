@@ -24,6 +24,8 @@ import {
   PauseCircle,
   PlayCircle,
   Eye,
+  Video,
+  Play,
 } from "lucide-react";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
@@ -1305,48 +1307,84 @@ export default function OrdenDetallePage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {order.multimedia.map((item: any) => (
-              <div
-                key={item.id}
-                onClick={() => setActiveModalImg(item.urlStorage)}
-                className="relative rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group bg-slate-900 aspect-video shadow-sm"
-              >
-                <img
-                  src={item.urlStorage}
-                  alt={item.descripcion || "Evidencia"}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
-                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                    {item.etiqueta || item.tipo}
-                  </span>
-                  <p className="text-[10px] text-slate-300 truncate">
-                    {item.descripcion}
-                  </p>
+            {order.multimedia.map((item: any) => {
+              const isVid =
+                item.tipo === "VIDEO" ||
+                /\.(mp4|webm|mov|m4v)$/i.test(item.urlStorage || "");
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setActiveModalImg(item.urlStorage)}
+                  className="relative rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group bg-slate-900 aspect-video shadow-sm"
+                >
+                  {isVid ? (
+                    <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                      <video
+                        src={item.urlStorage}
+                        preload="metadata"
+                        className="w-full h-full object-cover opacity-75"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Play className="w-4 h-4 fill-white ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={item.urlStorage}
+                      alt={item.descripcion || "Evidencia"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                      {isVid ? <Video className="w-2.5 h-2.5 text-rose-400" /> : <Camera className="w-2.5 h-2.5 text-sky-400" />}
+                      <span>{item.etiqueta || item.tipo}</span>
+                    </span>
+                    <p className="text-[10px] text-slate-300 truncate">
+                      {item.descripcion}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* MODAL FOTO FULL VIEW */}
+      {/* MODAL FOTO O VIDEO FULL VIEW */}
       {activeModalImg && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
           onClick={() => setActiveModalImg(null)}
         >
-          <div className="max-w-3xl w-full max-h-[90vh] flex flex-col items-center">
-            <img
-              src={activeModalImg}
-              alt="Evidencia Full"
-              className="rounded-2xl max-w-full max-h-[80vh] object-contain shadow-2xl"
-            />
+          <div
+            className="max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/\.(mp4|webm|mov|m4v)$/i.test(activeModalImg) || activeModalImg.includes("video") ? (
+              <video
+                src={activeModalImg}
+                controls
+                autoPlay
+                playsInline
+                className="rounded-2xl max-w-full max-h-[80vh] shadow-2xl bg-black"
+              />
+            ) : (
+              <img
+                src={activeModalImg}
+                alt="Evidencia Full"
+                className="rounded-2xl max-w-full max-h-[80vh] object-contain shadow-2xl"
+              />
+            )}
             <button
+              type="button"
               onClick={() => setActiveModalImg(null)}
-              className="mt-4 px-6 py-2 rounded-full bg-white text-slate-900 font-bold text-xs shadow-lg"
+              className="mt-2 px-6 py-2 rounded-full bg-white text-slate-900 font-bold text-xs shadow-xl hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              Cerrar Vista
+              <X className="w-4 h-4" />
+              <span>Cerrar Vista</span>
             </button>
           </div>
         </div>

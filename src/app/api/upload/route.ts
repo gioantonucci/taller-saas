@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No se proporcionó ningún archivo" }, { status: 400 });
     }
 
-    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB para soportar videos de peritaje
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "El archivo excede el tamaño máximo permitido de 15MB" },
+        { error: "El archivo excede el tamaño máximo permitido de 50MB" },
         { status: 400 }
       );
     }
