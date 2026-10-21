@@ -602,7 +602,7 @@ export default function OrdenDetallePage() {
               )}
 
               {/* Opción de Dar de Baja la Orden */}
-              {!isEntregado && (
+              {!isCancelled && (
                 <button
                   type="button"
                   onClick={() => {
@@ -610,7 +610,7 @@ export default function OrdenDetallePage() {
                     setBajaError(null);
                     setDarDeBajaModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
                   title="Dar de baja y archivar esta orden de trabajo con justificación"
                 >
                   <Ban className="w-4 h-4 text-white" />
