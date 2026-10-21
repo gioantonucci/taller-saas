@@ -686,9 +686,11 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
   doc.rect(MARGIN + matW + 3, y, vinW, 7, "D");
   setFont(doc, "bold", 9.5, [15, 23, 42]);
   doc.text(vehiculo.patente.toUpperCase(), MARGIN + 2, y + 5);
-  setFont(doc, "normal", 8, [15, 23, 42]);
-  const vinText = vehiculo.nroChasis || peritaje.numeroBastidorVin || "–";
-  doc.text(vinText, MARGIN + matW + 5, y + 4.8);
+  const vinRaw = (vehiculo.nroChasis || peritaje.numeroBastidorVin || "").trim();
+  if (vinRaw) {
+    setFont(doc, "normal", 8, [15, 23, 42]);
+    doc.text(vinRaw, MARGIN + matW + 5, y + 4.8);
+  }
 
   // 4. DESPERFECTOS SEÑALADOS POR EL CLIENTE
   y += 10;
