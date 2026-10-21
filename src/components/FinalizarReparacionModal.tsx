@@ -8,7 +8,6 @@ import {
   FileText,
   AlertTriangle,
   Lock,
-  Plus,
   RotateCcw,
   Sparkles,
   ArrowRight,
@@ -37,8 +36,6 @@ interface FinalizarReparacionModalProps {
   } | null;
   onSuccess: (updatedOrder: any) => void;
 }
-
-const QUICK_HOURS = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
 
 const QUICK_TAGS = [
   "Prueba de ruta satisfactoria",
@@ -112,12 +109,6 @@ export default function FinalizarReparacionModal({
   );
 
   const canFinalize = hasMechanic && hasPeritaje;
-
-  const handleAddHours = (val: number) => {
-    const current = parseFloat(horas) || 0;
-    const next = (current + val).toFixed(2);
-    setHoras(parseFloat(next).toString());
-  };
 
   const handleSetTag = (tag: string) => {
     if (!nota.trim()) {
@@ -363,25 +354,6 @@ export default function FinalizarReparacionModal({
                   </div>
                 </div>
 
-                {/* Accesos rápidos táctiles para sumar horas */}
-                <div>
-                  <span className="text-[10px] font-semibold text-slate-500 block mb-1.5">
-                    Sumar tiempo rápido:
-                  </span>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                    {QUICK_HOURS.map((h) => (
-                      <button
-                        key={h}
-                        type="button"
-                        onClick={() => handleAddHours(h)}
-                        className="py-2 px-1 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-[11px] rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-0.5 shadow-2xs active:scale-95"
-                      >
-                        <Plus className="w-2.5 h-2.5 opacity-60" />
-                        {h}h
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <p className="text-[10px] text-slate-500 italic">
                   Estas horas se registrarán automáticamente en el historial de trabajo (WorkLog) de la orden.
                 </p>
