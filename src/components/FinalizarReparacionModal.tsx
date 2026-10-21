@@ -471,9 +471,6 @@ export default function FinalizarReparacionModal({
                 </div>
 
                 <div className="p-3.5 sm:p-4 space-y-3.5">
-                  <div className="bg-red-100/80 border border-red-200/90 p-2.5 rounded-xl text-red-950 text-[11px] font-medium leading-relaxed">
-                    ⚠️ <strong>Atención mecánico:</strong> Respondé los siguientes 4 puntos. Al confirmar, la orden quedará cerrada y lo que des OK quedará formalmente asentado en la orden.
-                  </div>
 
                   {/* Pregunta 1 */}
                   <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
