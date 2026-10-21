@@ -264,6 +264,34 @@ async function main() {
     },
   });
 
+  const auto8 = await prisma.vehicle.create({
+    data: {
+      clientId: cliente4.id,
+      marca: "Audi",
+      modelo: "A4 2.0 TFSI S-Tronic",
+      anio: 2021,
+      patente: "5512 HJK",
+      nroChasis: "WAUZZZF43MA081293",
+      nroMotor: "CVKB-190CV",
+      color: "Gris Nardo",
+      status: "ACTIVE",
+    },
+  });
+
+  const auto9 = await prisma.vehicle.create({
+    data: {
+      clientId: cliente2.id,
+      marca: "Mercedes-Benz",
+      modelo: "Clase A 200 AMG Line",
+      anio: 2023,
+      patente: "8841 MRX",
+      nroChasis: "W1K1770871J291844",
+      nroMotor: "M282-163CV",
+      color: "Blanco Polar",
+      status: "ACTIVE",
+    },
+  });
+
   // 6. Inventario de Piezas y Repuestos
   const invAceite = await prisma.inventoryItem.create({
     data: {
@@ -775,7 +803,35 @@ async function main() {
     },
   });
 
-  console.log("Órdenes de trabajo creadas (1001 a 1007) abarcando todos los estados.");
+  // ORDEN 1008: CANCELADO (Dada de baja / Cancelada con motivo documentado de desistimiento)
+  const orden1008 = await prisma.workOrder.create({
+    data: {
+      numeroOrden: 1008,
+      vehicleId: auto8.id,
+      mechanicId: mecanico1.id,
+      adminId: admin.id,
+      estado: "CANCELADO",
+      fechaIngreso: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      fechaCancelacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      motivoCancelacion:
+        "El titular decide no afrontar la reparación integral de la mecatrónica de transmisión en este período por presupuesto elevado. Se entrega en grúa particular sin costo devengado.",
+      nivelNafta: "1/4",
+      kilometraje: 110400,
+      detallesIngreso:
+        "Fallo y tirones en transmisión automática S-Tronic en marchas pares. Presupuesto de sustitución de módulo mecatrónico.",
+      comentariosDuenio: "Notó tirones al pasar a 2da y 4ta marcha en ciudad.",
+      checklistDanio: JSON.stringify({
+        motivoCancelacion:
+          "El titular decide no afrontar la reparación integral de la mecatrónica de transmisión en este período por presupuesto elevado. Se entrega en grúa particular sin costo devengado.",
+        fechaCancelacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        responsableCancelacion: "Carlos Rossi (Administrador)",
+      }),
+      costoManoDeObra: 0,
+      totalPresupuesto: 0,
+    },
+  });
+
+  console.log("Órdenes de trabajo creadas (1001 a 1008) abarcando todos los estados.");
 
   // =========================================================================
   // 8. Piezas Asignadas a Órdenes (Parts)
@@ -1156,16 +1212,17 @@ async function main() {
   - 1 Configuración de Taller (Valencia, España)
   - 5 Usuarios (1 Admin, 1 Recepción, 3 Mecánicos)
   - 5 Clientes con direcciones completas
-  - 7 Vehículos con matrículas españolas modernas
+  - 9 Vehículos con matrículas españolas modernas (incluye vehículos sin órdenes y vehículos con órdenes finalizadas)
   - 5 Artículos en Inventario
-  - 7 Órdenes de Trabajo (1001 a 1007) en todos los estados:
+  - 8 Órdenes de Trabajo (1001 a 1008) en TODOS los estados operativos y comerciales:
       * 1001: EN_REPARACION (Peritaje cerrado, 3 pines de carrocería, parabrisas rajado, 4 fotos, worklogs, repuestos)
       * 1002: EN_ESPERA_REPUESTOS (En Pausa, catadióptrico y espejo roto, check engine encendido, 2 fotos, worklog)
-      * 1003: FINALIZADO (Terminado/Listo, peritaje limpio, discos brembo montados, 2 fotos)
+      * 1003: FINALIZADO (Terminado/Listo, peritaje limpio, discos brembo montados, 2 fotos; listo para probar nueva orden)
       * 1004: PENDIENTE_PERITAJE (Sin mecánico asignado, peritaje pendiente, texto de queja largo)
       * 1005: ENTREGADO (Archivado, entregado al cliente con pago registrado)
       * 1006: EN_REPARACION (Diagnosis electrónica, rayón de llave y granizo, bobinas bosch, fotos)
-      * 1007: PENDIENTE_PERITAJE (Con mecánico asignado, fuga de refrigerante, pendiente de inspección)
+      * 1007: PENDIENTE_PERITAJE (Con mecánico asignado, fuga de refrigerante, pendiente de inspección técnica)
+      * 1008: CANCELADO (Dada de baja / cancelada con motivo legal y de auditoría documentado)
   - 9 Repuestos asignados con archivos de factura
   - 7 Registros de horas y tareas de mecánicos (WorkLogs)
   - 10 Fotografías de peritaje y evidencia multimedia
