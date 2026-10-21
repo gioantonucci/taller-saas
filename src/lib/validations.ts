@@ -117,6 +117,7 @@ export const openWorkOrderSchema = z.object({
     .min(5, "Describa el motivo del ingreso o la falla (mínimo 5 caracteres)")
     .max(1000, "Descripción demasiado larga"),
   comentariosDuenio: z.string().optional(),
+  firmaCliente: z.string().nullable().optional(),
 });
 
 export type OpenWorkOrderValues = z.infer<typeof openWorkOrderSchema>;

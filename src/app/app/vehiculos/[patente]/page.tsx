@@ -21,9 +21,11 @@ import {
   RefreshCw,
   Phone,
   ShieldAlert,
+  PenTool,
 } from "lucide-react";
 import { openWorkOrderSchema, OpenWorkOrderValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
+import ClientSignaturePad from "@/components/ClientSignaturePad";
 
 export default function VehiculoHistorialClinicoPage() {
   const { alert, confirm } = useAppDialog();
@@ -37,6 +39,7 @@ export default function VehiculoHistorialClinicoPage() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
 
   const {
     register,
@@ -112,6 +115,7 @@ export default function VehiculoHistorialClinicoPage() {
       return;
     }
     setOrderError(null);
+    setFirmaCliente(null);
     reset({
       vehicleId: vehicle.id,
       nivelNafta: "1/2",
@@ -134,10 +138,34 @@ export default function VehiculoHistorialClinicoPage() {
     setOrderError(null);
 
     try {
+      const checklistDanioPayload = {
+        fechaHoraCheckin: new Date().toLocaleString("es-AR"),
+        kilometrajeTablero: values.kilometraje || 0,
+        nivelCombustible: values.nivelNafta || "1/2",
+        comentariosDuenio: values.comentariosDuenio || "",
+        damagePins: [],
+        autorizaViaPublica: true,
+        firmaCliente: firmaCliente || null,
+        fechaFirmaCliente: firmaCliente ? new Date().toISOString() : null,
+        inventarioCabina: {
+          ruedaAuxilio: true,
+          criqueYHerramientas: true,
+          tuercaSeguridad: false,
+          documentacion: true,
+          estereoFunciona: true,
+          matafuegoVigente: true,
+          tapaCombustible: true,
+        },
+      };
+
       const res = await fetch("/api/work-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          firmaCliente: firmaCliente || null,
+          checklistDanio: checklistDanioPayload,
+        }),
       });
 
       const data = await res.json();
@@ -444,6 +472,24 @@ export default function VehiculoHistorialClinicoPage() {
                         Mecánico: {order.mechanic.nombre} {order.mechanic.apellido}
                       </span>
                     )}
+                    {(() => {
+                      let hasSig = false;
+                      if (order.checklistDanio) {
+                        try {
+                          const parsed =
+                            typeof order.checklistDanio === "string"
+                              ? JSON.parse(order.checklistDanio)
+                              : order.checklistDanio;
+                          hasSig = Boolean(parsed?.firmaCliente);
+                        } catch {}
+                      }
+                      return hasSig ? (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Firma cliente</span>
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
@@ -466,10 +512,10 @@ export default function VehiculoHistorialClinicoPage() {
       {/* MODAL: APERTURA DE ORDEN DE TRABAJO (RECEPCIÓN BÁSICA)                     */}
       {/* ========================================================================= */}
       {orderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             {/* Header del Modal */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
                   <Wrench className="w-4 h-4" />
@@ -493,14 +539,14 @@ export default function VehiculoHistorialClinicoPage() {
 
             {/* Error general */}
             {orderError && (
-              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 shrink-0">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{orderError}</span>
               </div>
             )}
 
             {/* Formulario */}
-            <form onSubmit={handleSubmit(onSubmitOrder)} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit(onSubmitOrder)} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Nivel de Nafta */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
@@ -623,7 +669,26 @@ export default function VehiculoHistorialClinicoPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+              {/* Firma Digital del Cliente en Tablet / Pantalla */}
+              <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span className="flex items-center gap-1.5">
+                    <PenTool className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Firma del Cliente (Recepción y Resguardo)</span>
+                  </span>
+                  <span className={`text-[11px] font-bold ${firmaCliente ? "text-emerald-600" : "text-slate-400"}`}>
+                    {firmaCliente ? "✓ Firma registrada" : "Opcional / en pantalla"}
+                  </span>
+                </div>
+                <ClientSignaturePad
+                  value={firmaCliente}
+                  onChange={(sig) => setFirmaCliente(sig)}
+                  height={170}
+                  title="Firma del Titular / Conductor al ingresar"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0 bg-white sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setOrderModalOpen(false)}

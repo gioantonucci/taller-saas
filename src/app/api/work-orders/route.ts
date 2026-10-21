@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
       nivelNafta,
       checklistDanio,
       costoManoDeObra,
+      firmaCliente,
     } = body;
 
     // 1. Resolver o Crear Vehículo y Cliente
@@ -299,7 +300,41 @@ export async function POST(request: NextRequest) {
     const isMechanic = session.role === "MECANICO" || session.role === "MECHANIC";
     const resolvedMechanicId = isMechanic ? session.id : (mechanicId || null);
 
-    // 6. Crear la orden de trabajo
+    // 6. Procesar peritaje inicial y firma digital del cliente si existen
+    let finalChecklistDanio: any = checklistDanio;
+    if (finalChecklistDanio) {
+      if (typeof finalChecklistDanio === "string") {
+        try {
+          finalChecklistDanio = JSON.parse(finalChecklistDanio);
+        } catch {}
+      }
+      if (typeof finalChecklistDanio === "object" && firmaCliente && !finalChecklistDanio.firmaCliente) {
+        finalChecklistDanio.firmaCliente = firmaCliente;
+        finalChecklistDanio.fechaFirmaCliente = finalChecklistDanio.fechaFirmaCliente || new Date().toISOString();
+      }
+    } else if (firmaCliente) {
+      finalChecklistDanio = {
+        fechaHoraCheckin: new Date().toLocaleString("es-AR"),
+        kilometrajeTablero: kilometraje ? parseInt(kilometraje, 10) : 0,
+        nivelCombustible: nivelNafta || "1/2",
+        comentariosDuenio: comentariosDuenio || "",
+        damagePins: [],
+        autorizaViaPublica: true,
+        firmaCliente,
+        fechaFirmaCliente: new Date().toISOString(),
+        inventarioCabina: {
+          ruedaAuxilio: true,
+          criqueYHerramientas: true,
+          tuercaSeguridad: false,
+          documentacion: true,
+          estereoFunciona: true,
+          matafuegoVigente: true,
+          tapaCombustible: true,
+        },
+      };
+    }
+
+    // 7. Crear la orden de trabajo
     const newWorkOrder = await prisma.workOrder.create({
       data: {
         numeroOrden: nextNumeroOrden,
@@ -312,7 +347,11 @@ export async function POST(request: NextRequest) {
         kilometraje: kilometraje ? parseInt(kilometraje, 10) : null,
         detallesIngreso: detallesIngreso || "Ingreso para diagnóstico y peritaje",
         comentariosDuenio: comentariosDuenio || null,
-        checklistDanio: checklistDanio ? (typeof checklistDanio === "string" ? checklistDanio : JSON.stringify(checklistDanio)) : null,
+        checklistDanio: finalChecklistDanio
+          ? typeof finalChecklistDanio === "string"
+            ? finalChecklistDanio
+            : JSON.stringify(finalChecklistDanio)
+          : null,
         costoManoDeObra: costoManoDeObra ? parseFloat(costoManoDeObra) : 0,
         totalPresupuesto: costoManoDeObra ? parseFloat(costoManoDeObra) : 0,
       },
@@ -324,7 +363,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 7. Registrar log de auditoría
+    // 8. Registrar log de auditoría
     await recordAuditLog({
       user: session,
       accion: "CREATE",

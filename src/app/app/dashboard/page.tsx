@@ -12,9 +12,11 @@ import {
   Wrench,
   ShieldAlert,
   LayoutDashboard,
+  PenTool,
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import DashboardCharts from "@/components/DashboardCharts";
+import ClientSignaturePad from "@/components/ClientSignaturePad";
 
 interface MetricsData {
   activosEnTaller: number;
@@ -43,6 +45,7 @@ export default function DashboardPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
 
   const [orderForm, setOrderForm] = useState({
     clienteNombre: "",
@@ -93,7 +96,10 @@ export default function DashboardPage() {
       const res = await fetch("/api/work-orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderForm),
+        body: JSON.stringify({
+          ...orderForm,
+          firmaCliente: firmaCliente || null,
+        }),
       });
 
       const data = await res.json();
@@ -104,6 +110,7 @@ export default function DashboardPage() {
       }
 
       setModalOpen(false);
+      setFirmaCliente(null);
       // Reset form
       setOrderForm({
         clienteNombre: "",
@@ -729,6 +736,27 @@ export default function DashboardPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Sección 4: Firma del Cliente */}
+              <div className="pt-3 border-t border-slate-100">
+                <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span className="flex items-center gap-1.5">
+                      <PenTool className="w-3.5 h-3.5 text-sky-600" />
+                      <span>4. Firma del Cliente en Pantalla (Recepción)</span>
+                    </span>
+                    <span className={`text-[11px] font-bold ${firmaCliente ? "text-emerald-600" : "text-slate-400"}`}>
+                      {firmaCliente ? "✓ Firma registrada" : "Opcional / en pantalla"}
+                    </span>
+                  </div>
+                  <ClientSignaturePad
+                    value={firmaCliente}
+                    onChange={(sig) => setFirmaCliente(sig)}
+                    height={160}
+                    title="Firma del Titular / Conductor al ingresar"
+                  />
                 </div>
               </div>
 
