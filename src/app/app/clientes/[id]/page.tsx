@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
+import { hasValidAddress } from "@/lib/search-utils";
 
 export default function ClienteDetallePage() {
   const { alert, confirm } = useAppDialog();
@@ -300,7 +301,11 @@ export default function ClienteDetallePage() {
           </p>
           <p className="text-xs text-slate-600 flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>{client.direccion || "Sin dirección registrada"}</span>
+            {hasValidAddress(client.direccion) ? (
+              <span>{client.direccion}</span>
+            ) : (
+              <span className="text-slate-400 italic">No especificada</span>
+            )}
           </p>
         </div>
 

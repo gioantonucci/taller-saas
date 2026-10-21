@@ -42,3 +42,21 @@ export function matchesSearchMulti(
 
   return tokens.every((token) => targetStr.includes(token));
 }
+
+/**
+ * Comprueba si una dirección es válida y no es vacía ni texto de marcador/placeholder genérico.
+ */
+export function hasValidAddress(direccion: string | null | undefined): boolean {
+  if (!direccion) return false;
+  const d = direccion.trim().toLowerCase();
+  return (
+    d.length > 0 &&
+    d !== "sin dirección especificada" &&
+    d !== "sin direccion especificada" &&
+    d !== "sin dirección registrada" &&
+    d !== "sin direccion registrada" &&
+    d !== "no especificada" &&
+    d !== "no especificado" &&
+    d !== "no registrada"
+  );
+}

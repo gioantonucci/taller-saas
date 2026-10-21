@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { clientFormSchema, ClientFormValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
+import { hasValidAddress } from "@/lib/search-utils";
 
 export default function ClientesPage() {
   const { alert, confirm } = useAppDialog();
@@ -97,7 +98,7 @@ export default function ClientesPage() {
     setValue("dni", client.dni);
     setValue("telefono", client.telefono || "");
     setValue("email", client.email || "");
-    setValue("direccion", client.direccion || "");
+    setValue("direccion", hasValidAddress(client.direccion) ? client.direccion : "");
     setModalOpen(true);
   };
 
@@ -325,10 +326,14 @@ export default function ClientesPage() {
                       </a>
                     )}
 
-                    {c.direccion && (
+                    {hasValidAddress(c.direccion) ? (
                       <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pt-0.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate">{c.direccion}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-slate-400 text-[11px] pt-0.5 italic">
+                        <span>No especificada</span>
                       </div>
                     )}
                   </div>
@@ -402,7 +407,7 @@ export default function ClientesPage() {
                       </td>
 
                       <td className="p-3.5 text-slate-600 max-w-xs truncate">
-                        {c.direccion ? (
+                        {hasValidAddress(c.direccion) ? (
                           <div className="flex items-center gap-1.5">
                             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <span className="truncate">{c.direccion}</span>

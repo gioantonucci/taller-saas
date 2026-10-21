@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
             dni: clienteDni.trim(),
             telefono: clienteTelefono || "",
             email: clienteEmail || "",
-            direccion: clienteDireccion || "Sin dirección especificada",
+            direccion: clienteDireccion ? clienteDireccion.trim() : "",
             isDeleted: false,
             status: "ACTIVE",
           },
