@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PeritajeIngreso } from "@/types";
 import { estimateZone, getDamageTypeLabel } from "@/lib/damage-utils";
+import { POGGI_LOGO_BASE64 } from "./poggi-logo-base64";
 
 // ─── Colores (RGB) ────────────────────────────────────────────────────────────
 const C = {
@@ -544,31 +545,48 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const { numeroOrden, vehiculo, cliente, peritaje, taller } = params;
 
-  const tallerNombre = taller?.nombre || "POGGI Taller Integral";
-  const tallerTel = taller?.telefono || "658 40 62 86";
-  const tallerDir = taller?.direccion || "San Pio X 13, Valencia cp 46017";
+  const tallerTel = taller?.telefono || "656 40 62 86";
+  const tallerDir = taller?.direccion || "San Pío X 13 , Valencia cp 46017";
 
   const PAGE_W = 210;
   const MARGIN = 12;
   const W = PAGE_W - 2 * MARGIN; // 186mm
 
   // 1. CABECERA
-  // Logo / Taller (Izquierda)
-  // Ícono de auto / taller en círculo rojo
-  doc.setFillColor(220, 38, 38);
-  doc.circle(MARGIN + 5, 17, 5, "F");
-  doc.setFillColor(255, 255, 255);
-  doc.rect(MARGIN + 2.5, 15.5, 5, 2, "F");
-  doc.roundedRect(MARGIN + 2, 17.5, 6, 2, 0.5, 0.5, "F");
+  // Logo Poggi (Izquierda)
+  const POGGI_RED: [number, number, number] = [185, 28, 38];
+  const logoW = 12.5;
+  const logoH = 16.5;
+  const logoX = MARGIN;
+  const logoY = 10.5;
+  doc.addImage(POGGI_LOGO_BASE64, "PNG", logoX, logoY, logoW, logoH);
 
-  setFont(doc, "bold", 11, [220, 38, 38]);
-  doc.text("POGGI", MARGIN + 12, 15);
-  setFont(doc, "bold", 9, [15, 23, 42]);
-  doc.text("Taller Integral", MARGIN + 12, 19);
-  setFont(doc, "bold", 7, [220, 38, 38]);
-  doc.text(`📞 ${tallerTel}`, MARGIN + 12, 23);
-  setFont(doc, "normal", 6.5, [71, 85, 105]);
-  doc.text(tallerDir, MARGIN + 12, 26.5);
+  // Textos del Taller (junto al logo) - Color Rojo POGGI
+  const brandX = MARGIN + 14.5;
+
+  setFont(doc, "bold", 11, POGGI_RED);
+  doc.text("POGGI", brandX, 14.5);
+
+  setFont(doc, "bold", 9, POGGI_RED);
+  doc.text("Taller Integral", brandX, 18.5);
+
+  // Ícono de teléfono en círculo + Número
+  const phoneIconX = brandX;
+  const phoneIconY = 20.6;
+  doc.setDrawColor(...POGGI_RED);
+  doc.setLineWidth(0.25);
+  doc.circle(phoneIconX + 1.2, phoneIconY + 1.2, 1.3, "S");
+  doc.setFillColor(...POGGI_RED);
+  doc.circle(phoneIconX + 0.85, phoneIconY + 1.5, 0.35, "F");
+  doc.circle(phoneIconX + 1.55, phoneIconY + 0.85, 0.35, "F");
+  doc.setLineWidth(0.4);
+  doc.line(phoneIconX + 0.85, phoneIconY + 1.5, phoneIconX + 1.55, phoneIconY + 0.85);
+
+  setFont(doc, "bold", 7.5, POGGI_RED);
+  doc.text(tallerTel, brandX + 3.8, 22.8);
+
+  setFont(doc, "bold", 6.8, POGGI_RED);
+  doc.text(tallerDir, brandX, 26.5);
 
   // Título Central: "Resguardo de Deposito"
   setFont(doc, "bold", 17, [15, 23, 42]);

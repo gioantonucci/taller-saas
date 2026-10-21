@@ -418,8 +418,8 @@ export default function OrdenesPage() {
       },
       taller: {
         nombre: "POGGI Taller Integral",
-        telefono: "658 40 62 86",
-        direccion: "San Pio X 13, Valencia cp 46017",
+        telefono: "656 40 62 86",
+        direccion: "San Pío X 13 , Valencia cp 46017",
       },
     };
     printResguardoDepositoPDF(params);
@@ -458,8 +458,8 @@ export default function OrdenesPage() {
       },
       taller: {
         nombre: "POGGI Taller Integral",
-        telefono: "658 40 62 86",
-        direccion: "San Pio X 13, Valencia cp 46017",
+        telefono: "656 40 62 86",
+        direccion: "San Pío X 13 , Valencia cp 46017",
       },
     };
     generateResguardoDepositoPDF(params);
