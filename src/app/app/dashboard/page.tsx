@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   Car,
@@ -46,6 +46,14 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
+  const modalScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Asegurar que al abrir el modal siempre aparezca en el top del scroll
+  useEffect(() => {
+    if (modalOpen && modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+  }, [modalOpen]);
 
   const [orderForm, setOrderForm] = useState({
     clienteNombre: "",
@@ -461,7 +469,7 @@ export default function DashboardPage() {
       {/* MODAL INGRESO RÁPIDO DE VEHÍCULO (CLIENTE DNI + PATENTE) */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-8 animate-in fade-in duration-200">
+          <div ref={modalScrollRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-8 animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Apertura Rápida de Orden de Trabajo</h3>

@@ -330,6 +330,14 @@ export default function OrdenesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [createdOrderSuccess, setCreatedOrderSuccess] = useState<any | null>(null);
   const [createdOrderSuccessModal, setCreatedOrderSuccessModal] = useState<any | null>(null);
+  const modalBodyRef = useRef<HTMLDivElement | null>(null);
+
+  // Asegurar que al abrir el modal o cambiar de paso siempre aparezca en el top del scroll
+  useEffect(() => {
+    if (modalOpen && modalBodyRef.current) {
+      modalBodyRef.current.scrollTop = 0;
+    }
+  }, [step, modalOpen]);
 
   const initialOrderFormState = {
     clienteNombre: "",
@@ -370,6 +378,11 @@ export default function OrdenesPage() {
       mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
     });
     setModalOpen(true);
+    setTimeout(() => {
+      if (modalBodyRef.current) {
+        modalBodyRef.current.scrollTop = 0;
+      }
+    }, 0);
   };
 
   const handlePrintResguardoFromOrder = (orderItem: any) => {
@@ -579,12 +592,18 @@ export default function OrdenesPage() {
         }
       }
       setStep((prev) => Math.min(prev + 1, 5) as 1 | 2 | 3 | 4 | 5);
+      if (modalBodyRef.current) {
+        modalBodyRef.current.scrollTop = 0;
+      }
     }
   };
 
   const handlePrevStep = () => {
     setFormError(null);
     setStep((prev) => Math.max(prev - 1, 1) as 1 | 2 | 3 | 4 | 5);
+    if (modalBodyRef.current) {
+      modalBodyRef.current.scrollTop = 0;
+    }
   };
 
   const fetchMechanics = async () => {
@@ -1564,7 +1583,12 @@ export default function OrdenesPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (s.num < step) setStep(s.num as 1 | 2 | 3 | 4 | 5);
+                          if (s.num < step) {
+                            setStep(s.num as 1 | 2 | 3 | 4 | 5);
+                            if (modalBodyRef.current) {
+                              modalBodyRef.current.scrollTop = 0;
+                            }
+                          }
                         }}
                         className={`flex items-center gap-1.5 text-xs font-bold transition-all text-left ${
                           isActive
@@ -1601,7 +1625,7 @@ export default function OrdenesPage() {
             </div>
 
             {/* Cuerpo del Formulario */}
-            <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1">
+            <div ref={modalBodyRef} className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1">
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />

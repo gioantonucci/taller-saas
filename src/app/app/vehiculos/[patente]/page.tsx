@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -40,6 +40,14 @@ export default function VehiculoHistorialClinicoPage() {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
+  const modalScrollRef = useRef<HTMLFormElement | null>(null);
+
+  // Asegurar que al abrir el modal siempre aparezca en el top del scroll
+  useEffect(() => {
+    if (orderModalOpen && modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0;
+    }
+  }, [orderModalOpen]);
 
   const {
     register,
@@ -546,7 +554,7 @@ export default function VehiculoHistorialClinicoPage() {
             )}
 
             {/* Formulario */}
-            <form onSubmit={handleSubmit(onSubmitOrder)} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form ref={modalScrollRef} onSubmit={handleSubmit(onSubmitOrder)} className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* Nivel de Nafta */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
