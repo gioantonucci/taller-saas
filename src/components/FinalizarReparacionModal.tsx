@@ -13,7 +13,6 @@ import {
   Sparkles,
   ArrowRight,
   ArrowLeft,
-  CheckSquare,
 } from "lucide-react";
 
 interface FinalizarReparacionModalProps {
@@ -212,16 +211,28 @@ export default function FinalizarReparacionModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera del Modal */}
-        <div className="shrink-0 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white p-4 sm:p-5 pb-4 flex items-start justify-between relative">
+        <div
+          className={`shrink-0 text-white p-4 sm:p-5 pb-4 flex items-start justify-between relative transition-colors duration-200 ${
+            step === 2
+              ? "bg-gradient-to-r from-red-600 via-red-700 to-rose-700"
+              : "bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950"
+          }`}
+        >
           <div className="relative z-10 space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 text-white text-[10px] font-extrabold uppercase tracking-wider mb-1 backdrop-blur-xs">
-              <Lock className="w-3 h-3 text-emerald-400" />
+            <div
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider mb-1 backdrop-blur-xs ${
+                step === 2
+                  ? "bg-white/20 text-white"
+                  : "bg-white/10 text-white"
+              }`}
+            >
+              <Lock className={`w-3 h-3 ${step === 2 ? "text-white" : "text-emerald-400"}`} />
               <span>Cierre de Reparación • 2 Pasos</span>
             </div>
             <h2 className="text-lg sm:text-xl font-black tracking-tight flex items-center gap-2">
               <span>Finalizar Reparación</span>
             </h2>
-            <p className="text-xs text-slate-300 font-medium leading-relaxed">
+            <p className={`text-xs font-medium leading-relaxed ${step === 2 ? "text-red-100" : "text-slate-300"}`}>
               {step === 1
                 ? "Paso 1: Registrá las horas trabajadas y notas finales de la reparación."
                 : "Paso 2: Checklist obligatorio de salida y recordatorios de prueba."}
@@ -451,28 +462,13 @@ export default function FinalizarReparacionModal({
           )}
 
           {/* ========================================================================= */}
-          {/* PASO 2: CHECKLIST EN SOLAPA ROJA CON RECORDATORIOS OBLIGATORIOS           */}
+          {/* PASO 2: CHECKLIST DE RECORDATORIOS OBLIGATORIOS                           */}
           {/* ========================================================================= */}
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in duration-150">
-              {/* SOLAPA EN ROJO: RECORDATORIOS DE CONTROL DE CALIDAD Y PRUEBA */}
-              <div className="rounded-2xl border-2 border-red-500 bg-red-50/40 overflow-hidden shadow-sm">
-                {/* Cabecera / Solapa en rojo */}
-                <div className="bg-red-600 text-white px-4 py-3 flex items-center justify-between shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-white" />
-                    <span className="text-xs font-black uppercase tracking-wider">
-                      Solapa de Recordatorios Obligatorios
-                    </span>
-                  </div>
-                  <span className="text-[10px] bg-red-800 text-red-100 font-extrabold px-2.5 py-0.5 rounded-full border border-red-400">
-                    Paso 2 de 2
-                  </span>
-                </div>
-
-                <div className="p-3.5 sm:p-4 space-y-3.5">
-
-                  {/* Pregunta 1 */}
+              {/* Preguntas de Control de Calidad y Salida */}
+              <div className="space-y-3">
+                {/* Pregunta 1 */}
                   <div className="bg-white p-3 rounded-xl border border-red-200 shadow-2xs space-y-2">
                     <span className="font-extrabold text-slate-900 block text-xs">
                       1. ¿Se realizó reset de servicio?
@@ -619,7 +615,6 @@ export default function FinalizarReparacionModal({
                     )}
                   </div>
                 </div>
-              </div>
 
               {/* Aviso Informativo de Cierre */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-2.5 text-[11px] text-slate-700">
