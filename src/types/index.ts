@@ -82,10 +82,14 @@ export interface PeritajeIngreso {
   observacionesGenerales: string;
   comentariosDuenio?: string; // Declaración / Peritaje inicial del dueño indicando abolladuras y desperfectos
   fotosPeritajeUrls?: string[];
-  clienteNotificadoWhatsApp?: boolean;
   cerrado?: boolean;
   estadoPeritaje?: "PENDIENTE" | "COMPLETADO" | "CERRADO";
   fechaCierre?: string;
+  firmaCliente?: string | null; // Data URL PNG base64 de la firma capturada en tablet
+  fechaFirmaCliente?: string | null;
+  tuercaSeguridadUbicacion?: string; // Dónde está la tuerca de seguridad (ej. "Guantera", "Baúl")
+  numeroBastidorVin?: string; // Número de bastidor (VIN)
+  autorizaViaPublica?: boolean; // Autorización para ubicar en vía pública
 }
 
 export interface DamageChecklist {

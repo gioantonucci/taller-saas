@@ -26,11 +26,19 @@ import {
   Eye,
   Video,
   Play,
+  Printer,
+  Download,
+  FileText,
 } from "lucide-react";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
 import { getStatusInfo } from "@/lib/order-status";
+import {
+  generateResguardoDepositoPDF,
+  printResguardoDepositoPDF,
+  ResguardoDepositoParams,
+} from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
 
 export default function OrdenDetallePage() {
@@ -1077,6 +1085,86 @@ export default function OrdenDetallePage() {
           ? Object.entries(peritajeInfo.lucesTestigo).filter(([k, v]) => v === true && k !== "otrosTestigos").map(([k]) => k)
           : [];
 
+        const handleDownloadResguardoOrderPage = () => {
+          if (!order) return;
+          let peritajeData: any = {};
+          if (order.checklistDanio) {
+            try {
+              peritajeData = typeof order.checklistDanio === "string" ? JSON.parse(order.checklistDanio) : order.checklistDanio;
+            } catch {}
+          }
+          const params: ResguardoDepositoParams = {
+            numeroOrden: order.numeroOrden,
+            vehiculo: {
+              marca: order.vehicle?.marca || "",
+              modelo: order.vehicle?.modelo || "",
+              anio: order.vehicle?.anio,
+              patente: order.vehicle?.patente || "",
+              color: order.vehicle?.color,
+              nroChasis: peritajeData?.numeroBastidorVin || order.vehicle?.nroChasis || "",
+            },
+            cliente: {
+              nombre: order.vehicle?.client?.nombre || "Cliente",
+              apellido: order.vehicle?.client?.apellido || "",
+              dni: order.vehicle?.client?.dni || "",
+              telefono: order.vehicle?.client?.telefono || "",
+              direccion: order.vehicle?.client?.direccion || "",
+              email: order.vehicle?.client?.email || "",
+            },
+            peritaje: {
+              ...peritajeData,
+              kilometrajeTablero: peritajeData?.kilometrajeTablero || order.kilometraje || 0,
+              nivelCombustible: peritajeData?.nivelCombustible || order.nivelNafta || "1/2",
+            },
+            taller: {
+              nombre: "POGGI Taller Integral",
+              telefono: "658 40 62 86",
+              direccion: "San Pio X 13, Valencia cp 46017",
+            },
+          };
+          generateResguardoDepositoPDF(params);
+        };
+
+        const handlePrintResguardoOrderPage = () => {
+          if (!order) return;
+          let peritajeData: any = {};
+          if (order.checklistDanio) {
+            try {
+              peritajeData = typeof order.checklistDanio === "string" ? JSON.parse(order.checklistDanio) : order.checklistDanio;
+            } catch {}
+          }
+          const params: ResguardoDepositoParams = {
+            numeroOrden: order.numeroOrden,
+            vehiculo: {
+              marca: order.vehicle?.marca || "",
+              modelo: order.vehicle?.modelo || "",
+              anio: order.vehicle?.anio,
+              patente: order.vehicle?.patente || "",
+              color: order.vehicle?.color,
+              nroChasis: peritajeData?.numeroBastidorVin || order.vehicle?.nroChasis || "",
+            },
+            cliente: {
+              nombre: order.vehicle?.client?.nombre || "Cliente",
+              apellido: order.vehicle?.client?.apellido || "",
+              dni: order.vehicle?.client?.dni || "",
+              telefono: order.vehicle?.client?.telefono || "",
+              direccion: order.vehicle?.client?.direccion || "",
+              email: order.vehicle?.client?.email || "",
+            },
+            peritaje: {
+              ...peritajeData,
+              kilometrajeTablero: peritajeData?.kilometrajeTablero || order.kilometraje || 0,
+              nivelCombustible: peritajeData?.nivelCombustible || order.nivelNafta || "1/2",
+            },
+            taller: {
+              nombre: "POGGI Taller Integral",
+              telefono: "658 40 62 86",
+              direccion: "San Pio X 13, Valencia cp 46017",
+            },
+          };
+          printResguardoDepositoPDF(params);
+        };
+
         return (
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
@@ -1094,17 +1182,37 @@ export default function OrdenDetallePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {isPeritajeRealizado ? (
-                  <button
-                    type="button"
-                    onClick={() => setPeritajeModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
-                    title="Ver Ficha de Peritaje Completa (Solo Lectura)"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Ver Ficha de Peritaje Completa</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrintResguardoOrderPage}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      title="Imprimir Resguardo de Depósito oficial (1 página A4)"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="hidden sm:inline">Imprimir Resguardo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadResguardoOrderPage}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      title="Descargar Resguardo de Depósito en PDF"
+                    >
+                      <Download className="w-3.5 h-3.5 text-sky-600" />
+                      <span className="hidden sm:inline">Resguardo PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPeritajeModalOpen(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
+                      title="Ver Ficha de Peritaje Completa (Solo Lectura)"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Ver Ficha Completa</span>
+                    </button>
+                  </>
                 ) : (
                   <>
                     <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">

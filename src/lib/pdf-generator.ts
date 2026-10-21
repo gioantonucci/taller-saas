@@ -496,3 +496,443 @@ export function generateActaPeritajePDF(params: ActaPeritajeParams): void {
   const doc = buildActaPeritajeDoc(params);
   doc.save(`Acta_Peritaje_Ingreso_${params.numeroOrden}_${params.vehiculo.patente.replace(/\s+/g, "_")}.pdf`);
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RESGUARDO DE DEPÓSITO OFICIAL (RÉPLICA EXACTA DE LA FICHA FÍSICA DEL TALLER)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface ResguardoDepositoParams {
+  numeroOrden: number;
+  vehiculo: {
+    marca: string;
+    modelo: string;
+    anio?: number;
+    patente: string;
+    color?: string;
+    nroChasis?: string;
+  };
+  cliente: {
+    nombre: string;
+    apellido?: string;
+    dni?: string;
+    telefono?: string;
+    direccion?: string;
+    email?: string;
+  };
+  peritaje: PeritajeIngreso;
+  taller?: {
+    nombre?: string;
+    telefono?: string;
+    direccion?: string;
+    email?: string;
+  };
+}
+
+/**
+ * Genera el documento "Resguardo de Deposito" en 1 página A4 idéntico al talonario físico del taller.
+ * Incluye datos de cliente, tuerca de seguridad, vehículo, desperfectos, gráfico exterior,
+ * sello en rojo de autorización en vía pública, firma en tablet del cliente y pie legal con RGPD.
+ */
+export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPDF {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const { numeroOrden, vehiculo, cliente, peritaje, taller } = params;
+
+  const tallerNombre = taller?.nombre || "POGGI Taller Integral";
+  const tallerTel = taller?.telefono || "658 40 62 86";
+  const tallerDir = taller?.direccion || "San Pio X 13, Valencia cp 46017";
+
+  const PAGE_W = 210;
+  const MARGIN = 12;
+  const W = PAGE_W - 2 * MARGIN; // 186mm
+
+  // 1. CABECERA
+  // Logo / Taller (Izquierda)
+  // Ícono de auto / taller en círculo rojo
+  doc.setFillColor(220, 38, 38);
+  doc.circle(MARGIN + 5, 17, 5, "F");
+  doc.setFillColor(255, 255, 255);
+  doc.rect(MARGIN + 2.5, 15.5, 5, 2, "F");
+  doc.roundedRect(MARGIN + 2, 17.5, 6, 2, 0.5, 0.5, "F");
+
+  setFont(doc, "bold", 11, [220, 38, 38]);
+  doc.text("POGGI", MARGIN + 12, 15);
+  setFont(doc, "bold", 9, [15, 23, 42]);
+  doc.text("Taller Integral", MARGIN + 12, 19);
+  setFont(doc, "bold", 7, [220, 38, 38]);
+  doc.text(`📞 ${tallerTel}`, MARGIN + 12, 23);
+  setFont(doc, "normal", 6.5, [71, 85, 105]);
+  doc.text(tallerDir, MARGIN + 12, 26.5);
+
+  // Título Central: "Resguardo de Deposito"
+  setFont(doc, "bold", 17, [15, 23, 42]);
+  doc.text("Resguardo de Deposito", PAGE_W / 2 + 8, 20, { align: "center" });
+
+  // Número de resguardo en rojo (Arriba Derecha)
+  const paddedNum = String(numeroOrden).padStart(4, "0");
+  setFont(doc, "bold", 16, [220, 38, 38]);
+  doc.text(paddedNum, PAGE_W - MARGIN, 17, { align: "right" });
+
+  // Fecha de entrada
+  const fechaTexto = peritaje.fechaHoraPeritaje
+    ? peritaje.fechaHoraPeritaje.split(",")[0].trim()
+    : new Date().toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
+  setFont(doc, "bold", 7.5, [15, 23, 42]);
+  doc.text(`- Fecha de Entrada:   ${fechaTexto}`, PAGE_W - MARGIN, 24, { align: "right" });
+
+  // 2. DATOS DEL CLIENTE
+  let y = 31;
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text("DATOS DEL CLIENTE:", MARGIN, y);
+
+  // Nombre y Apellidos / Nombre fiscal
+  y += 4;
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  doc.text("- Nombre y Apellidos/ Nombre fiscal:", MARGIN, y);
+  y += 1.5;
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(0.2);
+  doc.rect(MARGIN, y, W, 7, "D");
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text(`${cliente.nombre} ${cliente.apellido || ""}`.trim().toUpperCase(), MARGIN + 2, y + 4.8);
+
+  // Fila DNI y Teléfono
+  y += 9.5;
+  const colHalf = (W - 3) / 2;
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  doc.text("- DNI/NIE/CIF:", MARGIN, y);
+  doc.text("- Teléfono:", MARGIN + colHalf + 3, y);
+  y += 1.5;
+  doc.rect(MARGIN, y, colHalf, 7, "D");
+  doc.rect(MARGIN + colHalf + 3, y, colHalf, 7, "D");
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text(cliente.dni || "–", MARGIN + 2, y + 4.8);
+  doc.text(cliente.telefono || "–", MARGIN + colHalf + 5, y + 4.8);
+
+  // Dirección
+  y += 9.5;
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  doc.text("- Dirección:", MARGIN, y);
+  y += 1.5;
+  doc.rect(MARGIN, y, W, 7, "D");
+  setFont(doc, "normal", 8, [15, 23, 42]);
+  doc.text(cliente.direccion || "–", MARGIN + 2, y + 4.8);
+
+  // Tuerca de seguridad
+  y += 10.5;
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  doc.text("- Tuerca de seguridad:", MARGIN, y);
+
+  const hasTuerca = Boolean(peritaje.inventarioCabina?.tuercaSeguridad);
+  // Checkbox Sí
+  const cbX1 = MARGIN + 31;
+  doc.rect(cbX1, y - 3, 3.2, 3.2, "D");
+  if (hasTuerca) {
+    setFont(doc, "bold", 7, [220, 38, 38]);
+    doc.text("X", cbX1 + 0.8, y - 0.6);
+  }
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  doc.text("Sí", cbX1 + 4.5, y);
+
+  // Checkbox no
+  const cbX2 = cbX1 + 11;
+  doc.rect(cbX2, y - 3, 3.2, 3.2, "D");
+  if (!hasTuerca) {
+    setFont(doc, "bold", 7, [220, 38, 38]);
+    doc.text("X", cbX2 + 0.8, y - 0.6);
+  }
+  doc.text("no", cbX2 + 4.5, y);
+
+  // Ubicación tuerca
+  const ubX = cbX2 + 12;
+  doc.text("Esta en:", ubX, y);
+  doc.line(ubX + 12, y, PAGE_W - MARGIN, y);
+  const ubiTexto = peritaje.tuercaSeguridadUbicacion || (hasTuerca ? "En baúl / guantera" : "No posee");
+  setFont(doc, "italic", 7.5, [15, 23, 42]);
+  doc.text(ubiTexto, ubX + 14, y - 0.8);
+
+  // 3. DATOS DEL VEHÍCULO
+  y += 7;
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text("DATOS DEL VEHÍCULO:", MARGIN, y);
+
+  // Km (Arriba a la derecha del bloque)
+  const kmBoxW = 28;
+  const kmX = PAGE_W - MARGIN - kmBoxW - 8;
+  doc.rect(kmX, y - 4.5, kmBoxW, 5.5, "D");
+  setFont(doc, "bold", 8, [15, 23, 42]);
+  const kmValor = peritaje.kilometrajeTablero
+    ? `${Number(peritaje.kilometrajeTablero).toLocaleString("es-ES")}`
+    : "–";
+  doc.text(kmValor, kmX + kmBoxW / 2, y - 0.8, { align: "center" });
+  setFont(doc, "bold", 7.5, [15, 23, 42]);
+  doc.text("km", kmX + kmBoxW + 2, y);
+
+  // Fila Matrícula y VIN
+  y += 4;
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  const matW = 55;
+  const vinW = W - matW - 3;
+  doc.text("- Matrícula:", MARGIN, y);
+  doc.text("- Nº Bastidor (VIN):", MARGIN + matW + 3, y);
+  y += 1.5;
+  doc.rect(MARGIN, y, matW, 7, "D");
+  doc.rect(MARGIN + matW + 3, y, vinW, 7, "D");
+  setFont(doc, "bold", 9.5, [15, 23, 42]);
+  doc.text(vehiculo.patente.toUpperCase(), MARGIN + 2, y + 5);
+  setFont(doc, "normal", 8, [15, 23, 42]);
+  const vinText = vehiculo.nroChasis || peritaje.numeroBastidorVin || "–";
+  doc.text(vinText, MARGIN + matW + 5, y + 4.8);
+
+  // 4. DESPERFECTOS SEÑALADOS POR EL CLIENTE
+  y += 10;
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text("DESPERFECTOS SEÑALADOS POR EL CLIENTE:", MARGIN, y);
+  y += 2;
+  const despBoxH = 22;
+  doc.rect(MARGIN, y, W, despBoxH, "D");
+
+  const despTexto =
+    peritaje.comentariosDuenio ||
+    peritaje.observacionesGenerales ||
+    "Revisión técnica de ingreso e inspección conforme a presupuesto.";
+  setFont(doc, "normal", 7.5, [15, 23, 42]);
+  const splitDesp = doc.splitTextToSize(despTexto, W - 4);
+  doc.text(splitDesp, MARGIN + 2, y + 4.5);
+
+  // 5. ESTADO EXTERIOR (DIAGRAMAS Y DAÑOS)
+  y += despBoxH + 4;
+  setFont(doc, "bold", 8.5, [15, 23, 42]);
+  doc.text("ESTADO EXTERIOR (Marque daños en la imagen):", MARGIN, y);
+
+  // Área combinada: Diagrama de autos (Izquierda) + Sello en rojo (Centro) + Firmas (Derecha / Abajo)
+  const diagTopY = y + 2;
+  const diagAreaH = 68;
+
+  // Dibujamos las 5 vistas del vehículo a la izquierda
+  // 5.1 Perfil Lateral Superior (Left Side)
+  drawCarSideView(doc, MARGIN + 2, diagTopY + 2, 34, 13);
+  // 5.2 Perfil Lateral Inferior (Right Side)
+  drawCarSideView(doc, MARGIN + 2, diagTopY + 18, 34, 13, true);
+  // 5.3 Vista Frontal
+  drawCarFrontView(doc, MARGIN + 2, diagTopY + 34, 16, 12);
+  // 5.4 Vista Trasera
+  drawCarRearView(doc, MARGIN + 20, diagTopY + 34, 16, 12);
+  // 5.5 Vista Superior (Top-down)
+  drawCarTopView(doc, MARGIN + 39, diagTopY + 6, 20, 42);
+
+  // Si hay pines de daño registrados en carrocería, marcamos números en rojo
+  if (peritaje.damagePins && peritaje.damagePins.length > 0) {
+    peritaje.damagePins.forEach((pin, idx) => {
+      // Posición aproximada en la vista superior (x: 39..59, y: 6..48)
+      const pinX = MARGIN + 39 + (pin.x / 100) * 20;
+      const pinY = diagTopY + 6 + (pin.y / 100) * 42;
+      doc.setFillColor(220, 38, 38);
+      doc.circle(pinX, pinY, 1.8, "F");
+      setFont(doc, "bold", 4.5, [255, 255, 255]);
+      doc.text(String(idx + 1), pinX, pinY + 0.6, { align: "center" });
+    });
+  }
+
+  // Sello Rojo Central: AUTORIZO AL TALLER A UBICAR Y MANTENER EL VEHÍCULO EN LA VÍA PÚBLICA...
+  const stampX = MARGIN + 64;
+  const stampW = W - 64;
+  const stampLines = [
+    "AUTORIZO AL TALLER A UBICAR Y",
+    "MANTENER EL VEHÍCULO EN LA VÍA",
+    "PÚBLICA DE FORMA PROVISIONAL,",
+    "PUDIENDO MOVERLO CUANDO SEA",
+    "NECESARIO, MIENTRAS SE REALIZA EL",
+    "DIAGNÓSTICO, PRESUPUESTO Ó LA",
+    "GESTIÓN DE REPUESTOS Y/O",
+    "LA REPARACIÓN",
+  ];
+  setFont(doc, "bold", 6.8, [220, 38, 38]);
+  stampLines.forEach((sLine, i) => {
+    doc.text(sLine, stampX + stampW / 2 - 15, diagTopY + 6 + i * 3.3, { align: "center" });
+  });
+
+  // FIRMAS AL PIE DE ESTE BLOQUE
+  const signY = diagTopY + 54;
+  const signColW = 46;
+
+  // Firma Cliente (Izquierda de las firmas)
+  const signClientX = stampX + 2;
+  doc.line(signClientX, signY, signClientX + signColW, signY);
+  setFont(doc, "bold", 7.5, [15, 23, 42]);
+  doc.text("FIRMA CLIENTE", signClientX + signColW / 2, signY + 3.8, { align: "center" });
+
+  // Si existe firma del cliente en tablet (Data URL PNG), insertarla arriba de la línea
+  if (peritaje.firmaCliente && peritaje.firmaCliente.startsWith("data:image")) {
+    try {
+      doc.addImage(peritaje.firmaCliente, "PNG", signClientX + 2, signY - 17, signColW - 4, 16);
+    } catch (e) {
+      console.error("Error estampando firma cliente:", e);
+    }
+  }
+
+  // Firma y Sello del Establecimiento (Derecha de las firmas)
+  const signShopX = PAGE_W - MARGIN - signColW;
+  doc.line(signShopX, signY, signShopX + signColW, signY);
+  setFont(doc, "bold", 7.5, [15, 23, 42]);
+  doc.text("FIRMA Y SELLO DEL ESTABLECIMIENTO", signShopX + signColW / 2, signY + 3.8, { align: "center" });
+
+  // Dibujo decorativo de Sello / Stamp POGGI
+  drawPoggiStamp(doc, signShopX + signColW / 2, signY - 8);
+
+  // 6. PIE LEGAL OBLIGATORIO (NORMATIVA VALENCIANA Y RGPD)
+  y = diagTopY + diagAreaH - 4;
+  const legalBoxH = 54;
+  doc.setLineWidth(0.3);
+  doc.rect(MARGIN, y, W, legalBoxH, "D");
+
+  let legY = y + 3.8;
+  setFont(doc, "bold", 5.5, [15, 23, 42]);
+  doc.text("AUTORIZACIÓN LEGAL (Normativa Valenciana)", MARGIN + 2, legY);
+  setFont(doc, "normal", 5.2, [30, 41, 59]);
+
+  const p1 =
+    "Según el Art. 15.2 del RD 1457/86, y el Art. 17.3 del Decreto 8/2003, podrán devengarse gastos de estancia, cuando se tenga firmado el resguardo de depósito o confeccionado el presupuesto o reparado el vehículo, y puesto en conocimiento del usuario este hecho, no procede dicho usuario al pronunciamiento sobre la aceptación o no del presupuesto o la retirada del vehículo en el plazo de tres días hábiles. En todo caso, dichos gastos de estancia solo procederán cuando el vehículo se encuentre en locales bajo custodia del taller y por los días que excedan del citado plazo. Conforme a la Ley 3/2014 y Decreto 96/2016 de la Generalitat Valenciana: Autorizo la revisión/reparación de mi vehículo, aceptando el presupuesto previo entregado.";
+  const splitP1 = doc.splitTextToSize(p1, W - 4);
+  doc.text(splitP1, MARGIN + 2, legY + 3);
+
+  legY += splitP1.length * 2.3 + 4.5;
+  const p2 =
+    "Acepto que el taller realice pruebas de circulación para verificar reparaciones. // Declaro haber recibido información sobre mis derechos (garantías, devolución de piezas, etc.). En vista del cumplimiento de la normativa europea 2016/679 sobre Protección de datos (RGPD) le informamos que el tratamiento de los datos proporcionados por Ud. será responsabilidad de POGGI Taller Integral con el objetivo de la gestión de la reparación del vehículo, y que además se compromete a no ceder o comunicar la información a terceros. Puede ejercer sus derechos de acceso, rectificación, cancelación o supresión del tratamiento a través de correo electrónico o en nuestras instalaciones.";
+  const splitP2 = doc.splitTextToSize(p2, W - 4);
+  doc.text(splitP2, MARGIN + 2, legY);
+
+  return doc;
+}
+
+// ─── Helpers de Dibujo Vectorial para el Resguardo de Depósito ─────────────────
+
+function drawCarSideView(doc: jsPDF, x: number, y: number, w: number, h: number, flipped = false) {
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.3);
+  doc.setFillColor(241, 245, 249);
+
+  // Silueta lateral del auto
+  doc.roundedRect(x + 1, y + h * 0.45, w - 2, h * 0.45, 1, 1, "FD"); // Chasis bajo
+  doc.roundedRect(x + w * 0.2, y + 1, w * 0.55, h * 0.5, 1.5, 1.5, "FD"); // Cabina
+
+  // Ruedas
+  doc.setFillColor(30, 41, 59);
+  doc.circle(x + w * 0.22, y + h * 0.88, 2.2, "FD");
+  doc.circle(x + w * 0.78, y + h * 0.88, 2.2, "FD");
+}
+
+function drawCarFrontView(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.3);
+  doc.setFillColor(241, 245, 249);
+
+  doc.roundedRect(x, y + 1, w, h - 2, 2, 2, "FD");
+  // Parabrisas
+  doc.roundedRect(x + 1.5, y + 2, w - 3, h * 0.4, 1, 1, "FD");
+  // Ópticas
+  doc.setFillColor(254, 240, 138);
+  doc.rect(x + 1.5, y + h * 0.55, 3, 2, "FD");
+  doc.rect(x + w - 4.5, y + h * 0.55, 3, 2, "FD");
+}
+
+function drawCarRearView(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.3);
+  doc.setFillColor(241, 245, 249);
+
+  doc.roundedRect(x, y + 1, w, h - 2, 2, 2, "FD");
+  // Luneta
+  doc.roundedRect(x + 1.5, y + 2, w - 3, h * 0.4, 1, 1, "FD");
+  // Faros traseros
+  doc.setFillColor(239, 68, 68);
+  doc.rect(x + 1.5, y + h * 0.55, 3, 2, "FD");
+  doc.rect(x + w - 4.5, y + h * 0.55, 3, 2, "FD");
+}
+
+function drawCarTopView(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setDrawColor(71, 85, 105);
+  doc.setLineWidth(0.35);
+  doc.setFillColor(248, 250, 252);
+
+  // Carrocería vista superior
+  doc.roundedRect(x, y, w, h, 3.5, 3.5, "FD");
+
+  // Ruedas (4)
+  doc.setFillColor(30, 41, 59);
+  doc.rect(x - 1, y + 4, 1.5, 5, "FD");
+  doc.rect(x + w - 0.5, y + 4, 1.5, 5, "FD");
+  doc.rect(x - 1, y + h - 9, 1.5, 5, "FD");
+  doc.rect(x + w - 0.5, y + h - 9, 1.5, 5, "FD");
+
+  // Parabrisas
+  doc.setFillColor(224, 242, 254);
+  doc.roundedRect(x + 2, y + 8, w - 4, 6, 1, 1, "FD");
+
+  // Techo
+  doc.setFillColor(241, 245, 249);
+  doc.roundedRect(x + 2, y + 15, w - 4, 15, 1, 1, "FD");
+
+  // Luneta trasera
+  doc.setFillColor(224, 242, 254);
+  doc.roundedRect(x + 2, y + 31, w - 4, 5, 1, 1, "FD");
+}
+
+function drawPoggiStamp(doc: jsPDF, cx: number, cy: number) {
+  // Sello ovalado / redondo del establecimiento
+  doc.setDrawColor(220, 38, 38);
+  doc.setLineWidth(0.4);
+  doc.ellipse(cx, cy, 14, 9, "D");
+  doc.setLineWidth(0.2);
+  doc.ellipse(cx, cy, 12.8, 7.8, "D");
+
+  setFont(doc, "bold", 4.5, [220, 38, 38]);
+  doc.text("POGGI TALLER INTEGRAL", cx, cy - 2.5, { align: "center" });
+  setFont(doc, "normal", 3.8, [220, 38, 38]);
+  doc.text("C. de Sant Pius X, 13", cx, cy + 0.5, { align: "center" });
+  doc.text("46017 VALENCIA", cx, cy + 3.5, { align: "center" });
+}
+
+export function getResguardoDepositoBlob(params: ResguardoDepositoParams): {
+  doc: jsPDF;
+  blob: Blob;
+  blobUrl: string;
+  fileName: string;
+} {
+  const doc = buildResguardoDepositoDoc(params);
+  const blob = doc.output("blob");
+  const blobUrl = URL.createObjectURL(blob);
+  const fileName = `Resguardo_Deposito_${params.numeroOrden}_${params.vehiculo.patente.replace(/\s+/g, "_")}.pdf`;
+  return { doc, blob, blobUrl, fileName };
+}
+
+export function generateResguardoDepositoPDF(params: ResguardoDepositoParams): void {
+  const doc = buildResguardoDepositoDoc(params);
+  doc.save(`Resguardo_Deposito_${params.numeroOrden}_${params.vehiculo.patente.replace(/\s+/g, "_")}.pdf`);
+}
+
+export function printResguardoDepositoPDF(params: ResguardoDepositoParams): void {
+  const { blobUrl } = getResguardoDepositoBlob(params);
+  if (typeof window !== "undefined") {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.src = blobUrl;
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error("Error imprimiendo:", e);
+          window.open(blobUrl, "_blank");
+        }
+      }, 300);
+    };
+  }
+}
+
