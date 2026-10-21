@@ -19,6 +19,38 @@ import {
 } from "lucide-react";
 import { quickVehicleAndClientSchema, QuickVehicleAndClientValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
+import { getStatusInfo } from "@/lib/order-status";
+
+function getVehicleStatus(v: any) {
+  const orders = v.workOrders || [];
+  if (orders.length === 0) {
+    return {
+      label: "Sin órdenes",
+      badgeClass: "bg-slate-100 text-slate-500 border-slate-200",
+      orderNumber: null,
+      orderId: null,
+    };
+  }
+
+  // Buscar primero orden activa en taller
+  const activeOrder = orders.find(
+    (o: any) =>
+      o.estado !== "ENTREGADO" &&
+      o.estado !== "ARCHIVADO" &&
+      o.estado !== "CANCELADO" &&
+      o.estado !== "CANCELADA" &&
+      o.estado !== "DADA_DE_BAJA"
+  );
+
+  const targetOrder = activeOrder || orders[0];
+  const info = getStatusInfo(targetOrder.estado);
+
+  return {
+    ...info,
+    orderNumber: targetOrder.numeroOrden,
+    orderId: targetOrder.id,
+  };
+}
 
 function VehiculosContent() {
   const { alert, confirm } = useAppDialog();
@@ -321,10 +353,23 @@ function VehiculosContent() {
                       </Link>
                     </div>
 
-                    <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200 text-[11px]">
-                      <History className="w-3.5 h-3.5 text-sky-600" />
-                      <span>{v.workOrders?.length || 0} órdenes</span>
-                    </span>
+                    {(() => {
+                      const st = getVehicleStatus(v);
+                      return st.orderId ? (
+                        <Link
+                          href={`/app/ordenes/${st.orderId}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-tight whitespace-nowrap ${st.badgeClass}`}
+                          title={st.orderNumber ? `Orden #${st.orderNumber}` : undefined}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
+                          <span>{st.label}</span>
+                        </Link>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${st.badgeClass}`}>
+                          <span>{st.label}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Botón Ver Ficha */}
@@ -348,7 +393,7 @@ function VehiculosContent() {
                     <th className="p-3.5">Marca y Modelo</th>
                     <th className="p-3.5">Año</th>
                     <th className="p-3.5">Titular / Cliente</th>
-                    <th className="p-3.5">Historial</th>
+                    <th className="p-3.5">Estado</th>
                     <th className="p-3.5 text-right">Acciones</th>
                   </tr>
                 </thead>
@@ -392,11 +437,24 @@ function VehiculosContent() {
                         </span>
                       </td>
 
-                      <td className="p-3.5">
-                        <span className="inline-flex items-center gap-1.5 font-bold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-xl border border-sky-200 text-[11px]">
-                          <History className="w-3.5 h-3.5 text-sky-600" />
-                          <span>{v.workOrders?.length || 0} órdenes</span>
-                        </span>
+                      <td className="p-3.5 whitespace-nowrap">
+                        {(() => {
+                          const st = getVehicleStatus(v);
+                          return st.orderId ? (
+                            <Link
+                              href={`/app/ordenes/${st.orderId}`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-tight whitespace-nowrap hover:opacity-80 transition-opacity ${st.badgeClass}`}
+                              title={st.orderNumber ? `Orden #${st.orderNumber}: ${st.label}` : st.label}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
+                              <span>{st.label}</span>
+                            </Link>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${st.badgeClass}`}>
+                              <span>{st.label}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       <td className="p-3.5 text-right">

@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       include: {
         client: true,
         workOrders: {
-          select: { id: true, numeroOrden: true, estado: true, fechaIngreso: true },
-          orderBy: { fechaIngreso: "desc" },
+          select: { id: true, numeroOrden: true, estado: true, fechaIngreso: true, fechaCambioEstado: true },
+          orderBy: [{ fechaCambioEstado: "desc" }, { updatedAt: "desc" }, { fechaIngreso: "desc" }],
         },
       },
       orderBy: { updatedAt: "desc" },
