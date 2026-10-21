@@ -22,14 +22,26 @@ import {
   ShieldAlert,
   UserCheck,
   UserPlus,
-  PackageCheck,
   Eye,
   AlertTriangle,
   Lock,
+  PenTool,
+  Printer,
+  Download,
+  FileText,
+  PackageCheck,
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
+import ClientSignaturePad from "@/components/ClientSignaturePad";
+import CarDamageBlueprint from "@/components/CarDamageBlueprint";
+import { DamagePin } from "@/types";
+import {
+  generateResguardoDepositoPDF,
+  printResguardoDepositoPDF,
+  ResguardoDepositoParams,
+} from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
 
 // Badge Matrícula Compacto pero legible y de tamaño táctil
@@ -269,28 +281,15 @@ export default function OrdenesPage() {
     }
   };
 
-  // Modal para Nueva Orden Rápida Progresivo (4 Pasos)
+  // Modal para Nueva Orden Rápida Progresivo (5 Pasos: Titular, Vehículo, Inspección, Firma Tablet, Confirmación)
   const [modalOpen, setModalOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [createdOrderSuccess, setCreatedOrderSuccess] = useState<any | null>(null);
+  const [createdOrderSuccessModal, setCreatedOrderSuccessModal] = useState<any | null>(null);
 
-  const handleOpenModal = () => {
-    setStep(1);
-    setFormError(null);
-    setClientSearchQuery("");
-    setClientDropdownOpen(false);
-    setVehicleSearchQuery("");
-    setVehicleDropdownOpen(false);
-    setOrderForm((prev) => ({
-      ...prev,
-      mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
-    }));
-    setModalOpen(true);
-  };
-
-  const [orderForm, setOrderForm] = useState({
+  const initialOrderFormState = {
     clienteNombre: "",
     clienteApellido: "",
     clienteTelefono: "",
@@ -302,13 +301,114 @@ export default function OrdenesPage() {
     vehiculoModelo: "",
     vehiculoAnio: new Date().getFullYear().toString(),
     vehiculoColor: "",
+    vehiculoChasis: "",
     nivelNafta: "1/2",
     kilometraje: "",
     detallesIngreso: "",
     comentariosDuenio: "",
     costoManoDeObra: "0",
     mechanicId: "",
-  });
+    tuercaSeguridad: false,
+    tuercaSeguridadUbicacion: "",
+    damagePins: [] as DamagePin[],
+    firmaCliente: null as string | null,
+  };
+
+  const [orderForm, setOrderForm] = useState(initialOrderFormState);
+
+  const handleOpenModal = () => {
+    setStep(1);
+    setFormError(null);
+    setClientSearchQuery("");
+    setClientDropdownOpen(false);
+    setVehicleSearchQuery("");
+    setVehicleDropdownOpen(false);
+    setOrderForm({
+      ...initialOrderFormState,
+      mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
+    });
+    setModalOpen(true);
+  };
+
+  const handlePrintResguardoFromOrder = (orderItem: any) => {
+    if (!orderItem) return;
+    let peritajeData: any = {};
+    if (orderItem.checklistDanio) {
+      try {
+        peritajeData = typeof orderItem.checklistDanio === "string" ? JSON.parse(orderItem.checklistDanio) : orderItem.checklistDanio;
+      } catch {}
+    }
+    const params: ResguardoDepositoParams = {
+      numeroOrden: orderItem.numeroOrden,
+      vehiculo: {
+        marca: orderItem.vehicle?.marca || "",
+        modelo: orderItem.vehicle?.modelo || "",
+        anio: orderItem.vehicle?.anio,
+        patente: orderItem.vehicle?.patente || "",
+        color: orderItem.vehicle?.color,
+        nroChasis: peritajeData?.numeroBastidorVin || orderItem.vehicle?.nroChasis || "",
+      },
+      cliente: {
+        nombre: orderItem.vehicle?.client?.nombre || "Cliente",
+        apellido: orderItem.vehicle?.client?.apellido || "",
+        dni: orderItem.vehicle?.client?.dni || "",
+        telefono: orderItem.vehicle?.client?.telefono || "",
+        direccion: orderItem.vehicle?.client?.direccion || "",
+        email: orderItem.vehicle?.client?.email || "",
+      },
+      peritaje: {
+        ...peritajeData,
+        kilometrajeTablero: peritajeData?.kilometrajeTablero || orderItem.kilometraje || 0,
+        nivelCombustible: peritajeData?.nivelCombustible || orderItem.nivelNafta || "1/2",
+      },
+      taller: {
+        nombre: "POGGI Taller Integral",
+        telefono: "658 40 62 86",
+        direccion: "San Pio X 13, Valencia cp 46017",
+      },
+    };
+    printResguardoDepositoPDF(params);
+  };
+
+  const handleDownloadResguardoFromOrder = (orderItem: any) => {
+    if (!orderItem) return;
+    let peritajeData: any = {};
+    if (orderItem.checklistDanio) {
+      try {
+        peritajeData = typeof orderItem.checklistDanio === "string" ? JSON.parse(orderItem.checklistDanio) : orderItem.checklistDanio;
+      } catch {}
+    }
+    const params: ResguardoDepositoParams = {
+      numeroOrden: orderItem.numeroOrden,
+      vehiculo: {
+        marca: orderItem.vehicle?.marca || "",
+        modelo: orderItem.vehicle?.modelo || "",
+        anio: orderItem.vehicle?.anio,
+        patente: orderItem.vehicle?.patente || "",
+        color: orderItem.vehicle?.color,
+        nroChasis: peritajeData?.numeroBastidorVin || orderItem.vehicle?.nroChasis || "",
+      },
+      cliente: {
+        nombre: orderItem.vehicle?.client?.nombre || "Cliente",
+        apellido: orderItem.vehicle?.client?.apellido || "",
+        dni: orderItem.vehicle?.client?.dni || "",
+        telefono: orderItem.vehicle?.client?.telefono || "",
+        direccion: orderItem.vehicle?.client?.direccion || "",
+        email: orderItem.vehicle?.client?.email || "",
+      },
+      peritaje: {
+        ...peritajeData,
+        kilometrajeTablero: peritajeData?.kilometrajeTablero || orderItem.kilometraje || 0,
+        nivelCombustible: peritajeData?.nivelCombustible || orderItem.nivelNafta || "1/2",
+      },
+      taller: {
+        nombre: "POGGI Taller Integral",
+        telefono: "658 40 62 86",
+        direccion: "San Pio X 13, Valencia cp 46017",
+      },
+    };
+    generateResguardoDepositoPDF(params);
+  };
 
   // Helper para verificar si un vehículo ya posee una orden activa (en peritaje o en reparación)
   const getVehicleActiveOrder = (vehicleId?: string, plate?: string) => {
@@ -413,6 +513,10 @@ export default function OrdenesPage() {
         return false;
       }
     }
+    // Paso 4: Firma del Cliente en Tablet (opcional o recomendada)
+    if (currentStep === 4) {
+      // Avanza al resumen y confirmación
+    }
     return true;
   };
 
@@ -435,13 +539,13 @@ export default function OrdenesPage() {
           }
         }
       }
-      setStep((prev) => Math.min(prev + 1, 4) as 1 | 2 | 3 | 4);
+      setStep((prev) => Math.min(prev + 1, 5) as 1 | 2 | 3 | 4 | 5);
     }
   };
 
   const handlePrevStep = () => {
     setFormError(null);
-    setStep((prev) => Math.max(prev - 1, 1) as 1 | 2 | 3 | 4);
+    setStep((prev) => Math.max(prev - 1, 1) as 1 | 2 | 3 | 4 | 5);
   };
 
   const fetchMechanics = async () => {
@@ -617,14 +721,34 @@ export default function OrdenesPage() {
     setSelectedClientId(clientId);
     setSelectedVehicleId(""); // Resetear auto seleccionado al cambiar titular
     if (!clientId) return;
+    const clientObj = existingClients.find((cl: any) => cl.id === clientId);
+    if (clientObj) {
+      setOrderForm((prev) => ({
+        ...prev,
+        clienteNombre: clientObj.nombre,
+        clienteApellido: clientObj.apellido || "",
+        clienteDni: clientObj.dni || "",
+        clienteTelefono: clientObj.telefono || "",
+        clienteEmail: clientObj.email || "",
+        clienteDireccion: clientObj.direccion || "",
+      }));
+    }
     let clientCars = existingVehicles.filter((v: any) => v.clientId === clientId);
     if (clientCars.length === 0) {
-      const c = existingClients.find((cl: any) => cl.id === clientId);
-      clientCars = c?.vehicles || [];
+      clientCars = clientObj?.vehicles || [];
     }
     if (clientCars.length === 1) {
       setSelectedVehicleId(clientCars[0].id);
       setVehicleMode("EXISTING");
+      setOrderForm((prev) => ({
+        ...prev,
+        vehiculoPatente: clientCars[0].patente,
+        vehiculoMarca: clientCars[0].marca,
+        vehiculoModelo: clientCars[0].modelo,
+        vehiculoAnio: clientCars[0].anio ? String(clientCars[0].anio) : prev.vehiculoAnio,
+        vehiculoColor: clientCars[0].color || prev.vehiculoColor,
+        vehiculoChasis: clientCars[0].nroChasis || prev.vehiculoChasis,
+      }));
     } else if (clientCars.length === 0) {
       setVehicleMode("NEW");
     } else {
@@ -634,6 +758,18 @@ export default function OrdenesPage() {
 
   const handleSelectVehicle = (vehicleId: string) => {
     setSelectedVehicleId(vehicleId);
+    const vObj = existingVehicles.find((v: any) => v.id === vehicleId) || clientVehicles.find((v: any) => v.id === vehicleId);
+    if (vObj) {
+      setOrderForm((prev) => ({
+        ...prev,
+        vehiculoPatente: vObj.patente,
+        vehiculoMarca: vObj.marca,
+        vehiculoModelo: vObj.modelo,
+        vehiculoAnio: vObj.anio ? String(vObj.anio) : prev.vehiculoAnio,
+        vehiculoColor: vObj.color || prev.vehiculoColor,
+        vehiculoChasis: vObj.nroChasis || prev.vehiculoChasis,
+      }));
+    }
   };
 
   const handleCreateOrder = async (e: React.FormEvent) => {
@@ -688,10 +824,33 @@ export default function OrdenesPage() {
     }
 
     try {
+      const checklistDanioPayload = {
+        fechaHoraCheckin: new Date().toLocaleString("es-AR"),
+        kilometrajeTablero: parseInt(orderForm.kilometraje, 10) || 0,
+        nivelCombustible: orderForm.nivelNafta || "1/2",
+        comentariosDuenio: orderForm.comentariosDuenio || "",
+        damagePins: orderForm.damagePins || [],
+        tuercaSeguridadUbicacion: orderForm.tuercaSeguridadUbicacion || "",
+        numeroBastidorVin: orderForm.vehiculoChasis || "",
+        autorizaViaPublica: true,
+        firmaCliente: orderForm.firmaCliente || null,
+        fechaFirmaCliente: orderForm.firmaCliente ? new Date().toISOString() : null,
+        inventarioCabina: {
+          ruedaAuxilio: true,
+          criqueYHerramientas: true,
+          tuercaSeguridad: Boolean(orderForm.tuercaSeguridad),
+          documentacion: true,
+          estereoFunciona: true,
+          matafuegoVigente: true,
+          tapaCombustible: true,
+        },
+      };
+
       const payload: any = {
         ...orderForm,
         clienteId: clientMode === "EXISTING" ? selectedClientId : undefined,
         vehicleId: vehicleMode === "EXISTING" ? selectedVehicleId : undefined,
+        checklistDanio: checklistDanioPayload,
       };
 
       const res = await fetch("/api/work-orders", {
@@ -709,27 +868,13 @@ export default function OrdenesPage() {
 
       setModalOpen(false);
       setCreatedOrderSuccess(data.order);
-      setTimeout(() => setCreatedOrderSuccess(null), 6000);
+      setCreatedOrderSuccessModal(data.order);
+      setTimeout(() => setCreatedOrderSuccess(null), 8000);
 
       setSelectedClientId("");
       setSelectedVehicleId("");
       setOrderForm({
-        clienteNombre: "",
-        clienteApellido: "",
-        clienteTelefono: "",
-        clienteDni: "",
-        clienteEmail: "",
-        clienteDireccion: "",
-        vehiculoPatente: "",
-        vehiculoMarca: "",
-        vehiculoModelo: "",
-        vehiculoAnio: new Date().getFullYear().toString(),
-        vehiculoColor: "",
-        nivelNafta: "1/2",
-        kilometraje: "",
-        detallesIngreso: "",
-        comentariosDuenio: "",
-        costoManoDeObra: "0",
+        ...initialOrderFormState,
         mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
       });
 
@@ -1099,6 +1244,20 @@ export default function OrdenesPage() {
                     </button>
                   )}
 
+                  {/* Botón de Imprimir Resguardo de Depósito en Mobile */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handlePrintResguardoFromOrder(orden);
+                    }}
+                    className="mt-2.5 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer border border-slate-200"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-slate-600" />
+                    <span>🖨️ Imprimir Resguardo de Depósito</span>
+                  </button>
+
                   {/* Botón Destacado: Avisar al Cliente si está Terminado y Botón Entregar */}
                   {(orden.estado === "FINALIZADO" || orden.estado === "TERMINADO" || orden.estado === "REPARADO") && (
                     <div className="mt-3 space-y-2">
@@ -1263,6 +1422,14 @@ export default function OrdenesPage() {
                               </button>
                             </>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handlePrintResguardoFromOrder(orden)}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
+                            title="🖨️ Imprimir Resguardo de Depósito (A4)"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-slate-700" />
+                          </button>
                           <Link
                             href={`/app/ordenes/${orden.id}`}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
@@ -1288,7 +1455,7 @@ export default function OrdenesPage() {
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-h-[500px] sm:min-h-[540px] max-h-[92vh]"
+            className="w-full max-w-2xl sm:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-h-[520px] sm:min-h-[580px] max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Encabezado del Modal */}
@@ -1299,7 +1466,7 @@ export default function OrdenesPage() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-sm text-white">Ingreso de Auto a Taller</h3>
-                  <p className="text-[11px] text-slate-400 font-medium">Paso {step} de 4</p>
+                  <p className="text-[11px] text-slate-400 font-medium">Paso {step} de 5</p>
                 </div>
               </div>
               <button
@@ -1311,14 +1478,15 @@ export default function OrdenesPage() {
               </button>
             </div>
 
-            {/* Stepper Progresivo de 4 Pasos */}
-            <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 select-none">
+            {/* Stepper Progresivo de 5 Pasos */}
+            <div className="bg-slate-50 border-b border-slate-200 px-3 sm:px-5 py-3 select-none">
               <div className="flex items-center justify-between">
                 {[
                   { num: 1, title: "Titular", icon: Users },
                   { num: 2, title: "Vehículo", icon: Car },
-                  { num: 3, title: "Estado y Motivo", icon: ShieldAlert },
-                  { num: 4, title: "Confirmar", icon: CheckCircle2 },
+                  { num: 3, title: "Inspección", icon: ShieldAlert },
+                  { num: 4, title: "Firma", icon: PenTool },
+                  { num: 5, title: "Confirmar", icon: CheckCircle2 },
                 ].map((s, idx) => {
                   const isActive = step === s.num;
                   const isCompleted = step > s.num;
@@ -1328,7 +1496,7 @@ export default function OrdenesPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (s.num < step) setStep(s.num as 1 | 2 | 3 | 4);
+                          if (s.num < step) setStep(s.num as 1 | 2 | 3 | 4 | 5);
                         }}
                         className={`flex items-center gap-1.5 text-xs font-bold transition-all text-left ${
                           isActive
@@ -1351,9 +1519,9 @@ export default function OrdenesPage() {
                         </span>
                         <span className="hidden sm:inline font-bold">{s.title}</span>
                       </button>
-                      {idx < 3 && (
+                      {idx < 4 && (
                         <div
-                          className={`flex-1 mx-2 h-0.5 rounded-full transition-all ${
+                          className={`flex-1 mx-1.5 sm:mx-2 h-0.5 rounded-full transition-all ${
                             step > s.num ? "bg-emerald-500" : "bg-slate-200"
                           }`}
                         />
@@ -1893,7 +2061,7 @@ export default function OrdenesPage() {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                                 <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                                     Patente
@@ -1909,6 +2077,18 @@ export default function OrdenesPage() {
                                   <span className="font-medium text-slate-800 block truncate mt-0.5">
                                     {vehicle.anio || "S/A"} {vehicle.color ? `· ${vehicle.color}` : ""}
                                   </span>
+                                </div>
+                                <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Nº Bastidor (VIN)
+                                  </span>
+                                  <input
+                                    type="text"
+                                    placeholder="S/D"
+                                    value={orderForm.vehiculoChasis}
+                                    onChange={(e) => setOrderForm({ ...orderForm, vehiculoChasis: e.target.value.toUpperCase() })}
+                                    className="w-full mt-0.5 p-1 font-mono font-bold text-[11px] text-slate-800 border border-slate-200 rounded-md uppercase focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                                  />
                                 </div>
                                 <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-2xs">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -1982,7 +2162,7 @@ export default function OrdenesPage() {
                           </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                           <div>
                             <label className="text-[11px] font-bold text-slate-600 block mb-1">Año de Fabricación</label>
                             <input
@@ -2001,6 +2181,16 @@ export default function OrdenesPage() {
                               value={orderForm.vehiculoColor}
                               onChange={(e) => setOrderForm({ ...orderForm, vehiculoColor: e.target.value })}
                               className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-bold text-slate-600 block mb-1">Nº Bastidor (VIN)</label>
+                            <input
+                              type="text"
+                              placeholder="Ej: 8AFZZZ..."
+                              value={orderForm.vehiculoChasis}
+                              onChange={(e) => setOrderForm({ ...orderForm, vehiculoChasis: e.target.value.toUpperCase() })}
+                              className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs uppercase"
                             />
                           </div>
                         </div>
@@ -2030,6 +2220,78 @@ export default function OrdenesPage() {
                       onChange={(e) => setOrderForm({ ...orderForm, detallesIngreso: e.target.value })}
                       className="w-full p-3 rounded-xl border border-slate-300 font-medium text-xs text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none"
                     />
+                  </div>
+
+                  {/* Combustible y Kilometraje */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Nivel de Nafta</label>
+                      <select
+                        value={orderForm.nivelNafta}
+                        onChange={(e) => setOrderForm({ ...orderForm, nivelNafta: e.target.value })}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs bg-white text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer"
+                      >
+                        <option value="RESERVA">Reserva (Muy bajo)</option>
+                        <option value="1/4">1/4 de tanque</option>
+                        <option value="1/2">1/2 tanque</option>
+                        <option value="3/4">3/4 de tanque</option>
+                        <option value="LLENO">Tanque Lleno</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Kilometraje Actual</label>
+                      <input
+                        type="number"
+                        placeholder="Ej: 45000"
+                        value={orderForm.kilometraje}
+                        onChange={(e) => setOrderForm({ ...orderForm, kilometraje: e.target.value })}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Tuerca de Seguridad */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-xs text-slate-800 block">¿Posee Tuerca de Seguridad en las ruedas?</span>
+                        <span className="text-[11px] text-slate-500">Indica si tiene bulón antirrobo y dónde se encuentra el adaptador.</span>
+                      </div>
+                      <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setOrderForm({ ...orderForm, tuercaSeguridad: false, tuercaSeguridadUbicacion: "" })}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            !orderForm.tuercaSeguridad ? "bg-slate-800 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          No
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOrderForm({ ...orderForm, tuercaSeguridad: true })}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            orderForm.tuercaSeguridad ? "bg-amber-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          Sí
+                        </button>
+                      </div>
+                    </div>
+                    {orderForm.tuercaSeguridad && (
+                      <div className="pt-1 animate-in fade-in">
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          Ubicación de la tuerca / adaptador antirrobo:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: En la guantera / baúl junto al auxilio / cenicero..."
+                          value={orderForm.tuercaSeguridadUbicacion}
+                          onChange={(e) => setOrderForm({ ...orderForm, tuercaSeguridadUbicacion: e.target.value })}
+                          className="w-full p-2.5 rounded-xl border border-amber-300 bg-white font-medium text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Peritaje Visual Inicial del Dueño */}
@@ -2078,41 +2340,79 @@ export default function OrdenesPage() {
                     </div>
                   </div>
 
-                  {/* Combustible y Kilometraje */}
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Nivel de Nafta</label>
-                      <select
-                        value={orderForm.nivelNafta}
-                        onChange={(e) => setOrderForm({ ...orderForm, nivelNafta: e.target.value })}
-                        className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs bg-white text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none cursor-pointer"
-                      >
-                        <option value="RESERVA">Reserva (Muy bajo)</option>
-                        <option value="1/4">1/4 de tanque</option>
-                        <option value="1/2">1/2 tanque</option>
-                        <option value="3/4">3/4 de tanque</option>
-                        <option value="LLENO">Tanque Lleno</option>
-                      </select>
+                  {/* Esquema Interactivo de Daños */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-xs text-slate-800 block">Esquema Gráfico de Daños Preexistentes</span>
+                        <span className="text-[11px] text-slate-500">Toca las zonas del auto para marcar rayones, abolladuras o roturas previas.</span>
+                      </div>
+                      {orderForm.damagePins.length > 0 && (
+                        <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                          {orderForm.damagePins.length} detalle{orderForm.damagePins.length > 1 ? "s" : ""} marcado{orderForm.damagePins.length > 1 ? "s" : ""}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Kilometraje Actual</label>
-                      <input
-                        type="number"
-                        placeholder="Ej: 45000"
-                        value={orderForm.kilometraje}
-                        onChange={(e) => setOrderForm({ ...orderForm, kilometraje: e.target.value })}
-                        className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-xs"
+                    <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-900 p-2 sm:p-3">
+                      <CarDamageBlueprint
+                        pins={orderForm.damagePins}
+                        onChange={(pins) => setOrderForm({ ...orderForm, damagePins: pins })}
                       />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* PASO 4: ASIGNACIÓN Y CONFIRMACIÓN FINAL */}
+              {/* PASO 4: FIRMA DEL CLIENTE EN TABLET */}
               {step === 4 && (
                 <div className="space-y-4 animate-in fade-in">
                   <div>
-                    <h4 className="font-extrabold text-sm text-slate-900">4. Asignación de Mecánico y Confirmación</h4>
+                    <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                      <PenTool className="w-4 h-4 text-sky-600" />
+                      <span>4. Firma del Cliente en Tablet (Resguardo de Depósito)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      El cliente rubrica la entrega del vehículo y la autorización directamente en pantalla.
+                    </p>
+                  </div>
+
+                  {/* Cláusula Legal de Autorización en Rojo */}
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center gap-2 font-black text-xs text-rose-900 uppercase tracking-wide">
+                      <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>AUTORIZACIÓN DE GUARDA Y CIRCULACIÓN</span>
+                    </div>
+                    <p className="text-[11px] font-bold leading-relaxed text-rose-900">
+                      AUTORIZO AL TALLER A UBICAR Y MANTENER EL VEHÍCULO EN LA VÍA PÚBLICA, ASÍ COMO A CIRCULAR PARA PRUEBAS MECÁNICAS. EL TALLER NO RESPONDE POR OBJETOS DE VALOR DEJADOS EN EL INTERIOR.
+                    </p>
+                    <p className="text-[10px] text-rose-700 font-medium">
+                      El cliente reconoce la exactitud de los daños y el kilometraje asentados en este resguardo al momento de la entrega.
+                    </p>
+                  </div>
+
+                  {/* Pad de Firma Digital para Tablet */}
+                  <div className="bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <span>Firma Digital del Cliente:</span>
+                      <span className={`text-[11px] font-bold ${orderForm.firmaCliente ? "text-emerald-600" : "text-slate-400"}`}>
+                        {orderForm.firmaCliente ? "✓ Firma registrada correctamente" : "Firma requerida en pantalla"}
+                      </span>
+                    </div>
+                    <ClientSignaturePad
+                      value={orderForm.firmaCliente}
+                      onChange={(sig) => setOrderForm({ ...orderForm, firmaCliente: sig })}
+                      height={190}
+                      title="Firma del Titular / Conductor al ingresar"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 5: ASIGNACIÓN Y CONFIRMACIÓN FINAL */}
+              {step === 5 && (
+                <div className="space-y-4 animate-in fade-in">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">5. Asignación de Mecánico y Confirmación</h4>
                     <p className="text-xs text-slate-500">Revisa el resumen final y confirma el ingreso al taller.</p>
                   </div>
 
@@ -2167,7 +2467,7 @@ export default function OrdenesPage() {
                   {/* Resumen Final de Confirmación */}
                   <div className="rounded-2xl border border-slate-200 overflow-hidden text-xs shadow-2xs">
                     <div className="bg-slate-100/90 px-3.5 py-2 font-extrabold text-slate-700 text-[11px] uppercase tracking-wider flex items-center justify-between border-b border-slate-200">
-                      <span>Resumen de la Orden</span>
+                      <span>Resumen de la Orden y Resguardo</span>
                       <span className="text-emerald-700 font-bold normal-case">Listo para ingresar</span>
                     </div>
                     <div className="p-3.5 space-y-3 bg-white divide-y divide-slate-100">
@@ -2213,6 +2513,11 @@ export default function OrdenesPage() {
                                 ? `${existingVehicles.find((v) => v.id === selectedVehicleId)?.marca || ""} ${existingVehicles.find((v) => v.id === selectedVehicleId)?.modelo || ""}`
                                 : `${orderForm.vehiculoMarca} ${orderForm.vehiculoModelo}`}
                             </span>
+                            {orderForm.vehiculoChasis && (
+                              <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                VIN: {orderForm.vehiculoChasis}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
@@ -2226,13 +2531,45 @@ export default function OrdenesPage() {
                         <p className="text-slate-700 font-medium mt-0.5">{orderForm.detallesIngreso || "Sin motivo especificado"}</p>
                       </div>
 
+                      {/* Tuerca de Seguridad */}
+                      <div className="pt-2 flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Tuerca de Seguridad</span>
+                        <span className="text-xs font-semibold text-slate-800">
+                          {orderForm.tuercaSeguridad
+                            ? `Sí (${orderForm.tuercaSeguridadUbicacion || "Ubicación a definir"})`
+                            : "No tiene"}
+                        </span>
+                      </div>
+
                       {/* Daños Previos */}
-                      {orderForm.comentariosDuenio && (
+                      {(orderForm.comentariosDuenio || orderForm.damagePins.length > 0) && (
                         <div className="pt-2">
                           <span className="text-[10px] uppercase font-bold text-amber-700 block">Daños previos constatados</span>
-                          <p className="text-amber-900 font-medium mt-0.5">{orderForm.comentariosDuenio}</p>
+                          {orderForm.comentariosDuenio && (
+                            <p className="text-amber-900 font-medium mt-0.5">{orderForm.comentariosDuenio}</p>
+                          )}
+                          {orderForm.damagePins.length > 0 && (
+                            <span className="inline-block mt-1 text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded">
+                              {orderForm.damagePins.length} marcas registradas en el plano gráfico
+                            </span>
+                          )}
                         </div>
                       )}
+
+                      {/* Firma del Cliente */}
+                      <div className="pt-2 flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Firma en Tablet</span>
+                        {orderForm.firmaCliente ? (
+                          <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            Rubricada digitalmente por el cliente
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-slate-400">
+                            Sin firma registrada (se puede firmar en papel)
+                          </span>
+                        )}
+                      </div>
 
                       {/* Mecánico Asignado */}
                       <div className="pt-2 flex items-start justify-between gap-2">
@@ -2287,7 +2624,7 @@ export default function OrdenesPage() {
                 </button>
               )}
 
-              {step < 4 ? (
+              {step < 5 ? (
                 <button
                   type="button"
                   onClick={handleNextStep}
@@ -2342,6 +2679,104 @@ export default function OrdenesPage() {
           onSaved={() => fetchOrders()}
           readOnly={true}
         />
+      )}
+
+      {/* Modal de Éxito de Ingreso: Impresión y Descarga del Resguardo de Depósito A4 */}
+      {createdOrderSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+            {/* Header con gradiente esmeralda */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white text-center relative">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <CheckCircle2 className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-black tracking-tight">¡Vehículo Ingresado con Éxito!</h3>
+              <p className="text-xs text-emerald-100 font-medium mt-1">
+                La Orden #{createdOrderSuccessModal.numeroOrden} ha sido creada y el auto quedó formalmente ingresado al taller.
+              </p>
+            </div>
+
+            {/* Ficha Resumen */}
+            <div className="p-5 space-y-4">
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Vehículo:</span>
+                  <ArgentinePlateBadge patente={createdOrderSuccessModal.vehicle?.patente || "---"} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 font-medium">Modelo:</span>
+                  <span className="font-extrabold text-slate-900">
+                    {createdOrderSuccessModal.vehicle?.marca} {createdOrderSuccessModal.vehicle?.modelo}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 font-medium">Titular:</span>
+                  <span className="font-extrabold text-slate-900">
+                    {createdOrderSuccessModal.vehicle?.client?.nombre} {createdOrderSuccessModal.vehicle?.client?.apellido || ""}
+                  </span>
+                </div>
+                {createdOrderSuccessModal.vehicle?.client?.telefono && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600 font-medium">Teléfono:</span>
+                    <span className="font-mono text-slate-800">{createdOrderSuccessModal.vehicle?.client?.telefono}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Mensaje de Resguardo para el Cliente */}
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Copia impresa para el cliente (Al momento de dejar el auto)</span>
+                </p>
+                <p className="text-amber-800 leading-snug">
+                  Imprime el <strong>Resguardo de Depósito (A4)</strong> para que el cliente se lleve una copia firmada con el estado del coche y la autorización de guarda.
+                </p>
+              </div>
+
+              {/* Botones de Acción Inmediata: Imprimir y Descargar */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handlePrintResguardoFromOrder(createdOrderSuccessModal)}
+                  className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Printer className="w-5 h-5 text-emerald-400" />
+                  <span>🖨️ Imprimir Resguardo de Depósito (A4)</span>
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadResguardoFromOrder(createdOrderSuccessModal)}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-slate-600" />
+                    <span>Descargar PDF</span>
+                  </button>
+
+                  <Link
+                    href={`/app/ordenes/${createdOrderSuccessModal.id}`}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs border border-sky-200 shadow-2xs transition-colors"
+                  >
+                    <span>Ver Ficha</span>
+                    <ChevronRight className="w-4 h-4 text-sky-600" />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => setCreatedOrderSuccessModal(null)}
+                  className="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors cursor-pointer"
+                >
+                  Cerrar ventana
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

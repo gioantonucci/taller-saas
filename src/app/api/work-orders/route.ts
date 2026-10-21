@@ -225,6 +225,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (resolvedVehicleId && vehiculoChasis) {
+      await prisma.vehicle.update({
+        where: { id: resolvedVehicleId },
+        data: { nroChasis: vehiculoChasis.trim().toUpperCase() },
+      }).catch(() => {});
+    }
+
+    if (resolvedClientId && clienteDireccion) {
+      await prisma.client.update({
+        where: { id: resolvedClientId },
+        data: { direccion: clienteDireccion.trim() },
+      }).catch(() => {});
+    }
+
     // 3. REGLA DE NEGOCIO ESTRICTA:
     // El mismo auto no puede estar dos veces en reparación ni en peritaje inicial simultáneamente.
     // Solo puede abrirse una nueva orden si todas sus órdenes previas están 'ENTREGADO' o 'ARCHIVADO'.
