@@ -1194,40 +1194,6 @@ export default function PeritajeIngresoModal({
                 )}
               </div>
             </div>
-
-            {/* Pie de modal para Vista Unificada */}
-            <div className="shrink-0 p-3 sm:p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-slate-600 text-xs">
-                <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="font-bold text-slate-800">Acta de Peritaje Inmutable</span>
-                <span className="hidden sm:inline text-slate-500">• Constatación legal de ingreso</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrintResguardoPDF}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                >
-                  <Printer className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="hidden sm:inline">Imprimir Resguardo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadResguardoPDF}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                >
-                  <Download className="w-3.5 h-3.5 text-sky-600" />
-                  <span className="hidden sm:inline">Descargar PDF</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
           </>
         ) : (
           <>
