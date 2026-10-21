@@ -193,6 +193,7 @@ export default function OrdenDetallePage() {
         message: `La orden #${order.numeroOrden} ha sido dada de baja y archivada con éxito.`,
         variant: "info",
       });
+      router.push("/app/ordenes");
     } catch {
       setBajaError("Error de conexión al dar de baja la orden.");
     } finally {
