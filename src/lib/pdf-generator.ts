@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { PeritajeIngreso } from "@/types";
+import { estimateZone, getDamageTypeLabel } from "@/lib/damage-utils";
 
 // ─── Colores (RGB) ────────────────────────────────────────────────────────────
 const C = {
@@ -317,16 +318,22 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
     if (y > 240) { doc.addPage(); y = 15; }
     setFont(doc, "bold", 7.5, C.slate600);
     doc.text(`Pines de daño marcados en el esquema del auto: ${peritaje.damagePins!.length}`, MARGIN, y + 4);
-    const pinsData = peritaje.damagePins!.map((p, i) => [
-      `${i + 1}`,
-      p.tipo.replace(/_/g, " "),
-      p.severidad || "LEVE",
-      p.descripcion || "–",
-      `X: ${p.x.toFixed(1)}%  Y: ${p.y.toFixed(1)}%`,
-    ]);
+    const pinsData = peritaje.damagePins!.map((p, i) => {
+      const zone = estimateZone(p.x, p.y);
+      const desc = p.descripcion && p.descripcion.trim()
+        ? p.descripcion.trim()
+        : `${getDamageTypeLabel(p.tipo)} en ${zone}`;
+      return [
+        `${i + 1}`,
+        getDamageTypeLabel(p.tipo),
+        p.severidad || "LEVE",
+        desc,
+        `X: ${Math.round(p.x)}% | Y: ${Math.round(p.y)}%\n${zone}`,
+      ];
+    });
     autoTable(doc, {
       startY: y + 7,
-      head: [["#", "Tipo", "Severidad", "Descripción", "Coordenadas (Esquema)"]],
+      head: [["#", "Tipo", "Severidad", "Descripción", "Ubicación (Esquema)"]],
       body: pinsData,
       theme: "plain",
       headStyles: { fillColor: C.slate800, textColor: C.white, fontSize: 7, fontStyle: "bold", cellPadding: 2 },
@@ -334,9 +341,9 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
       columnStyles: {
         0: { cellWidth: 6, halign: "center" },
         1: { cellWidth: 35 },
-        2: { cellWidth: 25 },
+        2: { cellWidth: 22 },
         3: { cellWidth: "auto" },
-        4: { cellWidth: 38 },
+        4: { cellWidth: 42 },
       },
     });
     // @ts-ignore
@@ -691,10 +698,26 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
   const despBoxH = 22;
   doc.rect(MARGIN, y, W, despBoxH, "D");
 
-  const despTexto =
+  let despTexto =
     peritaje.comentariosDuenio ||
     peritaje.observacionesGenerales ||
-    "Revisión técnica de ingreso e inspección conforme a presupuesto.";
+    "";
+
+  if (peritaje.damagePins && peritaje.damagePins.length > 0) {
+    const pinsSummary = peritaje.damagePins
+      .map((p, i) => `#${i + 1} ${p.descripcion && p.descripcion.trim() ? p.descripcion.trim() : `${getDamageTypeLabel(p.tipo)} en ${estimateZone(p.x, p.y)}`}`)
+      .join("; ");
+    if (despTexto.trim()) {
+      despTexto = `${despTexto.trim()}\nDaños asentados en croquis (${peritaje.damagePins.length}): ${pinsSummary}`;
+    } else {
+      despTexto = `Daños asentados en croquis (${peritaje.damagePins.length}): ${pinsSummary}`;
+    }
+  }
+
+  if (!despTexto.trim()) {
+    despTexto = "Revisión técnica de ingreso e inspección conforme a presupuesto.";
+  }
+
   setFont(doc, "normal", 7.5, [15, 23, 42]);
   const splitDesp = doc.splitTextToSize(despTexto, W - 4);
   doc.text(splitDesp, MARGIN + 2, y + 4.5);
@@ -779,13 +802,70 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
   // Dibujo decorativo de Sello / Stamp POGGI
   drawPoggiStamp(doc, signShopX + signColW / 2, signY - 8);
 
-  // 6. PIE LEGAL OBLIGATORIO (NORMATIVA VALENCIANA Y RGPD)
-  y = diagTopY + diagAreaH - 4;
-  const legalBoxH = 54;
+  // 6. DETALLE DE DAÑOS ASENTADOS (SI EXISTEN EN EL ESQUEMA)
+  y = diagTopY + diagAreaH - 2;
+
+  if (peritaje.damagePins && peritaje.damagePins.length > 0) {
+    setFont(doc, "bold", 8, [15, 23, 42]);
+    doc.text(`DETALLE DE DAÑOS ASENTADOS (${peritaje.damagePins.length}):`, MARGIN, y);
+    y += 2.5;
+
+    peritaje.damagePins.forEach((pin, idx) => {
+      const zone = estimateZone(pin.x, pin.y);
+      const tipoLabel = getDamageTypeLabel(pin.tipo);
+      const descText = pin.descripcion && pin.descripcion.trim()
+        ? pin.descripcion.trim()
+        : `${tipoLabel} en ${zone}`;
+
+      const cardH = 8.5;
+
+      // Si se acerca al final de página, pasar a nueva página
+      if (y + cardH + 10 > 285) {
+        doc.addPage();
+        y = 15;
+      }
+
+      // Tarjeta redondeada con fondo suave
+      doc.setDrawColor(203, 213, 225);
+      doc.setFillColor(248, 250, 252);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(MARGIN, y, W, cardH, 1.5, 1.5, "FD");
+
+      // Círculo indicador con número en ámbar
+      const badgeX = MARGIN + 4.5;
+      const badgeY = y + cardH / 2;
+      doc.setFillColor(245, 158, 11);
+      doc.circle(badgeX, badgeY, 2.4, "F");
+      setFont(doc, "bold", 6.5, [255, 255, 255]);
+      doc.text(String(idx + 1), badgeX, badgeY + 0.9, { align: "center" });
+
+      // Línea 1: Título / Descripción del daño
+      setFont(doc, "bold", 7.5, [15, 23, 42]);
+      doc.text(descText, MARGIN + 9, y + 3.4);
+
+      // Línea 2: Coordenadas y zona estimada (exacto formato del sistema)
+      setFont(doc, "normal", 6.2, [100, 116, 139]);
+      const coordsText = `X: ${Math.round(pin.x)}% | Y: ${Math.round(pin.y)}% • ${zone}${pin.severidad ? ` • Severidad: ${pin.severidad}` : ""}`;
+      doc.text(coordsText, MARGIN + 9, y + 6.8);
+
+      y += cardH + 1.5;
+    });
+
+    y += 1.5;
+  }
+
+  // 7. PIE LEGAL OBLIGATORIO (NORMATIVA VALENCIANA Y RGPD)
+  const legalBoxH = 50;
+  if (y + legalBoxH > 285) {
+    doc.addPage();
+    y = 15;
+  }
+
+  doc.setDrawColor(15, 23, 42);
   doc.setLineWidth(0.3);
   doc.rect(MARGIN, y, W, legalBoxH, "D");
 
-  let legY = y + 3.8;
+  let legY = y + 3.5;
   setFont(doc, "bold", 5.5, [15, 23, 42]);
   doc.text("AUTORIZACIÓN LEGAL (Normativa Valenciana)", MARGIN + 2, legY);
   setFont(doc, "normal", 5.2, [30, 41, 59]);
@@ -795,7 +875,7 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
   const splitP1 = doc.splitTextToSize(p1, W - 4);
   doc.text(splitP1, MARGIN + 2, legY + 3);
 
-  legY += splitP1.length * 2.3 + 4.5;
+  legY += splitP1.length * 2.3 + 3.5;
   const p2 =
     "Acepto que el taller realice pruebas de circulación para verificar reparaciones. // Declaro haber recibido información sobre mis derechos (garantías, devolución de piezas, etc.). En vista del cumplimiento de la normativa europea 2016/679 sobre Protección de datos (RGPD) le informamos que el tratamiento de los datos proporcionados por Ud. será responsabilidad de POGGI Taller Integral con el objetivo de la gestión de la reparación del vehículo, y que además se compromete a no ceder o comunicar la información a terceros. Puede ejercer sus derechos de acceso, rectificación, cancelación o supresión del tratamiento a través de correo electrónico o en nuestras instalaciones.";
   const splitP2 = doc.splitTextToSize(p2, W - 4);

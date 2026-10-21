@@ -9,29 +9,12 @@ import {
 } from "lucide-react";
 import { DamagePin } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
+import { estimateZone } from "@/lib/damage-utils";
 
 interface CarDamageBlueprintProps {
   pins: DamagePin[];
   onChange?: (pins: DamagePin[]) => void;
   readOnly?: boolean;
-}
-
-// Determina la zona estimada del vehículo en base a las coordenadas relativas (X: 0-100%, Y: 0-100%)
-function estimateZone(x: number, y: number): string {
-  let vertical = "Medio";
-  if (y < 20) vertical = "Paragolpe / Frente Delantero";
-  else if (y < 35) vertical = "Capot / Ópticas Delanteras";
-  else if (y < 48) vertical = "Parabrisas / Techo Delantero";
-  else if (y < 65) vertical = "Techo Central / Cabina";
-  else if (y < 80) vertical = "Luneta Trasera / Techo Trasero";
-  else if (y < 90) vertical = "Baúl / Portón Trasero";
-  else vertical = "Paragolpe Trasero";
-
-  let horizontal = "Centro";
-  if (x < 32) horizontal = "Lateral Izquierdo (Conductor)";
-  else if (x > 68) horizontal = "Lateral Derecho (Acompañante)";
-
-  return `${vertical} • ${horizontal}`;
 }
 
 const TIPO_DANIO_INFO: Record<
