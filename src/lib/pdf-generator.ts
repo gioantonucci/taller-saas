@@ -57,6 +57,15 @@ function setFont(doc: jsPDF, style: "bold" | "normal" | "italic", size: number, 
   doc.setTextColor(...color);
 }
 
+function formatSeverity(sev?: string | null): string {
+  if (!sev) return "Leve";
+  const s = sev.toUpperCase().trim();
+  if (s === "LEVE") return "Leve";
+  if (s === "MODERADO") return "Moderado";
+  if (s === "GRAVE") return "Grave";
+  return sev;
+}
+
 function pill(doc: jsPDF, x: number, y: number, w: number, h: number, bg: [number,number,number], border: [number,number,number]) {
   doc.setFillColor(...bg);
   doc.setDrawColor(...border);
@@ -321,30 +330,29 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
     doc.text(`Pines de daño marcados en el esquema del auto: ${peritaje.damagePins!.length}`, MARGIN, y + 4);
     const pinsData = peritaje.damagePins!.map((p, i) => {
       const zone = estimateZone(p.x, p.y);
-      const desc = p.descripcion && p.descripcion.trim()
+      const danio = p.descripcion && p.descripcion.trim()
         ? p.descripcion.trim()
-        : `${getDamageTypeLabel(p.tipo)} en ${zone}`;
+        : getDamageTypeLabel(p.tipo);
+      const nivel = formatSeverity(p.severidad);
       return [
         `${i + 1}`,
-        getDamageTypeLabel(p.tipo),
-        p.severidad || "LEVE",
-        desc,
-        `X: ${Math.round(p.x)}% | Y: ${Math.round(p.y)}%\n${zone}`,
+        zone,
+        danio,
+        nivel,
       ];
     });
     autoTable(doc, {
       startY: y + 7,
-      head: [["#", "Tipo", "Severidad", "Descripción", "Ubicación (Esquema)"]],
+      head: [["#", "Ubicación", "Daño", "Nivel de daño"]],
       body: pinsData,
       theme: "plain",
       headStyles: { fillColor: C.slate800, textColor: C.white, fontSize: 7, fontStyle: "bold", cellPadding: 2 },
       bodyStyles: { fontSize: 7, cellPadding: 2, textColor: C.slate600 },
       columnStyles: {
-        0: { cellWidth: 6, halign: "center" },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 22 },
+        0: { cellWidth: 7, halign: "center" },
+        1: { cellWidth: 68 },
+        2: { cellWidth: 75 },
         3: { cellWidth: "auto" },
-        4: { cellWidth: 42 },
       },
     });
     // @ts-ignore
@@ -725,12 +733,17 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
 
   if (peritaje.damagePins && peritaje.damagePins.length > 0) {
     const pinsSummary = peritaje.damagePins
-      .map((p, i) => `#${i + 1} ${p.descripcion && p.descripcion.trim() ? p.descripcion.trim() : `${getDamageTypeLabel(p.tipo)} en ${estimateZone(p.x, p.y)}`}`)
+      .map((p, i) => {
+        const ubicacion = estimateZone(p.x, p.y);
+        const danio = p.descripcion && p.descripcion.trim() ? p.descripcion.trim() : getDamageTypeLabel(p.tipo);
+        const nivel = formatSeverity(p.severidad);
+        return `#${i + 1} Ubicación: ${ubicacion} | Daño: ${danio} | Nivel de daño: ${nivel}`;
+      })
       .join("; ");
     if (despTexto.trim()) {
-      despTexto = `${despTexto.trim()}\nDaños asentados en croquis (${peritaje.damagePins.length}): ${pinsSummary}`;
+      despTexto = `${despTexto.trim()}\nDaños asentados en croquis (${peritaje.damagePins.length}):\n${pinsSummary}`;
     } else {
-      despTexto = `Daños asentados en croquis (${peritaje.damagePins.length}): ${pinsSummary}`;
+      despTexto = `Daños asentados en croquis (${peritaje.damagePins.length}):\n${pinsSummary}`;
     }
   }
 
@@ -833,11 +846,12 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
     peritaje.damagePins.forEach((pin, idx) => {
       const zone = estimateZone(pin.x, pin.y);
       const tipoLabel = getDamageTypeLabel(pin.tipo);
-      const descText = pin.descripcion && pin.descripcion.trim()
+      const danio = pin.descripcion && pin.descripcion.trim()
         ? pin.descripcion.trim()
-        : `${tipoLabel} en ${zone}`;
+        : tipoLabel;
+      const nivelDanio = formatSeverity(pin.severidad);
 
-      const cardH = 8.5;
+      const cardH = 9;
 
       // Si se acerca al final de página, pasar a nueva página
       if (y + cardH + 10 > 285) {
@@ -859,14 +873,13 @@ export function buildResguardoDepositoDoc(params: ResguardoDepositoParams): jsPD
       setFont(doc, "bold", 6.5, [255, 255, 255]);
       doc.text(String(idx + 1), badgeX, badgeY + 0.9, { align: "center" });
 
-      // Línea 1: Título / Descripción del daño
+      // Línea 1: Ubicación
       setFont(doc, "bold", 7.5, [15, 23, 42]);
-      doc.text(descText, MARGIN + 9, y + 3.4);
+      doc.text(`Ubicación: ${zone}`, MARGIN + 9, y + 3.5);
 
-      // Línea 2: Coordenadas y zona estimada (exacto formato del sistema)
-      setFont(doc, "normal", 6.2, [100, 116, 139]);
-      const coordsText = `X: ${Math.round(pin.x)}% | Y: ${Math.round(pin.y)}% • ${zone}${pin.severidad ? ` • Severidad: ${pin.severidad}` : ""}`;
-      doc.text(coordsText, MARGIN + 9, y + 6.8);
+      // Línea 2: Daño y Nivel de daño
+      setFont(doc, "normal", 6.8, [71, 85, 105]);
+      doc.text(`Daño: ${danio}   •   Nivel de daño: ${nivelDanio}`, MARGIN + 9, y + 7.2);
 
       y += cardH + 1.5;
     });
