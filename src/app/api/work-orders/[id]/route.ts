@@ -122,9 +122,58 @@ export async function PATCH(
 
     const isCurrentEntregado =
       currentOrder.estado === "ENTREGADO" ||
-      currentOrder.estado === "ARCHIVADO";
+      currentOrder.estado === "ARCHIVADO" ||
+      currentOrder.estado === "CANCELADO" ||
+      currentOrder.estado === "CANCELADA" ||
+      currentOrder.estado === "DADA_DE_BAJA";
 
-    if (body.estado !== undefined && body.estado !== currentOrder.estado) {
+    const isTargetCancelado =
+      body.estado === "CANCELADO" ||
+      body.estado === "CANCELADA" ||
+      body.darDeBaja === true;
+
+    if (isTargetCancelado) {
+      if (isCurrentEntregado) {
+        return NextResponse.json(
+          {
+            error:
+              "La orden de trabajo ya se encuentra archivada o dada de baja. No se pueden modificar sus estados.",
+          },
+          { status: 400 }
+        );
+      }
+      const motivo = (body.motivoCancelacion || "").trim();
+      if (!motivo) {
+        return NextResponse.json(
+          {
+            error:
+              "Debe indicar el motivo por el cual se da de baja la orden de trabajo.",
+          },
+          { status: 400 }
+        );
+      }
+
+      previousValues.estado = currentOrder.estado;
+      newValues.estado = "CANCELADO";
+      updateData.estado = "CANCELADO";
+      updateData.motivoCancelacion = motivo;
+      updateData.fechaCancelacion = new Date();
+
+      // Guardar también dentro de checklistDanio para redundancia
+      let existingChecklist: any = {};
+      try {
+        existingChecklist =
+          typeof currentOrder.checklistDanio === "string"
+            ? JSON.parse(currentOrder.checklistDanio)
+            : currentOrder.checklistDanio || {};
+      } catch {
+        existingChecklist = {};
+      }
+      existingChecklist.motivoCancelacion = motivo;
+      existingChecklist.fechaCancelacion = new Date().toISOString();
+      existingChecklist.canceladoPor = `${session.nombre} ${session.apellido || ""}`.trim();
+      updateData.checklistDanio = JSON.stringify(existingChecklist);
+    } else if (body.estado !== undefined && body.estado !== currentOrder.estado) {
       const userRole = normalizeRole(session.role);
       const isTargetEntregado =
         body.estado === "ENTREGADO" || body.estado === "ARCHIVADO";
@@ -749,6 +798,8 @@ export async function PATCH(
         statusAction = "FINALIZACION_REPARACION";
       } else if (newValues.estado === "ENTREGADO" || newValues.estado === "ARCHIVADO") {
         statusAction = "ENTREGA_VEHICULO";
+      } else if (newValues.estado === "CANCELADO") {
+        statusAction = "DAR_DE_BAJA";
       }
 
       await recordAuditLog({

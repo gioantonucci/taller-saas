@@ -3,7 +3,8 @@ export type OrderStatus =
   | "EN_REPARACION"
   | "EN_ESPERA_REPUESTOS"
   | "FINALIZADO"
-  | "ENTREGADO";
+  | "ENTREGADO"
+  | "CANCELADO";
 
 export interface StatusInfo {
   label: string;
@@ -43,6 +44,12 @@ export const ORDER_STATUS_MAP: Record<string, StatusInfo> = {
     badgeClass: "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-400/20",
     description: "Vehículo entregado al cliente conforme y orden archivada",
   },
+  CANCELADO: {
+    label: "Dada de Baja",
+    shortLabel: "Baja / Cancelada",
+    badgeClass: "bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-400/20",
+    description: "Orden cancelada/dada de baja y archivada con motivo justificado",
+  },
 };
 
 /**
@@ -63,6 +70,9 @@ export function getStatusInfo(status: string): StatusInfo {
   }
   if (status === "ENTREGADO" || status === "ARCHIVADO") {
     return ORDER_STATUS_MAP.ENTREGADO;
+  }
+  if (status === "CANCELADO" || status === "CANCELADA" || status === "DADA_DE_BAJA" || status === "BAJA") {
+    return ORDER_STATUS_MAP.CANCELADO;
   }
   return {
     label: status,

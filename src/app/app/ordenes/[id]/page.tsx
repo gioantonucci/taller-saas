@@ -29,6 +29,7 @@ import {
   Printer,
   Download,
   FileText,
+  Ban,
 } from "lucide-react";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
@@ -51,6 +52,12 @@ export default function OrdenDetallePage() {
   const [activeModalImg, setActiveModalImg] = useState<string | null>(null);
   const [peritajeModalOpen, setPeritajeModalOpen] = useState(false);
   const [isFinalizarModalOpen, setIsFinalizarModalOpen] = useState(false);
+
+  // Modal para Dar de Baja Orden con motivo
+  const [darDeBajaModalOpen, setDarDeBajaModalOpen] = useState(false);
+  const [motivoBaja, setMotivoBaja] = useState("");
+  const [submittingBaja, setSubmittingBaja] = useState(false);
+  const [bajaError, setBajaError] = useState<string | null>(null);
 
   // Modal para asignación formal de mecánico
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -112,13 +119,22 @@ export default function OrdenDetallePage() {
   const canReassignMechanic = isAdmin || isReception;
   const isMechanicOrAdmin = isMechanic || isAdmin;
 
+  const isCancelled = Boolean(
+    order &&
+    (order.estado === "CANCELADO" ||
+      order.estado === "CANCELADA" ||
+      order.estado === "DADA_DE_BAJA" ||
+      Boolean(order.motivoCancelacion))
+  );
+
   const isClosed = Boolean(
     order &&
     (order.estado === "FINALIZADO" ||
       order.estado === "TERMINADO" ||
       order.estado === "REPARADO" ||
       order.estado === "ENTREGADO" ||
-      order.estado === "ARCHIVADO")
+      order.estado === "ARCHIVADO" ||
+      isCancelled)
   );
 
   const isFinished = Boolean(
@@ -133,6 +149,56 @@ export default function OrdenDetallePage() {
     (order.estado === "ENTREGADO" ||
       order.estado === "ARCHIVADO")
   );
+
+  const getMotivoCancelacion = () => {
+    if (!order) return "";
+    if (order.motivoCancelacion) return order.motivoCancelacion;
+    if (order.checklistDanio) {
+      try {
+        const parsed =
+          typeof order.checklistDanio === "string"
+            ? JSON.parse(order.checklistDanio)
+            : order.checklistDanio;
+        return parsed?.motivoCancelacion || "";
+      } catch {}
+    }
+    return "";
+  };
+
+  const handleDarDeBaja = async () => {
+    if (!motivoBaja.trim()) {
+      setBajaError("Por favor escribe el motivo por el cual se da de baja la orden.");
+      return;
+    }
+    setSubmittingBaja(true);
+    setBajaError(null);
+    try {
+      const res = await fetch(`/api/work-orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          estado: "CANCELADO",
+          motivoCancelacion: motivoBaja.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBajaError(data.error || "No se pudo dar de baja la orden.");
+        return;
+      }
+      setDarDeBajaModalOpen(false);
+      setOrder(data.order);
+      await alert({
+        title: "Orden dada de baja",
+        message: `La orden #${order.numeroOrden} ha sido dada de baja y archivada con éxito.`,
+        variant: "info",
+      });
+    } catch {
+      setBajaError("Error de conexión al dar de baja la orden.");
+    } finally {
+      setSubmittingBaja(false);
+    }
+  };
 
   const isPeritajeRealizado = Boolean(
     order &&
@@ -503,26 +569,55 @@ export default function OrdenDetallePage() {
           </div>
         </div>
 
-        {/* Acciones de Peritaje (100% Información Local) */}
+        {/* Acciones de Peritaje y Estado */}
         <div className="flex flex-wrap items-center gap-2">
-          {isPeritajeRealizado ? (
-            <button
-              type="button"
-              onClick={() => setPeritajeModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
-              title="Ver Peritaje de Ingreso Registrado por el Mecánico"
-            >
-              <Eye className="w-4 h-4" />
-              <span>Ver Peritaje Realizado</span>
-            </button>
-          ) : (
+          {isCancelled ? (
             <div
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs"
-              title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs"
+              title="Esta orden de trabajo fue dada de baja y archivada"
             >
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Peritaje Técnico Pendiente</span>
+              <Ban className="w-3.5 h-3.5 text-rose-600" />
+              <span>Orden Dada de Baja</span>
             </div>
+          ) : (
+            <>
+              {isPeritajeRealizado ? (
+                <button
+                  type="button"
+                  onClick={() => setPeritajeModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                  title="Ver Peritaje de Ingreso Registrado por el Mecánico"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>Ver Peritaje Realizado</span>
+                </button>
+              ) : (
+                <div
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs"
+                  title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
+                >
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Peritaje Técnico Pendiente</span>
+                </div>
+              )}
+
+              {/* Opción de Dar de Baja la Orden */}
+              {!isEntregado && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMotivoBaja("");
+                    setBajaError(null);
+                    setDarDeBajaModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-rose-300 hover:bg-rose-50 hover:border-rose-400 text-rose-700 font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
+                  title="Dar de baja y archivar esta orden de trabajo con justificación"
+                >
+                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Dar de baja orden</span>
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -543,6 +638,42 @@ export default function OrdenDetallePage() {
           >
             <X className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Banner si la orden fue Dada de Baja */}
+      {isCancelled && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 border-2 border-rose-300 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Ban className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-sm text-rose-950 uppercase tracking-wide">
+                  Orden Dada de Baja (Cancelada y Archivada)
+                </h3>
+                <span className="text-[10px] font-bold bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full">
+                  Baja Definitiva
+                </span>
+              </div>
+              <div className="text-xs text-rose-950 leading-relaxed bg-white/80 p-3 rounded-xl border border-rose-200">
+                <span className="font-extrabold text-rose-900 block mb-0.5 uppercase text-[10px] tracking-wider">
+                  Motivo de la Cancelación:
+                </span>
+                <p className="font-bold text-rose-950 text-xs">
+                  {getMotivoCancelacion() || "Sin motivo especificado"}
+                </p>
+              </div>
+              <p className="text-[11px] text-rose-700 font-medium">
+                {order.fechaCancelacion ? (
+                  <>Baja registrada el {new Date(order.fechaCancelacion).toLocaleDateString("es-AR")} a las {new Date(order.fechaCancelacion).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })} hs</>
+                ) : (
+                  <>Esta orden no computa como vehículo activo en el taller y se encuentra archivada en el historial.</>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1794,6 +1925,123 @@ export default function OrdenDetallePage() {
             : null
         }
       />
+
+      {/* Modal para Dar de Baja la Orden */}
+      {darDeBajaModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => !submittingBaja && setDarDeBajaModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Encabezado */}
+            <div className="bg-rose-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Ban className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    Dar de Baja Orden #{order.numeroOrden}
+                  </h3>
+                  <p className="text-[11px] text-rose-200">
+                    {order.vehicle?.marca} {order.vehicle?.modelo} ({order.vehicle?.patente})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={submittingBaja}
+                onClick={() => setDarDeBajaModalOpen(false)}
+                className="p-1.5 rounded-xl text-rose-300 hover:text-white hover:bg-rose-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-xs text-rose-950">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>¿Confirmar cancelación y baja definitiva?</span>
+                </p>
+                <p className="text-[11px] text-rose-800 leading-snug">
+                  La orden pasará a estar <strong>Dada de Baja</strong> y se moverá a las archivadas. No contará como vehículo activo en taller.
+                </p>
+              </div>
+
+              {bajaError && (
+                <div className="p-3 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{bajaError}</span>
+                </div>
+              )}
+
+              {/* Casilla para escribir el por qué se cancela */}
+              <div className="space-y-1.5">
+                <label className="font-extrabold text-slate-800 block text-xs">
+                  Motivo de la cancelación / por qué se da de baja: *
+                </label>
+                <textarea
+                  rows={3}
+                  value={motivoBaja}
+                  onChange={(e) => setMotivoBaja(e.target.value)}
+                  placeholder="Ej: El cliente canceló el trabajo por no aceptar el presupuesto / Se retira sin reparar / No se consiguen los repuestos..."
+                  className="w-full p-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-none font-medium text-xs text-slate-900 placeholder:text-slate-400"
+                />
+              </div>
+
+              {/* Atajos Rápidos de Motivos */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-500 block">Atajos rápidos:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Cliente canceló por presupuesto",
+                    "Retiró vehículo sin reparar",
+                    "Repuestos no conseguidos",
+                    "Carga duplicada por error",
+                    "Traslado a otro taller",
+                    "Desistimiento del cliente",
+                  ].map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => setMotivoBaja(sug)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-900 text-slate-700 font-bold border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      + {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={submittingBaja}
+                onClick={() => setDarDeBajaModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={submittingBaja || !motivoBaja.trim()}
+                onClick={handleDarDeBaja}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Ban className="w-4 h-4" />
+                <span>{submittingBaja ? "Dando de baja..." : "Confirmar y Dar de Baja"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

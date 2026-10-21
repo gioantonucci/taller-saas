@@ -30,6 +30,7 @@ import {
   Download,
   FileText,
   PackageCheck,
+  Ban,
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
@@ -278,6 +279,70 @@ export default function OrdenesPage() {
       );
     } catch {
       return false;
+    }
+  };
+
+  // Ayudantes para órdenes canceladas / dadas de baja
+  const isCancelledOrder = (o: any) => {
+    return Boolean(
+      o &&
+      (o.estado === "CANCELADO" ||
+        o.estado === "CANCELADA" ||
+        o.estado === "DADA_DE_BAJA" ||
+        Boolean(o.motivoCancelacion))
+    );
+  };
+
+  const getMotivoCancelacion = (o: any) => {
+    if (!o) return "";
+    if (o.motivoCancelacion) return o.motivoCancelacion;
+    if (o.checklistDanio) {
+      try {
+        const parsed =
+          typeof o.checklistDanio === "string"
+            ? JSON.parse(o.checklistDanio)
+            : o.checklistDanio;
+        return parsed?.motivoCancelacion || "";
+      } catch {}
+    }
+    return "";
+  };
+
+  // Modal para Dar de Baja Orden desde el listado
+  const [orderToCancel, setOrderToCancel] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [submittingCancel, setSubmittingCancel] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const handleConfirmCancelOrder = async () => {
+    if (!orderToCancel) return;
+    if (!cancelReason.trim()) {
+      setCancelError("Por favor escribe el motivo por el cual se da de baja la orden.");
+      return;
+    }
+    setSubmittingCancel(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/work-orders/${orderToCancel.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          estado: "CANCELADO",
+          motivoCancelacion: cancelReason.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCancelError(data.error || "No se pudo dar de baja la orden.");
+        return;
+      }
+      setOrderToCancel(null);
+      setCancelReason("");
+      fetchOrders(true);
+    } catch {
+      setCancelError("Error de conexión al dar de baja la orden.");
+    } finally {
+      setSubmittingCancel(false);
     }
   };
 
@@ -890,10 +955,20 @@ export default function OrdenesPage() {
   // Contadores para pestañas rápidas
   const counts = useMemo(() => {
     const entregados = orders.filter(
-      (o) => o.estado === "ENTREGADO" || o.estado === "ARCHIVADO"
+      (o) =>
+        o.estado === "ENTREGADO" ||
+        o.estado === "ARCHIVADO" ||
+        o.estado === "CANCELADO" ||
+        o.estado === "CANCELADA" ||
+        o.estado === "DADA_DE_BAJA"
     ).length;
     const activos = orders.filter(
-      (o) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+      (o) =>
+        o.estado !== "ENTREGADO" &&
+        o.estado !== "ARCHIVADO" &&
+        o.estado !== "CANCELADO" &&
+        o.estado !== "CANCELADA" &&
+        o.estado !== "DADA_DE_BAJA"
     ).length;
     return {
       total: orders.length,
@@ -918,7 +993,14 @@ export default function OrdenesPage() {
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (estadoFilter === "TODOS") {
-        if (o.estado === "ENTREGADO" || o.estado === "ARCHIVADO") return false;
+        if (
+          o.estado === "ENTREGADO" ||
+          o.estado === "ARCHIVADO" ||
+          o.estado === "CANCELADO" ||
+          o.estado === "CANCELADA" ||
+          o.estado === "DADA_DE_BAJA"
+        )
+          return false;
       } else if (estadoFilter === "PENDIENTE") {
         if (o.estado !== "PENDIENTE" && o.estado !== "PENDIENTE_PERITAJE" && o.estado !== "INGRESADO")
           return false;
@@ -932,7 +1014,13 @@ export default function OrdenesPage() {
         if (o.estado !== "FINALIZADO" && o.estado !== "TERMINADO" && o.estado !== "REPARADO")
           return false;
       } else if (estadoFilter === "ENTREGADO") {
-        if (o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO")
+        if (
+          o.estado !== "ENTREGADO" &&
+          o.estado !== "ARCHIVADO" &&
+          o.estado !== "CANCELADO" &&
+          o.estado !== "CANCELADA" &&
+          o.estado !== "DADA_DE_BAJA"
+        )
           return false;
       }
 
@@ -1108,7 +1196,7 @@ export default function OrdenesPage() {
               : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200"
           }`}
         >
-          📦 Entregadas ({counts.entregados})
+          📁 Archivadas ({counts.entregados})
         </button>
       </div>
 
@@ -1290,8 +1378,31 @@ export default function OrdenesPage() {
                     </div>
                   )}
 
+                  {/* Indicador si la orden fue Dada de Baja */}
+                  {isCancelledOrder(orden) && (
+                    <div className="mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 font-bold text-rose-800">
+                          <Ban className="w-4 h-4 text-rose-600" />
+                          <span>Orden Dada de Baja</span>
+                        </span>
+                        <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full font-bold">
+                          Archivada
+                        </span>
+                      </div>
+                      <p className="text-xs text-rose-950 font-semibold pt-0.5">
+                        <strong className="text-rose-900">Motivo:</strong> {getMotivoCancelacion(orden) || "Sin motivo especificado"}
+                      </p>
+                      {orden.fechaCancelacion && (
+                        <span className="text-[10px] text-rose-700 block font-medium">
+                          Baja registrada: {new Date(orden.fechaCancelacion).toLocaleDateString("es-AR")}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Indicador si la orden ya fue Entregada y Archivada */}
-                  {(orden.estado === "ENTREGADO" || orden.estado === "ARCHIVADO") && (
+                  {(orden.estado === "ENTREGADO" || orden.estado === "ARCHIVADO") && !isCancelledOrder(orden) && (
                     <div className="mt-3 p-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <PackageCheck className="w-4 h-4 text-slate-500" />
@@ -1302,6 +1413,29 @@ export default function OrdenesPage() {
                       </span>
                     </div>
                   )}
+
+                  {/* Botón para dar de baja en mobile si la orden está activa */}
+                  {orden.estado !== "FINALIZADO" &&
+                    orden.estado !== "TERMINADO" &&
+                    orden.estado !== "REPARADO" &&
+                    orden.estado !== "ENTREGADO" &&
+                    orden.estado !== "ARCHIVADO" &&
+                    !isCancelledOrder(orden) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOrderToCancel(orden);
+                          setCancelReason("");
+                          setCancelError(null);
+                        }}
+                        className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        <Ban className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Dar de baja orden</span>
+                      </button>
+                    )}
 
                   {/* Fila inferior: CTA Claro y Grande */}
                   <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -1352,6 +1486,14 @@ export default function OrdenesPage() {
                                 Orden #{orden.numeroOrden}
                               </span>
                             </div>
+                            {isCancelledOrder(orden) && (
+                              <div className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-[11px] text-rose-900 font-semibold max-w-xs">
+                                <Ban className="w-3 h-3 text-rose-600 shrink-0" />
+                                <span className="truncate">
+                                  <strong>Baja:</strong> {getMotivoCancelacion(orden) || "Sin motivo especificado"}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -1375,6 +1517,10 @@ export default function OrdenesPage() {
                         ) : isFinished ? (
                           <span className="text-[11px] font-semibold text-slate-500">
                             Mecánica concluida
+                          </span>
+                        ) : isCancelledOrder(orden) ? (
+                          <span className="text-[11px] font-semibold text-slate-400">
+                            Cancelada
                           </span>
                         ) : (
                           <span className="text-[11px] font-semibold text-amber-600">
@@ -1422,6 +1568,23 @@ export default function OrdenesPage() {
                               </button>
                             </>
                           )}
+                          {!isFinished &&
+                            orden.estado !== "ENTREGADO" &&
+                            orden.estado !== "ARCHIVADO" &&
+                            !isCancelledOrder(orden) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOrderToCancel(orden);
+                                  setCancelReason("");
+                                  setCancelError(null);
+                                }}
+                                className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
+                                title="Dar de baja orden de trabajo"
+                              >
+                                <Ban className="w-3.5 h-3.5 text-rose-600" />
+                              </button>
+                            )}
                           <button
                             type="button"
                             onClick={() => handlePrintResguardoFromOrder(orden)}
@@ -2774,6 +2937,119 @@ export default function OrdenesPage() {
                   Cerrar ventana
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Dar de Baja Orden desde el listado */}
+      {orderToCancel && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => !submittingCancel && setOrderToCancel(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-rose-900 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  <Ban className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    Dar de Baja Orden #{orderToCancel.numeroOrden}
+                  </h3>
+                  <p className="text-[11px] text-rose-200">
+                    {orderToCancel.vehicle?.marca} {orderToCancel.vehicle?.modelo} ({orderToCancel.vehicle?.patente})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={submittingCancel}
+                onClick={() => setOrderToCancel(null)}
+                className="p-1.5 rounded-xl text-rose-300 hover:text-white hover:bg-rose-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
+                <p className="font-bold flex items-center gap-1.5 text-xs text-rose-950">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>¿Confirmar baja y archivo de la orden?</span>
+                </p>
+                <p className="text-[11px] text-rose-800 leading-snug">
+                  La orden pasará al archivo con estado <strong>Dada de Baja</strong> y no computará en los trabajos activos del taller.
+                </p>
+              </div>
+
+              {cancelError && (
+                <div className="p-3 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{cancelError}</span>
+                </div>
+              )}
+
+              {/* Casilla para escribir el por qué se cancela */}
+              <div className="space-y-1.5">
+                <label className="font-extrabold text-slate-800 block text-xs">
+                  Motivo de la cancelación / por qué se da de baja: *
+                </label>
+                <textarea
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Ej: Cliente canceló por costo de repuestos / Se retira sin reparar / Error de carga..."
+                  className="w-full p-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-none font-medium text-xs text-slate-900 placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-bold text-slate-500 block">Atajos rápidos:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Cliente canceló por presupuesto",
+                    "Retiró vehículo sin reparar",
+                    "Repuestos no conseguidos",
+                    "Carga duplicada por error",
+                    "Traslado a otro taller",
+                    "Desistimiento del cliente",
+                  ].map((sug) => (
+                    <button
+                      key={sug}
+                      type="button"
+                      onClick={() => setCancelReason(sug)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-900 text-slate-700 font-bold border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      + {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={submittingCancel}
+                onClick={() => setOrderToCancel(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={submittingCancel || !cancelReason.trim()}
+                onClick={handleConfirmCancelOrder}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Ban className="w-4 h-4" />
+                <span>{submittingCancel ? "Dando de baja..." : "Confirmar y Dar de Baja"}</span>
+              </button>
             </div>
           </div>
         </div>

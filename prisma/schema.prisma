@@ -101,6 +101,8 @@ model WorkOrder {
   fechaIngreso     DateTime               @default(now())
   fechaEstimada    DateTime?
   fechaEntrega     DateTime?
+  fechaCancelacion DateTime?
+  motivoCancelacion String?
   nivelNafta       String                 @default("1/2") // "VACIO", "1/4", "1/2", "3/4", "LLENO"
   kilometraje      Int?
   detallesIngreso  String
