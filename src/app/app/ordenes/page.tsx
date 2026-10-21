@@ -2439,20 +2439,6 @@ export default function OrdenesPage() {
                         </button>
                       </div>
                     </div>
-                    {orderForm.tuercaSeguridad && (
-                      <div className="pt-1 animate-in fade-in">
-                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                          Ubicación de la tuerca / adaptador antirrobo:
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ej: En la guantera / baúl junto al auxilio / cenicero..."
-                          value={orderForm.tuercaSeguridadUbicacion}
-                          onChange={(e) => setOrderForm({ ...orderForm, tuercaSeguridadUbicacion: e.target.value })}
-                          className="w-full p-2.5 rounded-xl border border-amber-300 bg-white font-medium text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        />
-                      </div>
-                    )}
                   </div>
 
                   {/* Peritaje Visual Inicial del Dueño */}
@@ -2696,9 +2682,7 @@ export default function OrdenesPage() {
                       <div className="pt-2 flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-slate-400">Tuerca de Seguridad</span>
                         <span className="text-xs font-semibold text-slate-800">
-                          {orderForm.tuercaSeguridad
-                            ? `Sí (${orderForm.tuercaSeguridadUbicacion || "Ubicación a definir"})`
-                            : "No tiene"}
+                          {orderForm.tuercaSeguridad ? "Sí" : "No tiene"}
                         </span>
                       </div>
 

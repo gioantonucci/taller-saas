@@ -1547,24 +1547,6 @@ export default function PeritajeIngresoModal({
                     </div>
                   </div>
 
-                  {/* Ubicación de la Tuerca de Seguridad (Ficha Oficial POGGI) */}
-                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
-                    <label className="block text-[11px] font-bold text-slate-800">
-                      Ubicación de la Tuerca Antirrobo / Seguridad (Esta en:):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Guantera, Bajo la alfombra del baúl, Junto a rueda de auxilio..."
-                      value={peritaje.tuercaSeguridadUbicacion || ""}
-                      onChange={(e) =>
-                        setPeritaje({ ...peritaje, tuercaSeguridadUbicacion: e.target.value })
-                      }
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white text-xs font-semibold text-slate-900"
-                    />
-                    <p className="text-[10px] text-slate-500 italic">
-                      Se imprime en el Resguardo de Depósito oficial para que quede constancia física de su ubicación.
-                    </p>
-                  </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
