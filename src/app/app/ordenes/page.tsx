@@ -441,20 +441,21 @@ export default function OrdenesPage() {
 
   // Helper para verificar si un vehículo ya posee una orden activa (en peritaje o en reparación)
   const getVehicleActiveOrder = (vehicleId?: string, plate?: string) => {
+    const isOrderOpen = (o: any) =>
+      o.estado !== "ENTREGADO" &&
+      o.estado !== "ARCHIVADO" &&
+      o.estado !== "CANCELADO" &&
+      !isCancelledOrder(o);
+
     if (vehicleId) {
       const orderFromOrders = orders.find(
-        (o: any) =>
-          o.vehicleId === vehicleId &&
-          o.estado !== "ENTREGADO" &&
-          o.estado !== "ARCHIVADO"
+        (o: any) => o.vehicleId === vehicleId && isOrderOpen(o)
       );
       if (orderFromOrders) return orderFromOrders;
 
       const v = existingVehicles.find((veh: any) => veh.id === vehicleId);
       if (v?.workOrders) {
-        const orderFromVeh = v.workOrders.find(
-          (o: any) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
-        );
+        const orderFromVeh = v.workOrders.find((o: any) => isOrderOpen(o));
         if (orderFromVeh) return orderFromVeh;
       }
     }
@@ -464,9 +465,7 @@ export default function OrdenesPage() {
       if (!cleanP) return null;
       const orderFromPlate = orders.find(
         (o: any) =>
-          o.vehicle?.patente?.trim().toUpperCase() === cleanP &&
-          o.estado !== "ENTREGADO" &&
-          o.estado !== "ARCHIVADO"
+          o.vehicle?.patente?.trim().toUpperCase() === cleanP && isOrderOpen(o)
       );
       if (orderFromPlate) return orderFromPlate;
 
@@ -474,9 +473,7 @@ export default function OrdenesPage() {
         (veh: any) => veh.patente?.trim().toUpperCase() === cleanP
       );
       if (vByPlate?.workOrders) {
-        const orderFromVeh = vByPlate.workOrders.find(
-          (o: any) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
-        );
+        const orderFromVeh = vByPlate.workOrders.find((o: any) => isOrderOpen(o));
         if (orderFromVeh) return orderFromVeh;
       }
     }

@@ -77,8 +77,28 @@ export default function VehiculoHistorialClinicoPage() {
     fetchVehicle();
   }, [patente]);
 
+  const isCancelledOrder = (o: any) => {
+    return Boolean(
+      o &&
+      (o.estado === "CANCELADO" ||
+        o.motivoCancelacion ||
+        (() => {
+          try {
+            const p = typeof o.checklistDanio === "string" ? JSON.parse(o.checklistDanio) : o.checklistDanio;
+            return Boolean(p?.motivoCancelacion);
+          } catch {
+            return false;
+          }
+        })())
+    );
+  };
+
   const activeOrder = vehicle?.workOrders?.find(
-    (o: any) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+    (o: any) =>
+      o.estado !== "ENTREGADO" &&
+      o.estado !== "ARCHIVADO" &&
+      o.estado !== "CANCELADO" &&
+      !isCancelledOrder(o)
   );
 
   const openNewOrderModal = async () => {

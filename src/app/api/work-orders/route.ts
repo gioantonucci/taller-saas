@@ -245,13 +245,14 @@ export async function POST(request: NextRequest) {
 
     // 3. REGLA DE NEGOCIO ESTRICTA:
     // El mismo auto no puede estar dos veces en reparación ni en peritaje inicial simultáneamente.
-    // Solo puede abrirse una nueva orden si todas sus órdenes previas están 'ENTREGADO' o 'ARCHIVADO'.
+    // Solo puede abrirse una nueva orden si todas sus órdenes previas están 'ENTREGADO', 'ARCHIVADO' o 'CANCELADO'.
     const activeOrderForVehicle = await prisma.workOrder.findFirst({
       where: {
         vehicleId: resolvedVehicleId,
         estado: {
-          notIn: ["ENTREGADO", "ARCHIVADO"],
+          notIn: ["ENTREGADO", "ARCHIVADO", "CANCELADO"],
         },
+        motivoCancelacion: null,
       },
       include: {
         vehicle: true,

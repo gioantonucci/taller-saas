@@ -30,7 +30,9 @@ export async function GET(request: NextRequest) {
         o.estado !== "REPARADO" &&
         o.estado !== "TERMINADO" &&
         o.estado !== "ENTREGADO" &&
-        o.estado !== "ARCHIVADO"
+        o.estado !== "ARCHIVADO" &&
+        o.estado !== "CANCELADO" &&
+        !o.motivoCancelacion
     ).length;
     const finalizados = allOrders.filter(
       (o) => o.estado === "FINALIZADO" || o.estado === "REPARADO" || o.estado === "TERMINADO"

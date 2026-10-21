@@ -356,7 +356,11 @@ export default function ClienteDetallePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {client.vehicles.map((v: any) => {
               const activeOrder = v.workOrders?.find(
-                (o: any) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+                (o: any) =>
+                  o.estado !== "ENTREGADO" &&
+                  o.estado !== "ARCHIVADO" &&
+                  o.estado !== "CANCELADO" &&
+                  !o.motivoCancelacion
               );
               return (
                 <div
