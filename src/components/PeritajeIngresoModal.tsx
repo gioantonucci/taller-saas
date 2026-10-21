@@ -24,18 +24,11 @@ import {
   Play,
   Info,
   PenTool,
-  Printer,
-  Download,
   FileText,
 } from "lucide-react";
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
-import {
-  generateResguardoDepositoPDF,
-  printResguardoDepositoPDF,
-  ResguardoDepositoParams,
-} from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
 
 interface PeritajeModalProps {
@@ -234,51 +227,6 @@ export default function PeritajeIngresoModal({
       if (modalScrollRef.current) {
         modalScrollRef.current.scrollTop = 0;
       }
-    }
-  };
-
-  const getResguardoParams = (): ResguardoDepositoParams => ({
-    numeroOrden: order?.numeroOrden || 0,
-    vehiculo: {
-      marca: order?.vehicle?.marca || "",
-      modelo: order?.vehicle?.modelo || "",
-      anio: order?.vehicle?.anio,
-      patente: order?.vehicle?.patente || "",
-      color: order?.vehicle?.color,
-      nroChasis: peritaje.numeroBastidorVin || order?.vehicle?.nroChasis || "",
-    },
-    cliente: {
-      nombre: order?.vehicle?.client?.nombre || "Cliente",
-      apellido: order?.vehicle?.client?.apellido || "",
-      dni: order?.vehicle?.client?.dni || "",
-      telefono: order?.vehicle?.client?.telefono || "",
-      direccion: order?.vehicle?.client?.direccion || "",
-      email: order?.vehicle?.client?.email || "",
-    },
-    peritaje: {
-      ...peritaje,
-      kilometrajeTablero: peritaje.kilometrajeTablero || order?.kilometraje || 0,
-    },
-    taller: {
-      nombre: "POGGI Taller Integral",
-      telefono: "658 40 62 86",
-      direccion: "San Pio X 13, Valencia cp 46017",
-    },
-  });
-
-  const handleDownloadResguardoPDF = () => {
-    try {
-      generateResguardoDepositoPDF(getResguardoParams());
-    } catch (e) {
-      console.error("Error al descargar PDF del Resguardo:", e);
-    }
-  };
-
-  const handlePrintResguardoPDF = () => {
-    try {
-      printResguardoDepositoPDF(getResguardoParams());
-    } catch (e) {
-      console.error("Error al imprimir Resguardo:", e);
     }
   };
 
@@ -826,24 +774,6 @@ export default function PeritajeIngresoModal({
 
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <button
-              type="button"
-              onClick={handlePrintResguardoPDF}
-              title="Imprimir Resguardo de Depósito (Talonario Oficial A4)"
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-xs border border-white/10"
-            >
-              <Printer className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="hidden md:inline">Imprimir Resguardo</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadResguardoPDF}
-              title="Descargar Resguardo de Depósito en PDF"
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold shadow-xs border border-white/10"
-            >
-              <Download className="w-4 h-4 text-sky-400 shrink-0" />
-              <span className="hidden md:inline">PDF</span>
-            </button>
-            <button
               onClick={onClose}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
               aria-label="Cerrar modal"
@@ -1262,11 +1192,6 @@ export default function PeritajeIngresoModal({
                   <span className="truncate text-[10px] sm:text-xs">
                     <span className="hidden sm:inline">2. </span>Carrocería
                   </span>
-                  {((peritaje?.damagePins?.length || 0) + (peritaje?.daniosCarroceria?.length || 0)) > 0 && (
-                    <span className="px-1 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[9px] font-bold">
-                      {(peritaje?.damagePins?.length || 0) + (peritaje?.daniosCarroceria?.length || 0)}
-                    </span>
-                  )}
                 </button>
 
                 <button
