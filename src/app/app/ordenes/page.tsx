@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ClipboardList,
   Search,
@@ -58,6 +59,9 @@ function ArgentinePlateBadge({ patente }: { patente: string }) {
 
 export default function OrdenesPage() {
   const { alert, confirm } = useAppDialog();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const deepLinkProcessed = useRef(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -676,6 +680,66 @@ export default function OrdenesPage() {
       fetchClientsAndVehicles();
     }
   }, [modalOpen]);
+
+  // Deep-link: abrir modal en paso 3 cuando se navega desde la ficha del vehículo
+  useEffect(() => {
+    if (deepLinkProcessed.current) return;
+    const newOrder = searchParams.get("newOrder");
+    const clientIdParam = searchParams.get("clientId");
+    const vehicleIdParam = searchParams.get("vehicleId");
+    if (newOrder !== "1" || (!clientIdParam && !vehicleIdParam)) return;
+    // Esperar a que los clientes y vehículos estén cargados
+    if (existingClients.length === 0 || existingVehicles.length === 0) return;
+
+    // Buscar vehículo por id o por patente
+    const vehicleObj = existingVehicles.find(
+      (v: any) =>
+        v.id === vehicleIdParam ||
+        (v.patente && vehicleIdParam && v.patente.toUpperCase() === vehicleIdParam.toUpperCase())
+    );
+    if (!vehicleObj) return;
+
+    // Buscar cliente asociado o por id param
+    const targetClientId = clientIdParam || vehicleObj.clientId;
+    const clientObj = existingClients.find((c: any) => c.id === targetClientId);
+    if (!clientObj) return;
+
+    deepLinkProcessed.current = true;
+
+    // Pre-seleccionar cliente
+    setClientMode("EXISTING");
+    setSelectedClientId(clientObj.id);
+
+    // Pre-seleccionar vehículo
+    setVehicleMode("EXISTING");
+    setSelectedVehicleId(vehicleObj.id);
+
+    // Llenar formulario con los datos del cliente y vehículo
+    setOrderForm((prev) => ({
+      ...prev,
+      clienteNombre: clientObj.nombre || "",
+      clienteApellido: clientObj.apellido || "",
+      clienteDni: clientObj.dni || "",
+      clienteTelefono: clientObj.telefono || "",
+      clienteEmail: clientObj.email || "",
+      clienteDireccion: clientObj.direccion || "",
+      vehiculoPatente: vehicleObj.patente || "",
+      vehiculoMarca: vehicleObj.marca || "",
+      vehiculoModelo: vehicleObj.modelo || "",
+      vehiculoAnio: vehicleObj.anio ? String(vehicleObj.anio) : prev.vehiculoAnio,
+      vehiculoColor: vehicleObj.color || "",
+      vehiculoChasis: vehicleObj.nroChasis || "",
+      mechanicId: isMechanic && currentUser?.id ? currentUser.id : "",
+    }));
+
+    // Abrir modal en paso 3 (Inspección)
+    setFormError(null);
+    setStep(3);
+    setModalOpen(true);
+
+    // Limpiar URL para que no se reprocese al navegar atrás
+    router.replace("/app/ordenes", { scroll: false });
+  }, [searchParams, existingClients, existingVehicles, currentUser]);
 
   const handleNotifyClient = async (orden: any) => {
     const cleanPhone = orden.vehicle?.client?.telefono?.replace(/\D/g, "") || "";

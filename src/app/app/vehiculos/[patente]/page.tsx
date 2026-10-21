@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ChevronLeft,
   Wrench,
@@ -17,14 +15,9 @@ import {
   Gauge,
   X,
   AlertCircle,
-  RefreshCw,
   Phone,
-  ShieldAlert,
-  PenTool,
 } from "lucide-react";
-import { openWorkOrderSchema, OpenWorkOrderValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
-import ClientSignaturePad from "@/components/ClientSignaturePad";
 
 export default function VehiculoHistorialClinicoPage() {
   const { alert, confirm } = useAppDialog();
@@ -33,39 +26,7 @@ export default function VehiculoHistorialClinicoPage() {
   const [vehicle, setVehicle] = useState<any | null>(null);
   const [clinicalStats, setClinicalStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
-  const [submittingOrder, setSubmittingOrder] = useState(false);
-  const [orderError, setOrderError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
-  const modalScrollRef = useRef<HTMLFormElement | null>(null);
-
-  // Asegurar que al abrir el modal siempre aparezca en el top del scroll
-  useEffect(() => {
-    if (orderModalOpen && modalScrollRef.current) {
-      modalScrollRef.current.scrollTop = 0;
-    }
-  }, [orderModalOpen]);
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<OpenWorkOrderValues>({
-    resolver: zodResolver(openWorkOrderSchema),
-    defaultValues: {
-      vehicleId: "",
-      nivelNafta: "1/2",
-      kilometraje: 0,
-      detallesIngreso: "",
-      comentariosDuenio: "",
-    },
-  });
-
-  const selectedNafta = watch("nivelNafta");
 
   const fetchVehicle = async () => {
     try {
@@ -123,77 +84,10 @@ export default function VehiculoHistorialClinicoPage() {
       });
       return;
     }
-    setOrderError(null);
-    setFirmaCliente(null);
-    reset({
-      vehicleId: vehicle.id,
-      nivelNafta: "1/2",
-      kilometraje: vehicle.workOrders?.[0]?.kilometraje || 45000,
-      detallesIngreso: "",
-      comentariosDuenio: "",
-    });
-    setOrderModalOpen(true);
-  };
-
-  const onSubmitOrder = async (values: OpenWorkOrderValues) => {
-    if (activeOrder) {
-      setOrderError(
-        `Operación denegada: El vehículo ya tiene la Orden activa #${activeOrder.numeroOrden} (${activeOrder.estado}).`
-      );
-      return;
-    }
-
-    setSubmittingOrder(true);
-    setOrderError(null);
-
-    try {
-      const checklistDanioPayload = {
-        fechaHoraCheckin: new Date().toLocaleString("es-AR"),
-        kilometrajeTablero: values.kilometraje || 0,
-        nivelCombustible: values.nivelNafta || "1/2",
-        comentariosDuenio: values.comentariosDuenio || "",
-        damagePins: [],
-        autorizaViaPublica: true,
-        firmaCliente: firmaCliente || null,
-        fechaFirmaCliente: firmaCliente ? new Date().toISOString() : null,
-        inventarioCabina: {
-          ruedaAuxilio: true,
-          criqueYHerramientas: true,
-          tuercaSeguridad: false,
-          documentacion: true,
-          estereoFunciona: true,
-          matafuegoVigente: true,
-          tapaCombustible: true,
-        },
-      };
-
-      const res = await fetch("/api/work-orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          firmaCliente: firmaCliente || null,
-          checklistDanio: checklistDanioPayload,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setOrderError(data.error || "Error al abrir la orden de trabajo");
-        setSubmittingOrder(false);
-        return;
-      }
-
-      setOrderModalOpen(false);
-      setActionSuccess(`¡Orden #${data.order.numeroOrden} abierta con éxito! Estado: Pendiente de peritaje.`);
-      setTimeout(() => setActionSuccess(null), 5000);
-      fetchVehicle();
-    } catch {
-      setOrderError("Error de conexión al abrir la orden");
-    } finally {
-      setSubmittingOrder(false);
-    }
+    // Navegar a la página de órdenes con deep-link para abrir modal en paso 3
+    const clientId = vehicle.clientId || vehicle.client?.id || "";
+    const vehicleId = vehicle.id || "";
+    router.push(`/app/ordenes?newOrder=1&clientId=${clientId}&vehicleId=${vehicleId}`);
   };
 
 
@@ -464,214 +358,6 @@ export default function VehiculoHistorialClinicoPage() {
           </div>
         )}
       </div>
-
-      {/* ========================================================================= */}
-      {/* MODAL: APERTURA DE ORDEN DE TRABAJO (RECEPCIÓN BÁSICA)                     */}
-      {/* ========================================================================= */}
-      {orderModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden">
-            {/* Header del Modal */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
-                  <Wrench className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    Apertura de Orden de Trabajo
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-semibold block">
-                    {vehicle.marca} {vehicle.modelo} • Patente {vehicle.patente}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setOrderModalOpen(false)}
-                className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Error general */}
-            {orderError && (
-              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 shrink-0">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>{orderError}</span>
-              </div>
-            )}
-
-            {/* Formulario */}
-            <form ref={modalScrollRef} onSubmit={handleSubmit(onSubmitOrder)} className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Nivel de Nafta */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <Fuel className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Nivel de Combustible al Ingreso</span>
-                </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {(["VACIO", "1/4", "1/2", "3/4", "LLENO"] as const).map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setValue("nivelNafta", level)}
-                      className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                        selectedNafta === level
-                          ? "bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/20"
-                          : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-                {errors.nivelNafta && (
-                  <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
-                    {errors.nivelNafta.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Kilometraje Actual */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <Gauge className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Kilometraje Actual de Tablero (km)</span>
-                </label>
-                <input
-                  type="number"
-                  {...register("kilometraje", { valueAsNumber: true })}
-                  placeholder="Ej. 65000"
-                  className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 ${
-                    errors.kilometraje
-                      ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
-                      : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
-                  }`}
-                />
-                {errors.kilometraje && (
-                  <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
-                    {errors.kilometraje.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Motivo de Ingreso / Notas del Cliente */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Motivo del Ingreso / Falla Reportada por el Cliente <span className="text-rose-500">*</span></span>
-                </label>
-                <textarea
-                  rows={3}
-                  {...register("detallesIngreso")}
-                  placeholder="Ej. Service periódico de 60.000km, ruido en el tren delantero al doblar a la izquierda, y check engine intermitente."
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs text-slate-900 focus:outline-none focus:ring-2 font-medium ${
-                    errors.detallesIngreso
-                      ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
-                      : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
-                  }`}
-                />
-                {errors.detallesIngreso && (
-                  <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
-                    {errors.detallesIngreso.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Peritaje Inicial del Dueño: Abolladuras y Desperfectos */}
-              <div className="space-y-2 bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-amber-900">
-                    <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span className="font-bold text-xs uppercase tracking-wider">
-                      Peritaje Inicial del Dueño (Daños Previos)
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-md">
-                    Constatación Legal
-                  </span>
-                </div>
-                <p className="text-[11px] text-amber-900 leading-tight">
-                  Comentario del dueño indicando abolladuras, rayones y desperfectos preexistentes al entregar el auto:
-                </p>
-                <textarea
-                  rows={2}
-                  {...register("comentariosDuenio")}
-                  placeholder="Ej: El cliente manifiesta tener un bollo en guardabarro trasero derecho por estacionamiento, raspón en paragolpe delantero y óptica izquierda rajada..."
-                  className="w-full p-2.5 rounded-xl border border-amber-300 bg-white font-medium text-xs text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400"
-                />
-                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                  <span className="text-[10px] text-amber-900 font-bold">Atajos rápidos:</span>
-                  {[
-                    "Paragolpe rayado",
-                    "Bollo en puerta",
-                    "Parabrisas picado",
-                    "Óptica rajada",
-                    "Sin daños previos (impecable)",
-                  ].map((sug) => (
-                    <button
-                      key={sug}
-                      type="button"
-                      onClick={() => {
-                        const current = watch("comentariosDuenio") || "";
-                        const updated = current.trim() ? `${current.trim()}. ${sug}` : sug;
-                        setValue("comentariosDuenio", updated);
-                      }}
-                      className="text-[10px] px-2 py-0.5 rounded-lg bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold transition-colors cursor-pointer"
-                    >
-                      + {sug}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Firma Digital del Cliente en Tablet / Pantalla */}
-              <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                  <span className="flex items-center gap-1.5">
-                    <PenTool className="w-3.5 h-3.5 text-sky-600" />
-                    <span>Firma del Cliente (Recepción y Resguardo)</span>
-                  </span>
-                  <span className={`text-[11px] font-bold ${firmaCliente ? "text-emerald-600" : "text-slate-400"}`}>
-                    {firmaCliente ? "✓ Firma registrada" : "Opcional / en pantalla"}
-                  </span>
-                </div>
-                <ClientSignaturePad
-                  value={firmaCliente}
-                  onChange={(sig) => setFirmaCliente(sig)}
-                  height={170}
-                  title="Firma del Titular / Conductor al ingresar"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0 bg-white sticky bottom-0">
-                <button
-                  type="button"
-                  onClick={() => setOrderModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingOrder}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  {submittingOrder ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Generando Orden...</span>
-                    </>
-                  ) : (
-                    <span>Confirmar Ingreso al Taller</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
