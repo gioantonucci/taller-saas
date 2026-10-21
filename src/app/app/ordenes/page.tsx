@@ -309,6 +309,18 @@ export default function OrdenesPage() {
     return "";
   };
 
+  const getLastStatusDate = (o: any): Date => {
+    if (!o) return new Date();
+    const raw =
+      o.fechaCambioEstado ||
+      (isCancelledOrder(o) ? o.fechaCancelacion : null) ||
+      o.fechaEntrega ||
+      o.fechaCancelacion ||
+      o.updatedAt ||
+      o.fechaIngreso;
+    return new Date(raw || Date.now());
+  };
+
 
 
   // Modal para Nueva Orden Rápida Progresivo (5 Pasos: Titular, Vehículo, Inspección, Firma Tablet, Confirmación)
@@ -934,9 +946,8 @@ export default function OrdenesPage() {
     };
   }, [orders]);
 
-  // Filtrado de órdenes
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
+    const list = orders.filter((o) => {
       if (estadoFilter === "TODOS") {
         if (
           o.estado === "ENTREGADO" ||
@@ -989,6 +1000,12 @@ export default function OrdenesPage() {
       }
 
       return true;
+    });
+
+    return [...list].sort((a, b) => {
+      const timeA = getLastStatusDate(a).getTime();
+      const timeB = getLastStatusDate(b).getTime();
+      return timeB - timeA;
     });
   }, [orders, estadoFilter, search]);
 
@@ -1260,8 +1277,11 @@ export default function OrdenesPage() {
                       </span>
                     </div>
 
-                    <span className="text-slate-400 font-medium">
-                      {new Date(orden.fechaIngreso).toLocaleDateString("es-AR")}
+                    <span
+                      className="text-slate-400 font-medium"
+                      title={`Último cambio de estado: ${getLastStatusDate(orden).toLocaleString("es-AR")}`}
+                    >
+                      {getLastStatusDate(orden).toLocaleDateString("es-AR")}
                     </span>
                   </div>
 
@@ -1439,8 +1459,11 @@ export default function OrdenesPage() {
                       </td>
 
                       {/* 5. Fecha */}
-                      <td className="py-3 px-4 text-slate-500 font-medium whitespace-nowrap">
-                        {new Date(orden.fechaIngreso).toLocaleDateString("es-AR")}
+                      <td
+                        className="py-3 px-4 text-slate-500 font-medium whitespace-nowrap"
+                        title={`Último cambio de estado: ${getLastStatusDate(orden).toLocaleString("es-AR")}`}
+                      >
+                        {getLastStatusDate(orden).toLocaleDateString("es-AR")}
                       </td>
 
                       {/* 6. Acciones */}

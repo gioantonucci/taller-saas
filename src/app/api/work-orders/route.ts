@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         workLogs: true,
         multimedia: true,
       },
-      orderBy: { fechaIngreso: "desc" },
+      orderBy: [{ fechaCambioEstado: "desc" }, { updatedAt: "desc" }, { fechaIngreso: "desc" }],
     });
 
     const filteredOrders =
@@ -307,6 +307,7 @@ export async function POST(request: NextRequest) {
         mechanicId: resolvedMechanicId,
         adminId: session.id,
         estado: "PENDIENTE_PERITAJE",
+        fechaCambioEstado: new Date(),
         nivelNafta: nivelNafta || "1/2",
         kilometraje: kilometraje ? parseInt(kilometraje, 10) : null,
         detallesIngreso: detallesIngreso || "Ingreso para diagnóstico y peritaje",

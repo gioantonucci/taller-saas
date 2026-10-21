@@ -158,6 +158,7 @@ export async function PATCH(
       updateData.estado = "CANCELADO";
       updateData.motivoCancelacion = motivo;
       updateData.fechaCancelacion = new Date();
+      updateData.fechaCambioEstado = new Date();
 
       // Guardar también dentro de checklistDanio para redundancia
       let existingChecklist: any = {};
@@ -338,6 +339,7 @@ export async function PATCH(
       previousValues.estado = currentOrder.estado;
       newValues.estado = body.estado;
       updateData.estado = body.estado;
+      updateData.fechaCambioEstado = new Date();
 
       if (isTargetEntregado) {
         updateData.fechaEntrega = new Date();
