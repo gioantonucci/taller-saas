@@ -35,6 +35,9 @@ function getVehicleStatus(v: any) {
   // Buscar primero orden activa en taller
   const activeOrder = orders.find(
     (o: any) =>
+      o.estado !== "FINALIZADO" &&
+      o.estado !== "REPARADO" &&
+      o.estado !== "TERMINADO" &&
       o.estado !== "ENTREGADO" &&
       o.estado !== "ARCHIVADO" &&
       o.estado !== "CANCELADO" &&

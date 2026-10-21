@@ -253,14 +253,23 @@ export async function POST(request: NextRequest) {
       }).catch(() => {});
     }
 
-    // 3. REGLA DE NEGOCIO ESTRICTA:
+    // 3. REGLA DE NEGOCIO:
     // El mismo auto no puede estar dos veces en reparación ni en peritaje inicial simultáneamente.
-    // Solo puede abrirse una nueva orden si todas sus órdenes previas están 'ENTREGADO', 'ARCHIVADO' o 'CANCELADO'.
+    // Solo puede abrirse una nueva orden si todas sus órdenes previas están 'FINALIZADO', 'ENTREGADO', 'ARCHIVADO' o 'CANCELADO'.
     const activeOrderForVehicle = await prisma.workOrder.findFirst({
       where: {
         vehicleId: resolvedVehicleId,
         estado: {
-          notIn: ["ENTREGADO", "ARCHIVADO", "CANCELADO"],
+          notIn: [
+            "FINALIZADO",
+            "REPARADO",
+            "TERMINADO",
+            "ENTREGADO",
+            "ARCHIVADO",
+            "CANCELADO",
+            "CANCELADA",
+            "DADA_DE_BAJA",
+          ],
         },
         motivoCancelacion: null,
       },
@@ -279,7 +288,7 @@ export async function POST(request: NextRequest) {
       const estadoActual = activeOrderForVehicle.estado;
       return NextResponse.json(
         {
-          error: `Operación denegada: El vehículo ${vMarca} ${vModelo} (${vPatente}) ya cuenta con la Orden activa #${activeOrderForVehicle.numeroOrden} en estado '${estadoActual}'. No puede ingresar dos veces al taller simultáneamente. Debe entregarse y archivarse la orden previa antes de habilitar un nuevo ingreso.`,
+          error: `Operación denegada: El vehículo ${vMarca} ${vModelo} (${vPatente}) ya cuenta con la Orden activa #${activeOrderForVehicle.numeroOrden} en estado '${estadoActual}'. No puede ingresar dos veces al taller simultáneamente. Debe finalizarse o entregarse la orden previa antes de habilitar un nuevo ingreso.`,
           activeOrderId: activeOrderForVehicle.id,
           activeNumeroOrden: activeOrderForVehicle.numeroOrden,
           activeEstado: activeOrderForVehicle.estado,

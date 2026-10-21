@@ -106,6 +106,9 @@ export default function VehiculoHistorialClinicoPage() {
 
   const activeOrder = vehicle?.workOrders?.find(
     (o: any) =>
+      o.estado !== "FINALIZADO" &&
+      o.estado !== "REPARADO" &&
+      o.estado !== "TERMINADO" &&
       o.estado !== "ENTREGADO" &&
       o.estado !== "ARCHIVADO" &&
       o.estado !== "CANCELADO" &&
@@ -326,7 +329,7 @@ export default function VehiculoHistorialClinicoPage() {
                 Vehículo actualmente en servicio en el taller
               </p>
               <p className="text-amber-900/90 mt-0.5 text-xs">
-                Este vehículo cuenta con la <strong>Orden activa #{activeOrder.numeroOrden}</strong> (Estado: <strong>{activeOrder.estado}</strong>). Según las reglas del taller, un vehículo no puede tener dos órdenes simultáneas abiertas. Una vez finalizado el trabajo y confirmada la entrega al cliente (archivado), quedará habilitado para nuevos ingresos.
+                Este vehículo cuenta con la <strong>Orden activa #{activeOrder.numeroOrden}</strong> (Estado: <strong>{activeOrder.estado}</strong>). Según las reglas del taller, un vehículo no puede tener dos órdenes simultáneas en reparación. Una vez finalizado el trabajo o confirmada la entrega al cliente, quedará habilitado para nuevos ingresos.
               </p>
             </div>
           </div>

@@ -362,6 +362,9 @@ export default function ClienteDetallePage() {
             {client.vehicles.map((v: any) => {
               const activeOrder = v.workOrders?.find(
                 (o: any) =>
+                  o.estado !== "FINALIZADO" &&
+                  o.estado !== "REPARADO" &&
+                  o.estado !== "TERMINADO" &&
                   o.estado !== "ENTREGADO" &&
                   o.estado !== "ARCHIVADO" &&
                   o.estado !== "CANCELADO" &&

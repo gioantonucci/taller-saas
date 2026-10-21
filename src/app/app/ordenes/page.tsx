@@ -468,9 +468,14 @@ export default function OrdenesPage() {
   // Helper para verificar si un vehículo ya posee una orden activa (en peritaje o en reparación)
   const getVehicleActiveOrder = (vehicleId?: string, plate?: string) => {
     const isOrderOpen = (o: any) =>
+      o.estado !== "FINALIZADO" &&
+      o.estado !== "REPARADO" &&
+      o.estado !== "TERMINADO" &&
       o.estado !== "ENTREGADO" &&
       o.estado !== "ARCHIVADO" &&
       o.estado !== "CANCELADO" &&
+      o.estado !== "CANCELADA" &&
+      o.estado !== "DADA_DE_BAJA" &&
       !isCancelledOrder(o);
 
     if (vehicleId) {
@@ -2113,7 +2118,7 @@ export default function OrdenesPage() {
                                   <span>Vehículo actualmente activo en el taller</span>
                                 </div>
                                 <p className="text-[11px] text-amber-900/90 leading-relaxed">
-                                  Este vehículo ya cuenta con la <strong>Orden activa #{selectedVehicleActiveOrder.numeroOrden}</strong> en estado <strong>'{selectedVehicleActiveOrder.estado}'</strong>. El mismo auto no puede estar dos veces en peritaje o en reparación simultáneamente. Debe entregarse y archivarse la orden actual antes de habilitar un nuevo ingreso.
+                                  Este vehículo ya cuenta con la <strong>Orden activa #{selectedVehicleActiveOrder.numeroOrden}</strong> en estado <strong>'{selectedVehicleActiveOrder.estado}'</strong>. El mismo auto no puede estar dos veces en peritaje o en reparación simultáneamente. Debe finalizarse o entregarse la orden actual antes de habilitar un nuevo ingreso.
                                 </p>
                                 <div className="pt-0.5">
                                   <Link
@@ -2248,7 +2253,7 @@ export default function OrdenesPage() {
                             <div>
                               <span className="font-bold">Patente con orden activa: </span>
                               <span>
-                                La patente {orderForm.vehiculoPatente} ya posee la <strong>Orden activa #{newPlateActiveOrder.numeroOrden}</strong> ({newPlateActiveOrder.estado}) en el taller. Debe entregarse y archivarse la orden actual antes de poder reingresar este vehículo.
+                                La patente {orderForm.vehiculoPatente} ya posee la <strong>Orden activa #{newPlateActiveOrder.numeroOrden}</strong> ({newPlateActiveOrder.estado}) en el taller. Debe finalizarse o entregarse la orden actual antes de poder reingresar este vehículo.
                               </span>
                             </div>
                           </div>
@@ -2685,7 +2690,7 @@ export default function OrdenesPage() {
                             <span className="font-semibold">
                               Operación bloqueada: Este vehículo ya cuenta con la Orden activa #{
                                 (selectedVehicleActiveOrder || newPlateActiveOrder)?.numeroOrden
-                              } ({(selectedVehicleActiveOrder || newPlateActiveOrder)?.estado}). No puede crearse una nueva orden hasta entregar y archivar la previa.
+                              } ({(selectedVehicleActiveOrder || newPlateActiveOrder)?.estado}). No puede crearse una nueva orden hasta finalizar o entregar la previa.
                             </span>
                           </div>
                         </div>
