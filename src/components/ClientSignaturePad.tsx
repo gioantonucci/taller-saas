@@ -76,6 +76,9 @@ export default function ClientSignaturePad({
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    if (typeof ctx.setLineDash === "function") {
+      ctx.setLineDash([]);
+    }
 
     if (savedDataUrl) {
       const img = new Image();
@@ -169,6 +172,9 @@ export default function ClientSignaturePad({
       ctx.lineWidth = 2.5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
+      if (typeof ctx.setLineDash === "function") {
+        ctx.setLineDash([]);
+      }
     }
 
     const coords = getCoordinates(e.clientX, e.clientY);
@@ -184,7 +190,7 @@ export default function ClientSignaturePad({
     }
   };
 
-  // Movimiento de trazo continuo suave
+  // Movimiento de trazo continuo fluido y sólido (sin discontinuidades ni líneas de puntos)
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current || readOnly || !lastPointRef.current) return;
     e.preventDefault();
@@ -194,18 +200,33 @@ export default function ClientSignaturePad({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const currentCoords = getCoordinates(e.clientX, e.clientY);
-    const last = lastPointRef.current;
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (typeof ctx.setLineDash === "function") {
+      ctx.setLineDash([]);
+    }
 
-    // Trazo suavizado cuadrático
-    ctx.beginPath();
-    ctx.moveTo(last.x, last.y);
-    const midX = (last.x + currentCoords.x) / 2;
-    const midY = (last.y + currentCoords.y) / 2;
-    ctx.quadraticCurveTo(last.x, last.y, midX, midY);
-    ctx.stroke();
+    // Coalesced events para registrar micro-movimientos en tablets y pantallas táctiles
+    const events =
+      typeof (e.nativeEvent as any)?.getCoalescedEvents === "function"
+        ? (e.nativeEvent as any).getCoalescedEvents()
+        : [e];
 
-    lastPointRef.current = currentCoords;
+    for (const ev of events) {
+      const currentCoords = getCoordinates(ev.clientX, ev.clientY);
+      const last = lastPointRef.current;
+      if (!last) continue;
+
+      // Trazo continuo directo y sellado de punto a punto (sin vacíos ni discontinuidades)
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(currentCoords.x, currentCoords.y);
+      ctx.stroke();
+
+      lastPointRef.current = currentCoords;
+    }
 
     if (!hasDrawnRef.current) {
       hasDrawnRef.current = true;
