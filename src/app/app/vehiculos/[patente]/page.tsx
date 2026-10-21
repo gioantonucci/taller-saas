@@ -10,7 +10,6 @@ import {
   Wrench,
   History,
   CheckCircle2,
-  Trash2,
   FileText,
   ChevronRight,
   Plus,
@@ -34,7 +33,6 @@ export default function VehiculoHistorialClinicoPage() {
   const [vehicle, setVehicle] = useState<any | null>(null);
   const [clinicalStats, setClinicalStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -198,49 +196,6 @@ export default function VehiculoHistorialClinicoPage() {
     }
   };
 
-  const handleSoftDelete = async () => {
-    if (!vehicle) return;
-    const confirmDelete = await confirm({
-      title: "Eliminar Vehículo",
-      message: `¿Confirmás la eliminación del vehículo ${vehicle.marca} ${vehicle.modelo} (${vehicle.patente})?\n\nSe preservará todo el historial en órdenes y auditoría intacto.`,
-      confirmText: "Eliminar Vehículo",
-      cancelText: "Cancelar",
-      variant: "danger",
-      icon: "trash",
-    });
-    if (!confirmDelete) return;
-
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/vehicles/${patente}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        await alert({
-          title: "Vehículo Eliminado",
-          message: "El vehículo ha sido eliminado correctamente del sistema.",
-          variant: "success",
-        });
-        router.push("/app/vehiculos");
-      } else {
-        const data = await res.json();
-        await alert({
-          title: "Error al eliminar",
-          message: data.error || "No se pudo eliminar el vehículo",
-          variant: "danger",
-        });
-      }
-    } catch {
-      await alert({
-        title: "Error de conexión",
-        message: "No se pudo conectar con el servidor al eliminar el vehículo.",
-        variant: "danger",
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -307,15 +262,6 @@ export default function VehiculoHistorialClinicoPage() {
             </button>
           )}
 
-          <button
-            onClick={handleSoftDelete}
-            disabled={deleting}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
-            title="Eliminar vehículo"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Eliminar</span>
-          </button>
         </div>
       </div>
 
