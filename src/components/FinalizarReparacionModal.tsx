@@ -429,11 +429,11 @@ export default function FinalizarReparacionModal({
               )}
 
               {/* Botones Paso 1 */}
-              <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="pt-2 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer text-center"
+                  className="py-3 px-5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer text-center shrink-0 whitespace-nowrap"
                 >
                   Cancelar
                 </button>
@@ -441,10 +441,10 @@ export default function FinalizarReparacionModal({
                   type="button"
                   onClick={handleGoToStep2}
                   disabled={!canFinalize}
-                  className="w-full sm:flex-2 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center whitespace-nowrap"
                 >
-                  <span>Siguiente: Checklist de Salida</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Siguiente: Checklist</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </div>
             </div>
@@ -633,30 +633,30 @@ export default function FinalizarReparacionModal({
               </div>
 
               {/* Botones Paso 2 */}
-              <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5">
+              <div className="pt-2 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
                   disabled={submitting}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 text-center flex items-center justify-center gap-1.5"
+                  className="py-3 px-4 sm:px-5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 text-center flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Volver al Paso 1</span>
+                  <ArrowLeft className="w-4 h-4 shrink-0" />
+                  <span>Volver</span>
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !canFinalize}
-                  className="w-full sm:flex-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center"
+                  className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-600/25 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-center whitespace-nowrap"
                 >
                   {submitting ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Guardando y Cerrando...</span>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Finalizando...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Confirmar y Finalizar Reparación</span>
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>Confirmar y Finalizar</span>
                     </>
                   )}
                 </button>
