@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { RotateCcw, Check, PenTool } from "lucide-react";
 
 interface ClientSignaturePadProps {
@@ -22,139 +22,275 @@ export default function ClientSignaturePad({
 }: ClientSignaturePadProps) {
   const currentSig = value !== undefined ? value : initialSignature;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasDrawn, setHasDrawn] = useState(Boolean(currentSig));
-  const [lastPoint, setLastPoint] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Inicializar canvas y cargar firma existente si hay
-  const initCanvas = useCallback(() => {
+  // Estados de interfaz
+  const [hasDrawn, setHasDrawn] = useState(Boolean(currentSig));
+
+  // Refs de dibujo para evitar re-renders innecesarios durante el trazo continuo
+  const isDrawingRef = useRef(false);
+  const hasDrawnRef = useRef(Boolean(currentSig));
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const isInitializedRef = useRef(false);
+  const currentSignatureDataUrlRef = useRef<string | null>(currentSig || null);
+
+  // Mantener actualizado el callback onChange
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Inicializar dimensiones del canvas
+  const setupCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const dpr = Math.max(window.devicePixelRatio || 1, 1);
+    const targetWidth = Math.floor(rect.width * dpr);
+    const targetHeight = Math.floor(rect.height * dpr);
+
+    // Si ya tiene el tamaño correcto y ya está inicializado, no redimensionar (redimensionar borra el canvas)
+    if (isInitializedRef.current && canvas.width === targetWidth && canvas.height === targetHeight) {
+      return;
+    }
+
+    // Si ya teníamos un dibujo antes de redimensionar, guardarlo para re-dibujarlo
+    let savedDataUrl: string | null = null;
+    if (hasDrawnRef.current && isInitializedRef.current) {
+      try {
+        savedDataUrl = canvas.toDataURL("image/png");
+      } catch {}
+    } else if (currentSignatureDataUrlRef.current) {
+      savedDataUrl = currentSignatureDataUrlRef.current;
+    }
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Configuración para pantallas de alta densidad (Retina)
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
-
-    ctx.strokeStyle = "#0f172a"; // Tinta oscura (slate-900)
+    ctx.strokeStyle = "#0f172a"; // Tinta oscura visible y profesional
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    if (initialSignature) {
+    if (savedDataUrl) {
       const img = new Image();
       img.onload = () => {
         ctx.clearRect(0, 0, rect.width, rect.height);
         ctx.drawImage(img, 0, 0, rect.width, rect.height);
+        hasDrawnRef.current = true;
         setHasDrawn(true);
       };
-      img.src = initialSignature;
+      img.src = savedDataUrl;
     } else {
       ctx.clearRect(0, 0, rect.width, rect.height);
-      setHasDrawn(false);
     }
-  }, [initialSignature]);
 
+    isInitializedRef.current = true;
+  };
+
+  // Inicialización en montaje y con ResizeObserver
   useEffect(() => {
-    initCanvas();
-    const handleResize = () => {
-      // Solo reiniciar si no había dibujado para evitar borrar la firma accidentalmente
-      if (!hasDrawn) initCanvas();
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [initCanvas, hasDrawn]);
+    setupCanvas();
 
-  // Obtener coordenadas relativas al canvas
-  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    // Reintentar si el canvas estaba oculto o en animación del modal
+    const frameId = requestAnimationFrame(() => {
+      setupCanvas();
+    });
+
+    const timer = setTimeout(() => {
+      setupCanvas();
+    }, 150);
+
+    const resizeObserver = new ResizeObserver(() => {
+      setupCanvas();
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Si cambia externamente el valor de la firma a null (por ejemplo al resetear formulario)
+  useEffect(() => {
+    if (value === null && hasDrawnRef.current) {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const rect = canvas.getBoundingClientRect();
+          ctx.clearRect(0, 0, rect.width, rect.height);
+        }
+      }
+      hasDrawnRef.current = false;
+      setHasDrawn(false);
+      currentSignatureDataUrlRef.current = null;
+    }
+  }, [value]);
+
+  // Obtener coordenadas relativas en píxeles CSS
+  const getCoordinates = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
 
-    if ("touches" in e) {
-      const touch = e.touches[0] || e.changedTouches[0];
-      return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
-      };
-    } else {
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
+  // Inicio de trazo (con soporte unificado de Pointer Events: dedo, lápiz, ratón)
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (readOnly) return;
+    e.preventDefault();
+
+    // Capturar el puntero para que no se pierda el trazo si el dedo sale del recuadro
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Asegurar que el contexto tenga el estilo de trazo correcto
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.strokeStyle = "#0f172a";
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    }
+
+    const coords = getCoordinates(e.clientX, e.clientY);
+    isDrawingRef.current = true;
+    lastPointRef.current = coords;
+
+    // Dibujar un punto inicial en caso de que sea solo un toque/punto
+    if (ctx) {
+      ctx.beginPath();
+      ctx.arc(coords.x, coords.y, 1.25, 0, Math.PI * 2);
+      ctx.fillStyle = "#0f172a";
+      ctx.fill();
     }
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (readOnly) return;
-    const coords = getCoordinates(e);
-    setIsDrawing(true);
-    setLastPoint(coords);
-  };
+  // Movimiento de trazo continuo suave
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current || readOnly || !lastPointRef.current) return;
+    e.preventDefault();
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || readOnly || !lastPoint) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const currentPoint = getCoordinates(e);
+    const currentCoords = getCoordinates(e.clientX, e.clientY);
+    const last = lastPointRef.current;
 
-    // Trazo suavizado
+    // Trazo suavizado cuadrático
     ctx.beginPath();
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    const midX = (lastPoint.x + currentPoint.x) / 2;
-    const midY = (lastPoint.y + currentPoint.y) / 2;
-    ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midX, midY);
-    ctx.lineTo(currentPoint.x, currentPoint.y);
+    ctx.moveTo(last.x, last.y);
+    const midX = (last.x + currentCoords.x) / 2;
+    const midY = (last.y + currentCoords.y) / 2;
+    ctx.quadraticCurveTo(last.x, last.y, midX, midY);
     ctx.stroke();
 
-    setLastPoint(currentPoint);
-    if (!hasDrawn) setHasDrawn(true);
-  };
+    lastPointRef.current = currentCoords;
 
-  const stopDrawing = () => {
-    if (!isDrawing) return;
-    setIsDrawing(false);
-    setLastPoint(null);
-
-    const canvas = canvasRef.current;
-    if (canvas && hasDrawn) {
-      const dataUrl = canvas.toDataURL("image/png");
-      onChange(dataUrl);
+    if (!hasDrawnRef.current) {
+      hasDrawnRef.current = true;
+      setHasDrawn(true);
     }
   };
 
+  // Fin de trazo
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
+    e.preventDefault();
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {}
+
+    isDrawingRef.current = false;
+    lastPointRef.current = null;
+
+    const canvas = canvasRef.current;
+    if (canvas && hasDrawnRef.current) {
+      const dataUrl = canvas.toDataURL("image/png");
+      currentSignatureDataUrlRef.current = dataUrl;
+      onChangeRef.current(dataUrl);
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    handlePointerUp(e);
+  };
+
+  // Limpiar firma
   const handleClear = () => {
     if (readOnly) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.width, rect.height);
+    hasDrawnRef.current = false;
+    currentSignatureDataUrlRef.current = null;
     setHasDrawn(false);
-    onChange(null);
+    onChangeRef.current(null);
   };
 
+  // Evitar scroll táctil cuando se dibuja en tablets/móviles
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventTouchScroll = (e: TouchEvent) => {
+      if (isDrawingRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    canvas.addEventListener("touchstart", preventTouchScroll, { passive: false });
+    canvas.addEventListener("touchmove", preventTouchScroll, { passive: false });
+
+    return () => {
+      canvas.removeEventListener("touchstart", preventTouchScroll);
+      canvas.removeEventListener("touchmove", preventTouchScroll);
+    };
+  }, []);
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 select-none">
       <div className="flex items-center justify-between text-xs">
         <label className="font-bold text-slate-800 flex items-center gap-1.5">
-          <PenTool className="w-4 h-4 text-emerald-600" />
-          <span>Firma del Cliente en Tablet</span>
-          <span className="text-[10px] text-slate-500 font-normal">(con dedo o lápiz)</span>
+          <PenTool className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{title || "Firma del Cliente en Tablet"}</span>
+          <span className="text-[10px] text-slate-500 font-normal hidden sm:inline">
+            (con dedo o lápiz táctil)
+          </span>
         </label>
         {!readOnly && (
           <button
             type="button"
             onClick={handleClear}
             className="text-[11px] font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+            title="Borrar y firmar nuevamente"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Borrar Firma</span>
@@ -163,7 +299,8 @@ export default function ClientSignaturePad({
       </div>
 
       <div
-        className={`relative w-full rounded-2xl border-2 transition-all overflow-hidden bg-white ${
+        ref={containerRef}
+        className={`relative w-full rounded-2xl border-2 transition-all overflow-hidden bg-white touch-none ${
           hasDrawn
             ? "border-emerald-400 shadow-sm"
             : "border-slate-300 border-dashed hover:border-slate-400"
@@ -172,16 +309,12 @@ export default function ClientSignaturePad({
       >
         <canvas
           ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
           style={{ touchAction: "none", width: "100%", height: "100%" }}
-          className="block w-full h-full"
+          className="block w-full h-full touch-none select-none"
         />
 
         {/* Guía visual para firma (línea y X) */}
@@ -189,15 +322,15 @@ export default function ClientSignaturePad({
           <div className="absolute inset-0 pointer-events-none flex flex-col justify-end p-4 pb-5 select-none">
             <div className="border-b border-slate-300 pb-1 flex items-center justify-between text-[11px] text-slate-400 font-medium">
               <span className="font-mono text-slate-300">✕ Firma del cliente</span>
-              <span>Firme aquí</span>
+              <span>Firme aquí con el dedo o lápiz</span>
             </div>
           </div>
         )}
 
         {/* Badge indicador de estado */}
         {hasDrawn && (
-          <div className="absolute top-2 right-2 pointer-events-none flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
-            <Check className="w-3 h-3" />
+          <div className="absolute top-2 right-2 pointer-events-none flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-extrabold shadow-2xs">
+            <Check className="w-3.5 h-3.5" />
             <span>Firma registrada</span>
           </div>
         )}
