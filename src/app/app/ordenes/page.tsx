@@ -44,6 +44,7 @@ import {
   ResguardoDepositoParams,
 } from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 // Badge Matrícula Compacto pero legible y de tamaño táctil
 function ArgentinePlateBadge({ patente }: { patente: string }) {
@@ -714,33 +715,16 @@ export default function OrdenesPage() {
 
   const filteredClients = useMemo(() => {
     if (!clientSearchQuery.trim()) return existingClients;
-    const q = clientSearchQuery.toLowerCase().trim();
-    return existingClients.filter((c: any) => {
-      const nombre = (c.nombre || "").toLowerCase();
-      const apellido = (c.apellido || "").toLowerCase();
-      const fullName = `${nombre} ${apellido}`;
-      const dni = (c.dni || "").toLowerCase();
-      const telefono = (c.telefono || "").toLowerCase();
-      return (
-        nombre.includes(q) ||
-        apellido.includes(q) ||
-        fullName.includes(q) ||
-        dni.includes(q) ||
-        telefono.includes(q)
-      );
-    });
+    return existingClients.filter((c: any) =>
+      matchesSearchMulti([c.nombre, c.apellido, c.dni, c.telefono, c.email, c.direccion], clientSearchQuery)
+    );
   }, [existingClients, clientSearchQuery]);
 
   const filteredClientVehicles = useMemo(() => {
     if (!vehicleSearchQuery.trim()) return clientVehicles;
-    const q = vehicleSearchQuery.toLowerCase().trim();
-    return clientVehicles.filter((v: any) => {
-      const patente = (v.patente || "").toLowerCase();
-      const marca = (v.marca || "").toLowerCase();
-      const modelo = (v.modelo || "").toLowerCase();
-      const full = `${marca} ${modelo} ${patente}`.toLowerCase();
-      return patente.includes(q) || marca.includes(q) || modelo.includes(q) || full.includes(q);
-    });
+    return clientVehicles.filter((v: any) =>
+      matchesSearchMulti([v.patente, v.marca, v.modelo, v.nroChasis, v.nroMotor], vehicleSearchQuery)
+    );
   }, [clientVehicles, vehicleSearchQuery]);
 
   const handleSelectClient = (clientId: string) => {
@@ -986,16 +970,20 @@ export default function OrdenesPage() {
       }
 
       if (search.trim()) {
-        const q = search.toLowerCase().trim();
-        const matchPatente = o.vehicle?.patente?.toLowerCase().includes(q);
-        const matchModelo = o.vehicle?.modelo?.toLowerCase().includes(q);
-        const matchMarca = o.vehicle?.marca?.toLowerCase().includes(q);
-        const matchCliente = `${o.vehicle?.client?.nombre || ""} ${o.vehicle?.client?.apellido || ""}`
-          .toLowerCase()
-          .includes(q);
-        const matchNumero = String(o.numeroOrden).includes(q);
-
-        if (!matchPatente && !matchModelo && !matchMarca && !matchCliente && !matchNumero) {
+        const matches = matchesSearchMulti(
+          [
+            o.vehicle?.patente,
+            o.vehicle?.modelo,
+            o.vehicle?.marca,
+            o.vehicle?.client?.nombre,
+            o.vehicle?.client?.apellido,
+            o.vehicle?.client?.dni,
+            o.numeroOrden,
+            o.detallesIngreso,
+          ],
+          search
+        );
+        if (!matches) {
           return false;
         }
       }

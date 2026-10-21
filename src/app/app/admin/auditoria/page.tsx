@@ -227,8 +227,11 @@ export default function AuditoriaPage() {
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, [entidadFilter, accionFilter, userFilter, rangoFecha]);
+    const timer = setTimeout(() => {
+      fetchLogs();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [entidadFilter, accionFilter, userFilter, rangoFecha, search]);
 
   // Acción para vaciar todo el historial
   const handleClearHistory = async () => {

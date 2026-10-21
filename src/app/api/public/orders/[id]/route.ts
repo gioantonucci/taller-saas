@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeForSearch } from "@/lib/search-utils";
 
 export async function GET(
   request: NextRequest,
@@ -74,17 +75,15 @@ export async function GET(
 
     // Si aún no encontró, buscar por matrícula / patente del vehículo
     if (!order) {
-      const cleanPlate = rawId.replace(/[\s\-_]/g, "");
-      
-      // Buscar vehículo por patente exacta o sin espacios
-      const matchingVehicles = await prisma.vehicle.findMany({
-        where: {
-          OR: [
-            { patente: { equals: rawId, mode: "insensitive" } },
-            { patente: { contains: cleanPlate, mode: "insensitive" } },
-          ],
-        },
-        select: { id: true },
+      const cleanPlate = normalizeForSearch(rawId).replace(/[\s\-_]/g, "");
+
+      const allVehicles = await prisma.vehicle.findMany({
+        select: { id: true, patente: true },
+      });
+
+      const matchingVehicles = allVehicles.filter((v) => {
+        const pNorm = normalizeForSearch(v.patente).replace(/[\s\-_]/g, "");
+        return pNorm === cleanPlate || (cleanPlate.length >= 3 && pNorm.includes(cleanPlate));
       });
 
       if (matchingVehicles.length > 0) {

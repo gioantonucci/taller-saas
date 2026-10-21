@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -47,17 +48,6 @@ export async function GET(request: NextRequest) {
       where.mechanicId = mechanicId;
     }
 
-    if (search) {
-      where.OR = [
-        { vehicle: { patente: { contains: search } } },
-        { vehicle: { modelo: { contains: search } } },
-        { vehicle: { client: { nombre: { contains: search } } } },
-        { vehicle: { client: { apellido: { contains: search } } } },
-        { vehicle: { client: { dni: { contains: search } } } },
-        { detallesIngreso: { contains: search } },
-      ];
-    }
-
     const orders = await prisma.workOrder.findMany({
       where,
       include: {
@@ -76,7 +66,26 @@ export async function GET(request: NextRequest) {
       orderBy: { fechaIngreso: "desc" },
     });
 
-    return NextResponse.json({ success: true, orders });
+    const filteredOrders =
+      search && search.trim()
+        ? orders.filter((o) =>
+            matchesSearchMulti(
+              [
+                o.vehicle?.patente,
+                o.vehicle?.modelo,
+                o.vehicle?.marca,
+                o.vehicle?.client?.nombre,
+                o.vehicle?.client?.apellido,
+                o.vehicle?.client?.dni,
+                o.numeroOrden,
+                o.detallesIngreso,
+              ],
+              search
+            )
+          )
+        : orders;
+
+    return NextResponse.json({ success: true, orders: filteredOrders });
   } catch (error: any) {
     console.error("Error en GET /api/work-orders:", error);
     return NextResponse.json(

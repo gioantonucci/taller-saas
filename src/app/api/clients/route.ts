@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
 import { clientFormSchema } from "@/lib/validations";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +26,6 @@ export async function GET(request: NextRequest) {
       where.status = "ACTIVE";
     }
 
-    if (search) {
-      const term = search.trim();
-      where.OR = [
-        { nombre: { contains: term } },
-        { apellido: { contains: term } },
-        { dni: { contains: term } },
-        { telefono: { contains: term } },
-        { email: { contains: term } },
-      ];
-    }
-
     const clients = await prisma.client.findMany({
       where,
       include: {
@@ -49,7 +39,17 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, clients });
+    const filteredClients =
+      search && search.trim()
+        ? clients.filter((c) =>
+            matchesSearchMulti(
+              [c.nombre, c.apellido, c.dni, c.telefono, c.email, c.direccion],
+              search
+            )
+          )
+        : clients;
+
+    return NextResponse.json({ success: true, clients: filteredClients });
   } catch (error: any) {
     console.error("Error en GET /api/clients:", error);
     return NextResponse.json({ error: "Error al obtener clientes" }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -83,14 +84,6 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
 
-    if (search) {
-      where.OR = [
-        { nombre: { contains: search } },
-        { codigo: { contains: search.toUpperCase() } },
-        { categoria: { contains: search } },
-      ];
-    }
-
     if (filter === "LOW_STOCK") {
       where.stock = { gt: 0, lte: 2 };
     } else if (filter === "OUT_OF_STOCK") {
@@ -104,6 +97,13 @@ export async function GET(request: NextRequest) {
       orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
     });
 
+    const filteredItems =
+      search && search.trim()
+        ? items.filter((it) =>
+            matchesSearchMulti([it.nombre, it.codigo, it.categoria], search)
+          )
+        : items;
+
     // Calcular estadísticas de stock
     const allItems = await prisma.inventoryItem.findMany();
     const totalCatalogItems = allItems.length;
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      items,
+      items: filteredItems,
       stats: {
         totalCatalogItems,
         totalUnitsInStock,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -90,16 +91,6 @@ export async function GET(request: NextRequest) {
       andConditions.push({ userId });
     }
 
-    if (search) {
-      andConditions.push({
-        OR: [
-          { userName: { contains: search } },
-          { userEmail: { contains: search } },
-          { detallesCambio: { contains: search } },
-        ],
-      });
-    }
-
     if (andConditions.length > 0) {
       where.AND = andConditions;
     }
@@ -161,7 +152,25 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, logs: parsedLogs, users });
+    const filteredLogs =
+      search && search.trim()
+        ? parsedLogs.filter((log) =>
+            matchesSearchMulti(
+              [
+                log.userName,
+                log.userEmail,
+                log.detallesCambio,
+                log.entidadAfectada,
+                log.entidad,
+                log.accion,
+                log.ipAddress,
+              ],
+              search
+            )
+          )
+        : parsedLogs;
+
+    return NextResponse.json({ success: true, logs: filteredLogs, users });
   } catch (error: any) {
     console.error("Error en GET /api/audit-logs:", error);
     return NextResponse.json(

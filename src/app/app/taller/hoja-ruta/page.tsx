@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
+import { matchesSearchMulti } from "@/lib/search-utils";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
 
@@ -440,14 +441,21 @@ export default function HojaRutaMecanicoPage() {
       return false;
     }
 
-    const matchesSearch =
-      o.vehicle.patente.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.vehicle.modelo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.vehicle.marca.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.vehicle.client.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (o.vehicle.client.apellido || "").toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (!matchesSearch) return false;
+    if (searchQuery.trim()) {
+      const matchesSearch = matchesSearchMulti(
+        [
+          o.vehicle?.patente,
+          o.vehicle?.modelo,
+          o.vehicle?.marca,
+          o.vehicle?.client?.nombre,
+          o.vehicle?.client?.apellido,
+          o.numeroOrden,
+          o.detallesIngreso,
+        ],
+        searchQuery
+      );
+      if (!matchesSearch) return false;
+    }
 
     if (statusFilter === "TODOS") {
       return true;

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
 import { quickVehicleAndClientSchema } from "@/lib/validations";
+import { matchesSearchMulti } from "@/lib/search-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -24,18 +25,6 @@ export async function GET(request: NextRequest) {
       where.status = "ACTIVE";
     }
 
-    if (search) {
-      const term = search.trim();
-      where.OR = [
-        { patente: { contains: term.toUpperCase() } },
-        { marca: { contains: term } },
-        { modelo: { contains: term } },
-        { client: { nombre: { contains: term } } },
-        { client: { apellido: { contains: term } } },
-        { client: { dni: { contains: term } } },
-      ];
-    }
-
     const vehicles = await prisma.vehicle.findMany({
       where,
       include: {
@@ -48,7 +37,27 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, vehicles });
+    const filteredVehicles =
+      search && search.trim()
+        ? vehicles.filter((v) =>
+            matchesSearchMulti(
+              [
+                v.patente,
+                v.marca,
+                v.modelo,
+                v.color,
+                v.nroChasis,
+                v.nroMotor,
+                v.client?.nombre,
+                v.client?.apellido,
+                v.client?.dni,
+              ],
+              search
+            )
+          )
+        : vehicles;
+
+    return NextResponse.json({ success: true, vehicles: filteredVehicles });
   } catch (error: any) {
     console.error("Error en GET /api/vehicles:", error);
     return NextResponse.json({ error: "Error al obtener vehículos" }, { status: 500 });
