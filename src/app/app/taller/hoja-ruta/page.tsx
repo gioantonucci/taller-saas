@@ -128,16 +128,39 @@ export default function HojaRutaMecanicoPage() {
     }
   };
 
+  const isCancelledOrder = (order: any) => {
+    return Boolean(
+      order &&
+      (order.estado === "CANCELADO" ||
+        order.motivoCancelacion ||
+        (() => {
+          try {
+            const parsed =
+              typeof order.checklistDanio === "string"
+                ? JSON.parse(order.checklistDanio)
+                : order.checklistDanio;
+            return Boolean(parsed?.motivoCancelacion);
+          } catch {
+            return false;
+          }
+        })())
+    );
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/work-orders?scope=mine");
       if (res.ok) {
         const data = await res.json();
-        setOrders(data.orders || []);
+        const activeOrders = (data.orders || []).filter(
+          (o: any) => !isCancelledOrder(o) && o.estado !== "CANCELADO" && o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+        );
+        setOrders(activeOrders);
         if (selectedOrder) {
-          const fresh = (data.orders || []).find((o: any) => o.id === selectedOrder.id);
+          const fresh = activeOrders.find((o: any) => o.id === selectedOrder.id);
           if (fresh) syncSelectedOrder(fresh);
+          else setSelectedOrder(null);
         }
       }
     } catch (err) {
@@ -411,8 +434,12 @@ export default function HojaRutaMecanicoPage() {
 
 
 
-  // Filtrado de órdenes activas
+  // Filtrado de órdenes activas (excluye canceladas y archivadas)
   const filteredOrders = orders.filter((o) => {
+    if (isCancelledOrder(o) || o.estado === "CANCELADO" || o.estado === "ENTREGADO" || o.estado === "ARCHIVADO") {
+      return false;
+    }
+
     const matchesSearch =
       o.vehicle.patente.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.vehicle.modelo.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -423,7 +450,7 @@ export default function HojaRutaMecanicoPage() {
     if (!matchesSearch) return false;
 
     if (statusFilter === "TODOS") {
-      return o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO";
+      return true;
     }
     if (statusFilter === "PENDIENTE") {
       return o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO";
@@ -440,13 +467,17 @@ export default function HojaRutaMecanicoPage() {
     return true;
   });
 
-  // Conteo de órdenes activas
+  // Conteo de órdenes activas (excluye canceladas y archivadas)
+  const activeOrdersForCounts = orders.filter(
+    (o) => !isCancelledOrder(o) && o.estado !== "CANCELADO" && o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+  );
+
   const counts = {
-    total: orders.filter((o) => o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO").length,
-    pendiente: orders.filter((o) => o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO").length,
-    enCurso: orders.filter((o) => o.estado === "EN_CURSO" || o.estado === "EN_REPARACION" || o.estado === "PERITADO").length,
-    esperandoRepuestos: orders.filter((o) => o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO").length,
-    finalizado: orders.filter((o) => o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO").length,
+    total: activeOrdersForCounts.length,
+    pendiente: activeOrdersForCounts.filter((o) => o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO").length,
+    enCurso: activeOrdersForCounts.filter((o) => o.estado === "EN_CURSO" || o.estado === "EN_REPARACION" || o.estado === "PERITADO").length,
+    esperandoRepuestos: activeOrdersForCounts.filter((o) => o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO").length,
+    finalizado: activeOrdersForCounts.filter((o) => o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO").length,
   };
 
   const totalHorasInvertidas =

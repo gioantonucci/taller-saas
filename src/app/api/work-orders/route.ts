@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
     // Filtrar por mecánico si se especifica en parámetros o scope específico de hoja de ruta
     if (scope === "mine" || mechanicId === "mine") {
       where.mechanicId = session.id;
+      if (!estado || estado === "TODOS") {
+        where.estado = { notIn: ["CANCELADO", "ENTREGADO", "ARCHIVADO"] };
+        where.motivoCancelacion = null;
+      }
     } else if (mechanicId && mechanicId !== "TODOS") {
       where.mechanicId = mechanicId;
     }
