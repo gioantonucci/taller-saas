@@ -610,10 +610,10 @@ export default function OrdenDetallePage() {
                     setBajaError(null);
                     setDarDeBajaModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-rose-300 hover:bg-rose-50 hover:border-rose-400 text-rose-700 font-extrabold text-xs shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95"
                   title="Dar de baja y archivar esta orden de trabajo con justificación"
                 >
-                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                  <Ban className="w-4 h-4 text-white" />
                   <span>Dar de baja orden</span>
                 </button>
               )}
@@ -1188,6 +1188,23 @@ export default function OrdenDetallePage() {
                 </div>
               );
             })()}
+
+            {/* Acceso secundario para dar de baja */}
+            {!isCancelled && !isEntregado && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMotivoBaja("");
+                  setBajaError(null);
+                  setDarDeBajaModalOpen(true);
+                }}
+                className="w-full mt-2.5 py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Dar de baja y archivar esta orden de trabajo con justificación"
+              >
+                <Ban className="w-3.5 h-3.5 text-rose-600" />
+                <span>Dar de baja esta orden</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

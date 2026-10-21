@@ -1568,8 +1568,7 @@ export default function OrdenesPage() {
                               </button>
                             </>
                           )}
-                          {!isFinished &&
-                            orden.estado !== "ENTREGADO" &&
+                          {orden.estado !== "ENTREGADO" &&
                             orden.estado !== "ARCHIVADO" &&
                             !isCancelledOrder(orden) && (
                               <button
@@ -1579,10 +1578,11 @@ export default function OrdenesPage() {
                                   setCancelReason("");
                                   setCancelError(null);
                                 }}
-                                className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
-                                title="Dar de baja orden de trabajo"
+                                className="px-2 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1 hover:scale-105"
+                                title="Dar de baja orden de trabajo y archivar con motivo"
                               >
                                 <Ban className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Baja</span>
                               </button>
                             )}
                           <button
