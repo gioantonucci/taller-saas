@@ -31,7 +31,6 @@ import {
 import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from "@/types";
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
-import ClientSignaturePad from "@/components/ClientSignaturePad";
 import {
   generateResguardoDepositoPDF,
   printResguardoDepositoPDF,
@@ -198,13 +197,12 @@ export default function PeritajeIngresoModal({
     }
   }, [order?.checklistDanio, order?.id]);
 
-  const [activeTab, setActiveTab] = useState<"TABLERO" | "CARROCERIA" | "INVENTARIO" | "FOTOS" | "FIRMA">("TABLERO");
-  const TABS: Array<"TABLERO" | "CARROCERIA" | "INVENTARIO" | "FOTOS" | "FIRMA"> = [
+  const [activeTab, setActiveTab] = useState<"TABLERO" | "CARROCERIA" | "INVENTARIO" | "FOTOS">("TABLERO");
+  const TABS: Array<"TABLERO" | "CARROCERIA" | "INVENTARIO" | "FOTOS"> = [
     "TABLERO",
     "CARROCERIA",
     "INVENTARIO",
     "FOTOS",
-    "FIRMA",
   ];
   const currentTabIndex = TABS.indexOf(activeTab);
   const handlePrevTab = () => {
@@ -1194,79 +1192,6 @@ export default function PeritajeIngresoModal({
                     </div>
                   </div>
                 )}
-
-                {/* Sección Firma del Cliente y Resguardo Oficial de Depósito */}
-                <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-100 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-rose-600" />
-                      <span className="font-bold text-slate-800 text-xs">
-                        Resguardo de Depósito y Firma del Cliente (Talonario Oficial POGGI)
-                      </span>
-                    </div>
-                    {peritaje.firmaCliente ? (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
-                        <Check className="w-3 h-3 text-emerald-600" />
-                        Firmado en Tablet
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
-                        Pendiente de Firma Digital
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                    <div>
-                      <p className="text-slate-600 text-xs leading-relaxed">
-                        Ficha de depósito conforme a la normativa vigente (RD 1457/86, Ley 3/2014 y Decreto 96/2016 de la Generalitat Valenciana).
-                      </p>
-                      {peritaje.fechaFirmaCliente && (
-                        <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                          Firmado el: {new Date(peritaje.fechaFirmaCliente).toLocaleString("es-AR")}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-3 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={handlePrintResguardoPDF}
-                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                        >
-                          <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Imprimir Resguardo</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleDownloadResguardoPDF}
-                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 active:scale-95 border border-slate-300 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5 text-sky-600" />
-                          <span>Descargar PDF</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-col items-center justify-center min-h-[100px]">
-                      {peritaje.firmaCliente ? (
-                        <div className="flex flex-col items-center">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={peritaje.firmaCliente}
-                            alt="Firma del Cliente"
-                            className="max-h-24 max-w-full object-contain filter contrast-125"
-                          />
-                          <span className="text-[10px] text-slate-400 font-mono mt-1 border-t border-slate-200 pt-0.5 block w-full text-center">
-                            Firma digitalizada de {order.vehicle?.client ? `${order.vehicle.client.nombre} ${order.vehicle.client.apellido || ""}`.trim() : "Cliente"}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="text-center text-slate-400 text-xs italic py-2">
-                          Sin firma digital capturada en la orden.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1308,7 +1233,7 @@ export default function PeritajeIngresoModal({
           <>
             {/* Barra de pestañas responsiva (Segmented Control) con 5 Pestañas */}
             <div className="shrink-0 p-1.5 sm:p-2 bg-slate-100/90 border-b border-slate-200">
-              <div className="grid grid-cols-5 gap-1 sm:gap-1.5 text-xs font-bold">
+              <div className="grid grid-cols-4 gap-1 sm:gap-1.5 text-xs font-bold">
                 <button
                   type="button"
                   onClick={() => setActiveTab("TABLERO")}
@@ -1393,30 +1318,6 @@ export default function PeritajeIngresoModal({
                   <span className="truncate text-[10px] sm:text-xs">
                     <span className="hidden sm:inline">4. </span>Fotos
                   </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("FIRMA")}
-                  className={`py-2 px-1 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 transition-all text-center cursor-pointer ${
-                    activeTab === "FIRMA"
-                      ? "bg-white text-slate-950 font-black shadow-xs ring-1 ring-slate-900/5"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60 font-semibold"
-                  }`}
-                >
-                  <PenTool
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      activeTab === "FIRMA" ? "text-rose-600" : "text-slate-400"
-                    }`}
-                  />
-                  <span className="truncate text-[10px] sm:text-xs">
-                    <span className="hidden sm:inline">5. </span>Firma
-                  </span>
-                  {peritaje.firmaCliente && (
-                    <span className="px-1 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-bold">
-                      ✓
-                    </span>
-                  )}
                 </button>
               </div>
             </div>
@@ -1934,180 +1835,6 @@ export default function PeritajeIngresoModal({
                       </div>
                     );
                   })()}
-                </div>
-              )}
-
-              {/* PESTAÑA 5: FIRMA DEL CLIENTE EN TABLET Y RESGUARDO OFICIAL DE DEPÓSITO */}
-              {activeTab === "FIRMA" && (
-                <div className="space-y-4">
-                  {/* Encabezado informativo */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex items-center justify-between gap-3 shadow-md">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0 border border-white/15">
-                        <PenTool className="w-5 h-5 text-rose-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-sm text-white flex items-center gap-1.5">
-                          <span>Firma del Cliente en Tablet & Resguardo de Depósito</span>
-                        </h3>
-                        <p className="text-[11px] text-slate-300">
-                          Firma digital del cliente en pantalla. Se genera una ficha idéntica al talonario oficial del taller (1 página A4) para imprimir y entregar en mano.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handlePrintResguardoPDF}
-                        className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Imprimir</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadResguardoPDF}
-                        className="px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 border border-white/20"
-                      >
-                        <Download className="w-3.5 h-3.5 text-sky-300" />
-                        <span>PDF</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Resumen de Datos que se Imprimen en el Resguardo */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Tarjeta Datos del Cliente */}
-                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
-                      <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px] block border-b border-slate-200 pb-1">
-                        1. Datos del Cliente (Titular / Receptor)
-                      </span>
-                      <div className="space-y-1">
-                        <p className="font-extrabold text-slate-900">
-                          {order.vehicle?.client ? `${order.vehicle.client.nombre} ${order.vehicle.client.apellido || ""}`.trim() : "Cliente"}
-                        </p>
-                        <p className="text-slate-600 text-[11px]">
-                          <strong>DNI/NIE/CIF:</strong> {order.vehicle?.client?.dni || "S/D"} • <strong>Tel:</strong> {order.vehicle?.client?.telefono || "S/D"}
-                        </p>
-                        <p className="text-slate-600 text-[11px] truncate">
-                          <strong>Dirección:</strong> {order.vehicle?.client?.direccion || "No registrada"}
-                        </p>
-                        <div className="pt-1 flex items-center gap-1.5 text-[11px]">
-                          <span className="font-semibold text-slate-700">Tuerca antirrobo:</span>
-                          <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${peritaje.inventarioCabina?.tuercaSeguridad ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>
-                            {peritaje.inventarioCabina?.tuercaSeguridad ? "SÍ TIENE" : "NO TIENE"}
-                          </span>
-                          {peritaje.tuercaSeguridadUbicacion && (
-                            <span className="text-slate-500 italic truncate">
-                              ({peritaje.tuercaSeguridadUbicacion})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tarjeta Datos del Vehículo */}
-                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2 text-xs">
-                      <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px] block border-b border-slate-200 pb-1">
-                        2. Datos del Vehículo y Odómetro
-                      </span>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-slate-900 text-xs">
-                            {order.vehicle?.marca} {order.vehicle?.modelo}
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-black text-[11px]">
-                            {order.vehicle?.patente}
-                          </span>
-                        </div>
-                        <p className="text-slate-600 text-[11px]">
-                          <strong>Odómetro:</strong> {peritaje.kilometrajeTablero || order.kilometraje || 0} km • <strong>Combustible:</strong> {peritaje.nivelCombustible || "1/2"}
-                        </p>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
-                            Nº Bastidor (VIN / Chasis):
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Ej: VF1BB05CF..."
-                            value={peritaje.numeroBastidorVin || ""}
-                            onChange={(e) =>
-                              setPeritaje({ ...peritaje, numeroBastidorVin: e.target.value.toUpperCase() })
-                            }
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-[11px] font-bold uppercase bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sello Rojo Oficial de Autorización en Vía Pública */}
-                  <div className="p-3.5 bg-rose-50 border-2 border-dashed border-rose-300 rounded-2xl text-center space-y-1">
-                    <p className="text-rose-800 font-black text-xs tracking-wider uppercase leading-snug">
-                      &ldquo;AUTORIZO AL TALLER A UBICAR Y MANTENER EL VEHÍCULO EN LA VÍA PÚBLICA, CONOCIENDO LAS CONDICIONES DE CIRCULACIÓN Y ESTACIONAMIENTO DE LA ZONA.&rdquo;
-                    </p>
-                    <p className="text-[10px] text-rose-600 font-medium">
-                      Conforme a la normativa autonómica y municipal del sector de automoción y talleres de reparación.
-                    </p>
-                  </div>
-
-                  {/* Padrón de Firma Digital en Tablet */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                        <PenTool className="w-4 h-4 text-rose-600" />
-                        <span>Firma del Cliente (Dibujar sobre la pantalla o con lápiz óptico):</span>
-                      </label>
-                      {peritaje.firmaCliente && (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                          <Check className="w-3 h-3" /> Firma Registrada
-                        </span>
-                      )}
-                    </div>
-
-                    <ClientSignaturePad
-                      value={peritaje.firmaCliente}
-                      onChange={(dataUrl) =>
-                        setPeritaje((prev) => ({
-                          ...prev,
-                          firmaCliente: dataUrl,
-                          fechaFirmaCliente: dataUrl ? new Date().toISOString() : null,
-                        }))
-                      }
-                      title="Área de Firma en Pantalla para el Cliente"
-                    />
-                  </div>
-
-                  {/* Botonera de Impresión y Descarga Inmediata del Resguardo */}
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="text-xs text-slate-600">
-                      <p className="font-bold text-slate-900">
-                        ¿El cliente necesita su copia física al dejar el coche?
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Podés imprimir de inmediato la hoja A4 con los datos completos, daños y la firma recién capturada.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <button
-                        type="button"
-                        onClick={handlePrintResguardoPDF}
-                        className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
-                      >
-                        <Printer className="w-4 h-4 text-emerald-400" />
-                        <span>Imprimir Resguardo</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadResguardoPDF}
-                        className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-300 shadow-xs transition-all cursor-pointer active:scale-95"
-                      >
-                        <Download className="w-4 h-4 text-sky-600" />
-                        <span>Descargar PDF</span>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
