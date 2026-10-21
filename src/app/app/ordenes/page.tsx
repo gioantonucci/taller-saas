@@ -1378,28 +1378,7 @@ export default function OrdenesPage() {
                     </div>
                   )}
 
-                  {/* Indicador si la orden fue Dada de Baja */}
-                  {isCancelledOrder(orden) && (
-                    <div className="mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 font-bold text-rose-800">
-                          <Ban className="w-4 h-4 text-rose-600" />
-                          <span>Orden Dada de Baja</span>
-                        </span>
-                        <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full font-bold">
-                          Archivada
-                        </span>
-                      </div>
-                      <p className="text-xs text-rose-950 font-semibold pt-0.5">
-                        <strong className="text-rose-900">Motivo:</strong> {getMotivoCancelacion(orden) || "Sin motivo especificado"}
-                      </p>
-                      {orden.fechaCancelacion && (
-                        <span className="text-[10px] text-rose-700 block font-medium">
-                          Baja registrada: {new Date(orden.fechaCancelacion).toLocaleDateString("es-AR")}
-                        </span>
-                      )}
-                    </div>
-                  )}
+
 
                   {/* Indicador si la orden ya fue Entregada y Archivada */}
                   {(orden.estado === "ENTREGADO" || orden.estado === "ARCHIVADO") && !isCancelledOrder(orden) && (
@@ -1486,14 +1465,6 @@ export default function OrdenesPage() {
                                 Orden #{orden.numeroOrden}
                               </span>
                             </div>
-                            {isCancelledOrder(orden) && (
-                              <div className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-[11px] text-rose-900 font-semibold max-w-xs">
-                                <Ban className="w-3 h-3 text-rose-600 shrink-0" />
-                                <span className="truncate">
-                                  <strong>Baja:</strong> {getMotivoCancelacion(orden) || "Sin motivo especificado"}
-                                </span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
