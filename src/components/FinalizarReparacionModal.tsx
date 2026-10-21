@@ -95,12 +95,10 @@ export default function FinalizarReparacionModal({
             : order.checklistDanio;
         return Boolean(
           p &&
-            (p.fechaHoraPeritaje ||
-              p.fechaHoraCheckin ||
+            (p.cerrado === true ||
               p.estadoPeritaje === "COMPLETADO" ||
-              (p.damagePins && p.damagePins.length > 0) ||
-              (p.daniosCarroceria && p.daniosCarroceria.length > 0) ||
-              p.rayones)
+              p.estadoPeritaje === "CERRADO" ||
+              Boolean(p.fechaCierre))
         );
       } catch {
         return false;

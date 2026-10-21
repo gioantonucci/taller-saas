@@ -200,14 +200,10 @@ export default function HojaRutaMecanicoPage() {
               : selectedOrder.checklistDanio;
           return Boolean(
             p &&
-              (p.fechaHoraPeritaje ||
-                p.fechaHoraCheckin ||
+              (p.cerrado === true ||
                 p.estadoPeritaje === "COMPLETADO" ||
                 p.estadoPeritaje === "CERRADO" ||
-                p.cerrado === true ||
-                (Array.isArray(p.damagePins) && p.damagePins.length > 0) ||
-                (Array.isArray(p.daniosCarroceria) && p.daniosCarroceria.length > 0) ||
-                p.rayones)
+                Boolean(p.fechaCierre))
           );
         } catch {
           return false;
@@ -305,14 +301,10 @@ export default function HojaRutaMecanicoPage() {
                 : targetOrder.checklistDanio;
             hasPeritaje = Boolean(
               p &&
-                (p.fechaHoraPeritaje ||
-                  p.fechaHoraCheckin ||
+                (p.cerrado === true ||
                   p.estadoPeritaje === "COMPLETADO" ||
                   p.estadoPeritaje === "CERRADO" ||
-                  p.cerrado === true ||
-                  (Array.isArray(p.damagePins) && p.damagePins.length > 0) ||
-                  (Array.isArray(p.daniosCarroceria) && p.daniosCarroceria.length > 0) ||
-                  p.rayones)
+                  Boolean(p.fechaCierre))
             );
           } catch {
             hasPeritaje = false;
@@ -322,7 +314,7 @@ export default function HojaRutaMecanicoPage() {
         if (!hasPeritaje) {
           await alert({
             title: "Peritaje Previo Requerido",
-            message: "No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso.",
+            message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
             variant: "warning",
             icon: "warning",
           });
@@ -382,7 +374,7 @@ export default function HojaRutaMecanicoPage() {
     if (!selectedOrderHasPeritaje) {
       await alert({
         title: "Peritaje Requerido",
-        message: "Debe realizar el peritaje técnico de ingreso antes de poder registrar tareas mecánicas.",
+        message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
         variant: "warning",
         icon: "warning",
       });
@@ -707,14 +699,10 @@ export default function HojaRutaMecanicoPage() {
                             : order.checklistDanio;
                         return Boolean(
                           p &&
-                            (p.fechaHoraPeritaje ||
-                              p.fechaHoraCheckin ||
+                            (p.cerrado === true ||
                               p.estadoPeritaje === "COMPLETADO" ||
                               p.estadoPeritaje === "CERRADO" ||
-                              p.cerrado === true ||
-                              (Array.isArray(p.damagePins) && p.damagePins.length > 0) ||
-                              (Array.isArray(p.daniosCarroceria) && p.daniosCarroceria.length > 0) ||
-                              p.rayones)
+                              Boolean(p.fechaCierre))
                         );
                       } catch {
                         return false;

@@ -203,34 +203,28 @@ export default function OrdenDetallePage() {
 
   const isPeritajeRealizado = Boolean(
     order &&
-      (order.estado === "EN_REPARACION" ||
-        order.estado === "EN_CURSO" ||
+      ((order.checklistDanio &&
+        (() => {
+          try {
+            const parsed =
+              typeof order.checklistDanio === "string"
+                ? JSON.parse(order.checklistDanio)
+                : order.checklistDanio;
+            if (!parsed || typeof parsed !== "object") return false;
+            return Boolean(
+              parsed.cerrado === true ||
+                parsed.estadoPeritaje === "COMPLETADO" ||
+                parsed.estadoPeritaje === "CERRADO" ||
+                Boolean(parsed.fechaCierre)
+            );
+          } catch {
+            return false;
+          }
+        })()) ||
+        // Retrocompatibilidad con órdenes históricas finalizadas o entregadas previamente
         order.estado === "FINALIZADO" ||
         order.estado === "ENTREGADO" ||
-        order.estado === "TERMINADO" ||
-        order.estado === "PERITADO" ||
-        (order.checklistDanio &&
-          (() => {
-            try {
-              const parsed =
-                typeof order.checklistDanio === "string"
-                  ? JSON.parse(order.checklistDanio)
-                  : order.checklistDanio;
-              if (!parsed || typeof parsed !== "object") return false;
-              return Boolean(
-                parsed.fechaHoraPeritaje ||
-                  parsed.fechaHoraCheckin ||
-                  parsed.estadoPeritaje === "COMPLETADO" ||
-                  parsed.estadoPeritaje === "CERRADO" ||
-                  parsed.cerrado === true ||
-                  (parsed.damagePins && parsed.damagePins.length > 0) ||
-                  (parsed.daniosCarroceria && parsed.daniosCarroceria.length > 0) ||
-                  parsed.rayones
-              );
-            } catch {
-              return false;
-            }
-          })()))
+        order.estado === "ARCHIVADO")
   );
 
   const getStatusPhaseDescription = (estado: string) => {
@@ -433,11 +427,11 @@ export default function OrdenDetallePage() {
       return;
     }
 
-    // REGLA DE NEGOCIO ESTRICTA: Si no se realizó el peritaje no debería poder llegar al punto de reparación
+    // REGLA DE NEGOCIO ESTRICTA: No se puede empezar a reparar el auto sin cerrar el peritaje primero
     if (isTargetRepair && !isPeritajeRealizado) {
       await alert({
         title: "Peritaje Previo Requerido",
-        message: "No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso del vehículo.",
+        message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
         variant: "warning",
         icon: "warning",
       });
@@ -459,7 +453,7 @@ export default function OrdenDetallePage() {
       if (!isPeritajeRealizado) {
         await alert({
           title: "Peritaje Previo Requerido",
-          message: "No se puede finalizar la orden sin haber realizado el peritaje técnico de ingreso.",
+          message: "No se puede finalizar la orden sin haber cerrado el peritaje técnico de ingreso.",
           variant: "warning",
           icon: "warning",
         });

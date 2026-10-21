@@ -262,35 +262,31 @@ export async function PATCH(
         );
       }
 
-      // Regla de negocio estricta: Si no se realizó el peritaje no puede llegar al punto de reparación
+      // Regla de negocio estricta: No se puede empezar a reparar el auto sin cerrar el peritaje primero
       if (isTargetRepairOrDone) {
-        let hasPeritaje = false;
+        let hasPeritajeCerrado = false;
         const rawChecklist =
           body.checklistDanio !== undefined ? body.checklistDanio : currentOrder.checklistDanio;
         if (rawChecklist) {
           try {
             const p = typeof rawChecklist === "string" ? JSON.parse(rawChecklist) : rawChecklist;
-            hasPeritaje = Boolean(
+            hasPeritajeCerrado = Boolean(
               p &&
-                (p.fechaHoraPeritaje ||
-                  p.fechaHoraCheckin ||
+                (p.cerrado === true ||
                   p.estadoPeritaje === "COMPLETADO" ||
                   p.estadoPeritaje === "CERRADO" ||
-                  p.cerrado === true ||
-                  (Array.isArray(p.damagePins) && p.damagePins.length > 0) ||
-                  (Array.isArray(p.daniosCarroceria) && p.daniosCarroceria.length > 0) ||
-                  p.rayones)
+                  Boolean(p.fechaCierre))
             );
           } catch {
-            hasPeritaje = false;
+            hasPeritajeCerrado = false;
           }
         }
 
-        if (!hasPeritaje) {
+        if (!hasPeritajeCerrado) {
           return NextResponse.json(
             {
               error:
-                "Operación denegada: No se puede avanzar al punto de reparación sin haber realizado previamente el peritaje técnico de ingreso.",
+                "Operación denegada: No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
             },
             { status: 400 }
           );
@@ -362,12 +358,10 @@ export async function PATCH(
             const p = typeof rawChecklist === "string" ? JSON.parse(rawChecklist) : rawChecklist;
             hasPeritaje = Boolean(
               p &&
-                (p.fechaHoraPeritaje ||
-                  p.fechaHoraCheckin ||
+                (p.cerrado === true ||
                   p.estadoPeritaje === "COMPLETADO" ||
-                  (p.damagePins && p.damagePins.length > 0) ||
-                  (p.daniosCarroceria && p.daniosCarroceria.length > 0) ||
-                  p.rayones)
+                  p.estadoPeritaje === "CERRADO" ||
+                  Boolean(p.fechaCierre))
             );
           } catch {
             hasPeritaje = false;
@@ -378,7 +372,7 @@ export async function PATCH(
           return NextResponse.json(
             {
               error:
-                "No se puede finalizar la orden sin haber realizado el peritaje técnico de ingreso. Complete el peritaje antes del cierre técnico.",
+                "No se puede finalizar la orden sin haber cerrado el peritaje técnico de ingreso. Complete y cierre el peritaje antes del cierre técnico.",
             },
             { status: 400 }
           );

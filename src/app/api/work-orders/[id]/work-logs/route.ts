@@ -39,7 +39,7 @@ export async function POST(
       );
     }
 
-    // Regla de negocio estricta: Si no se realizó el peritaje no se pueden registrar tareas en reparación
+    // Regla de negocio estricta: No se puede empezar a reparar el auto sin cerrar el peritaje primero
     let hasPeritaje = false;
     if (workOrder.checklistDanio) {
       try {
@@ -49,14 +49,10 @@ export async function POST(
             : workOrder.checklistDanio;
         hasPeritaje = Boolean(
           p &&
-            (p.fechaHoraPeritaje ||
-              p.fechaHoraCheckin ||
+            (p.cerrado === true ||
               p.estadoPeritaje === "COMPLETADO" ||
               p.estadoPeritaje === "CERRADO" ||
-              p.cerrado === true ||
-              (Array.isArray(p.damagePins) && p.damagePins.length > 0) ||
-              (Array.isArray(p.daniosCarroceria) && p.daniosCarroceria.length > 0) ||
-              p.rayones)
+              Boolean(p.fechaCierre))
         );
       } catch {
         hasPeritaje = false;
@@ -67,7 +63,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Operación denegada: No se pueden registrar tareas ni horas de trabajo sin haber completado previamente el peritaje técnico de ingreso del vehículo.",
+            "Operación denegada: No se puede empezar a reparar el auto ni cargar horas de trabajo sin cerrar el peritaje primero.",
         },
         { status: 400 }
       );
