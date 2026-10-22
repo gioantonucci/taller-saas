@@ -38,6 +38,7 @@ export default function ClienteDetallePage() {
     modelo: "",
     anio: new Date().getFullYear(),
     color: "",
+    nroChasis: "",
   });
   const [availableVehicles, setAvailableVehicles] = useState<any[]>([]);
   const [selectedExistingPatente, setSelectedExistingPatente] = useState("");
@@ -116,6 +117,7 @@ export default function ClienteDetallePage() {
       modelo: "",
       anio: new Date().getFullYear(),
       color: "",
+      nroChasis: "",
     });
     setSelectedExistingPatente("");
     setAsociarTab("NUEVO");
@@ -158,6 +160,7 @@ export default function ClienteDetallePage() {
           modelo: nuevoAuto.modelo.trim(),
           anio: Number(nuevoAuto.anio),
           color: nuevoAuto.color.trim(),
+          nroChasis: nuevoAuto.nroChasis.trim() || undefined,
           modoCliente: "EXISTENTE",
           clientId: client.id,
         }),
@@ -653,17 +656,33 @@ export default function ClienteDetallePage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Color
-                    </label>
-                    <input
-                      type="text"
-                      value={nuevoAuto.color}
-                      onChange={(e) => setNuevoAuto({ ...nuevoAuto, color: e.target.value })}
-                      placeholder="Gris Plata, Blanco, Azul..."
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40 font-medium"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Color
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevoAuto.color}
+                        onChange={(e) => setNuevoAuto({ ...nuevoAuto, color: e.target.value })}
+                        placeholder="Gris Plata, Blanco, Azul..."
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Nº Bastidor (VIN)</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevoAuto.nroChasis}
+                        onChange={(e) => setNuevoAuto({ ...nuevoAuto, nroChasis: e.target.value.toUpperCase() })}
+                        placeholder="Ej. VF1RFB00869123847"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40"
+                      />
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">

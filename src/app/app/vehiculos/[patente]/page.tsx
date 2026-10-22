@@ -207,6 +207,10 @@ export default function VehiculoHistorialClinicoPage() {
             <p className="text-slate-700">
               <strong className="text-slate-900">Color:</strong> {vehicle.color || "No especificado"}
             </p>
+            <p className="text-slate-700">
+              <strong className="text-slate-900">Nº Bastidor (VIN):</strong>{" "}
+              <span className="font-mono font-medium">{vehicle.nroChasis || "No especificado"}</span>
+            </p>
           </div>
         </div>
 

@@ -83,6 +83,7 @@ function VehiculosContent() {
       anio: new Date().getFullYear(),
       patente: "",
       color: "",
+      nroChasis: "",
       modoCliente: "EXISTENTE",
       clientId: initialClientId,
       clienteNombre: "",
@@ -141,6 +142,7 @@ function VehiculosContent() {
       anio: new Date().getFullYear(),
       patente: "",
       color: "",
+      nroChasis: "",
       modoCliente: "EXISTENTE",
       clientId: clients[0]?.id || "",
       clienteNombre: "",
@@ -629,6 +631,24 @@ function VehiculosContent() {
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40 font-medium"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Nº Bastidor (VIN)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register("nroChasis")}
+                    placeholder="Ej. VF1RFB00869123847"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40"
+                  />
+                  {errors.nroChasis && (
+                    <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                      {errors.nroChasis.message}
+                    </span>
+                  )}
                 </div>
               </div>
 
