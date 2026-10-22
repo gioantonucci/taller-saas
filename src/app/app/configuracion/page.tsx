@@ -6,7 +6,6 @@ import {
   Building2,
   Save,
   CheckCircle2,
-  DollarSign,
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
@@ -125,7 +124,7 @@ export default function ConfiguracionPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Los datos guardados aquí impactan dinámicamente en la Web Pública (Landing, Contacto, Servicios), el Botón Flotante de WhatsApp, las Actas Legales en PDF y el cálculo de Mano de Obra.
+            Los datos guardados aquí impactan dinámicamente en la Web Pública (Landing, Contacto, Servicios), el Botón Flotante de WhatsApp y las Actas Legales en PDF.
           </p>
         </div>
 
@@ -258,36 +257,7 @@ export default function ConfiguracionPage() {
           </div>
         </div>
 
-        {/* Sección 2: Parámetros Operativos y Mano de Obra */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-            <DollarSign className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-              Costos Operativos y Tarifa de Taller
-            </h2>
-          </div>
 
-          <div className="max-w-md">
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Tarifa por Hora de Mano de Obra Especializada ($ ARS) *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">$</span>
-              <input
-                type="number"
-                min="0"
-                step="500"
-                required
-                value={formData.valorHoraManoDeObra}
-                onChange={(e) => setFormData({ ...formData, valorHoraManoDeObra: parseFloat(e.target.value) || 0 })}
-                className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <span className="text-[11px] text-slate-500 mt-1.5 block leading-relaxed">
-              Esta tarifa se multiplica automáticamente por las horas registradas por los mecánicos en cada Orden de Trabajo para calcular el costo de mano de obra.
-            </span>
-          </div>
-        </div>
 
         {/* Botón Guardar */}
         <div className="flex justify-end pt-2">
