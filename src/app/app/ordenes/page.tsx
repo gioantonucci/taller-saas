@@ -1400,7 +1400,7 @@ export default function OrdenesPage() {
                     className="mt-2.5 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer border border-slate-200"
                   >
                     <Printer className="w-3.5 h-3.5 text-slate-600" />
-                    <span>🖨️ Imprimir Resguardo de Depósito</span>
+                    <span>Imprimir Resguardo de Depósito</span>
                   </button>
 
                   {/* Botón Destacado: Avisar al Cliente si está Terminado y Botón Entregar */}
@@ -1582,7 +1582,7 @@ export default function OrdenesPage() {
                             type="button"
                             onClick={() => handlePrintResguardoFromOrder(orden)}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
-                            title="🖨️ Imprimir Resguardo de Depósito (A4)"
+                            title="Imprimir Resguardo de Depósito (A4)"
                           >
                             <Printer className="w-3.5 h-3.5 text-slate-700" />
                           </button>
@@ -2887,7 +2887,7 @@ export default function OrdenesPage() {
                   className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Printer className="w-5 h-5 text-emerald-400" />
-                  <span>🖨️ Imprimir Resguardo de Depósito (A4)</span>
+                  <span>Imprimir Resguardo de Depósito (A4)</span>
                 </button>
 
                 <div className="grid grid-cols-2 gap-2">
