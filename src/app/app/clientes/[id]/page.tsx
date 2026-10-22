@@ -272,11 +272,11 @@ export default function ClienteDetallePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleSoftDelete}
             disabled={deleting}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 text-xs font-bold transition-colors cursor-pointer"
             title="Eliminar cliente"
           >
             <Trash2 className="w-4 h-4" />
@@ -295,14 +295,14 @@ export default function ClienteDetallePage() {
 
       {/* Resumen de Datos: 2 Columnas (Identificación y Canales de Contacto) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
             Datos de Identificación
           </span>
           <p className="font-mono text-base font-bold text-slate-900">
             DNI/CUIT: {client.dni}
           </p>
-          <p className="text-xs text-slate-600 flex items-center gap-2">
+          <p className="text-xs text-slate-600 flex items-center gap-2 break-words">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             {hasValidAddress(client.direccion) ? (
               <span>{client.direccion}</span>
@@ -312,15 +312,15 @@ export default function ClienteDetallePage() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
             Canales de Contacto
           </span>
-          <p className="text-xs text-slate-800 flex items-center gap-2">
+          <p className="text-xs text-slate-800 flex items-center gap-2 break-all">
             <Phone className="w-3.5 h-3.5 text-sky-600 shrink-0" />
             <span className="font-semibold">{client.telefono || "Sin teléfono registrado"}</span>
           </p>
-          <p className="text-xs text-slate-600 flex items-center gap-2">
+          <p className="text-xs text-slate-600 flex items-center gap-2 break-all">
             <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
             <span>{client.email || "Sin correo electrónico"}</span>
           </p>
@@ -328,8 +328,8 @@ export default function ClienteDetallePage() {
       </div>
 
       {/* Vehículos del Cliente */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div>
             <h2 className="text-base font-bold text-slate-900">
               Vehículos Registrados ({client.vehicles.length})
@@ -339,7 +339,7 @@ export default function ClienteDetallePage() {
           <button
             type="button"
             onClick={openAsociarModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition-all cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Asociar Vehículo</span>
@@ -376,12 +376,12 @@ export default function ClienteDetallePage() {
               return (
                 <div
                   key={v.id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between"
+                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Car className="w-4 h-4 text-sky-600" />
-                      <span className="font-bold text-slate-900 text-sm">
+                      <Car className="w-4 h-4 text-sky-600 shrink-0" />
+                      <span className="font-bold text-slate-900 text-sm truncate">
                         {v.marca} {v.modelo}
                       </span>
                       {activeOrder && (
@@ -401,7 +401,7 @@ export default function ClienteDetallePage() {
 
                   <Link
                     href={`/app/vehiculos/${v.patente}`}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm"
                   >
                     <span>Historial</span>
                     <ChevronRight className="w-3.5 h-3.5" />
