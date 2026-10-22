@@ -565,10 +565,10 @@ export default function OrdenDetallePage() {
         </div>
 
         {/* Acciones de Peritaje y Estado */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           {isCancelled ? (
             <div
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs"
               title="Esta orden de trabajo fue dada de baja y archivada"
             >
               <Ban className="w-3.5 h-3.5 text-rose-600" />
@@ -580,7 +580,7 @@ export default function OrdenDetallePage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
                   title="Ver Peritaje de Ingreso Registrado por el Mecánico"
                 >
                   <Eye className="w-4 h-4" />
@@ -588,7 +588,7 @@ export default function OrdenDetallePage() {
                 </button>
               ) : (
                 <div
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs"
                   title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
                 >
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -605,7 +605,7 @@ export default function OrdenDetallePage() {
                     setBajaError(null);
                     setDarDeBajaModalOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
                   title="Dar de baja y archivar esta orden de trabajo con justificación"
                 >
                   <Ban className="w-4 h-4 text-white" />
@@ -711,11 +711,11 @@ export default function OrdenDetallePage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleNotifyClient}
-              className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#25D366]/20 transition-all shrink-0 cursor-pointer whitespace-nowrap"
+              className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#25D366]/20 transition-all shrink-0 cursor-pointer"
             >
               <MessageSquare className="w-4 h-4" />
               <span>{notified ? "Aviso Enviado ✓" : "Avisar por WhatsApp"}</span>
@@ -724,7 +724,7 @@ export default function OrdenDetallePage() {
               type="button"
               disabled={updating}
               onClick={handleMarkAsDelivered}
-              className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer disabled:opacity-50"
             >
               <PackageCheck className="w-4 h-4 text-emerald-400" />
               <span>Marcar como Entregado</span>
@@ -1091,12 +1091,12 @@ export default function OrdenDetallePage() {
 
                 if (isMechanicOrAdmin) {
                   return (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
                         type="button"
                         disabled={updating}
                         onClick={() => handleStatusChange("EN_ESPERA_REPUESTOS")}
-                        className="py-2.5 px-2 sm:px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                         title="Pausar trabajo a la espera de repuestos o insumos"
                       >
                         <PauseCircle className="w-4 h-4 text-amber-700 shrink-0" />
@@ -1105,7 +1105,7 @@ export default function OrdenDetallePage() {
                       <button
                         type="button"
                         onClick={() => setIsFinalizarModalOpen(true)}
-                        className="py-2.5 px-2 sm:px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
                       >
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
                         <span className="truncate">Marcar Listo</span>
@@ -1148,12 +1148,12 @@ export default function OrdenDetallePage() {
 
                 if (isMechanicOrAdmin) {
                   return (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <button
                         type="button"
                         disabled={updating}
                         onClick={() => handleStatusChange("EN_REPARACION")}
-                        className="py-2.5 px-2 sm:px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-50"
+                        className="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-50"
                       >
                         <PlayCircle className="w-4 h-4 shrink-0" />
                         <span className="truncate">Reanudar Taller</span>
@@ -1161,7 +1161,7 @@ export default function OrdenDetallePage() {
                       <button
                         type="button"
                         onClick={() => setIsFinalizarModalOpen(true)}
-                        className="py-2.5 px-2 sm:px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                         <span className="truncate">Marcar Listo</span>
@@ -1293,10 +1293,10 @@ export default function OrdenDetallePage() {
         };
 
         return (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <div className="flex items-start sm:items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -1309,31 +1309,31 @@ export default function OrdenDetallePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 {isPeritajeRealizado ? (
                   <>
                     <button
                       type="button"
                       onClick={handlePrintResguardoOrderPage}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
                       title="Imprimir Resguardo de Depósito oficial (1 página A4)"
                     >
                       <Printer className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="hidden sm:inline">Imprimir Resguardo</span>
+                      <span>Imprimir Resguardo</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleDownloadResguardoOrderPage}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
                       title="Descargar Resguardo de Depósito en PDF"
                     >
                       <Download className="w-3.5 h-3.5 text-sky-600" />
-                      <span className="hidden sm:inline">Resguardo PDF</span>
+                      <span>Resguardo PDF</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPeritajeModalOpen(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
                       title="Ver Ficha de Peritaje Completa (Solo Lectura)"
                     >
                       <Eye className="w-3.5 h-3.5 text-emerald-400" />
@@ -1341,40 +1341,40 @@ export default function OrdenDetallePage() {
                     </button>
                   </>
                 ) : (
-                  <>
-                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                      <Clock className="w-3 h-3 text-amber-600" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                    <span className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold w-full sm:w-auto">
+                      <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                       <span>Peritaje Pendiente</span>
                     </span>
                     {isMechanicOrAdmin ? (
                       <button
                         type="button"
                         onClick={() => setPeritajeModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
+                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
                       >
                         <Wrench className="w-3.5 h-3.5" />
                         <span>Realizar Peritaje</span>
                       </button>
                     ) : (
-                      <span className="text-[11px] text-slate-500 font-medium">
+                      <span className="text-[11px] text-slate-500 font-medium text-center sm:text-left">
                         (A realizarse por mecánico en taller)
                       </span>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Peritaje Inicial del Dueño (Declaración de Daños Preexistentes) */}
             <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/90 space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
                   <span className="font-extrabold text-xs text-amber-950 uppercase tracking-wider">
                     Peritaje Inicial del Dueño (Declaración de Daños)
                   </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-900">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-200/80 text-amber-900 self-start sm:self-auto shrink-0">
                   {order.vehicle?.client ? `${order.vehicle.client.nombre} ${order.vehicle.client.apellido}` : "Propietario"}
                 </span>
               </div>
@@ -1434,7 +1434,7 @@ export default function OrdenDetallePage() {
                 </div>
               </div>
             ) : (
-              <div className="p-6 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
+              <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-dashed border-slate-200 text-center space-y-2">
                 <ShieldAlert className="w-8 h-8 text-amber-500 mx-auto" />
                 <h4 className="text-xs font-extrabold text-slate-800">
                   Peritaje Técnico Profundo Pendiente
@@ -1445,18 +1445,22 @@ export default function OrdenDetallePage() {
                     : "El peritaje técnico profundo debe ser realizado por el mecánico asignado o administración. Recepción no tiene permisos técnicos para emitir este dictamen."}
                 </p>
                 {isMechanicOrAdmin ? (
-                  <button
-                    type="button"
-                    onClick={() => setPeritajeModalOpen(true)}
-                    className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                  >
-                    <Wrench className="w-3.5 h-3.5" />
-                    <span>Realizar Peritaje</span>
-                  </button>
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPeritajeModalOpen(true)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>Realizar Peritaje</span>
+                    </button>
+                  </div>
                 ) : (
-                  <div className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs">
-                    <Lock className="w-3.5 h-3.5 text-amber-700" />
-                    <span>A cargo exclusivo de Mecánico o Administración</span>
+                  <div className="pt-1">
+                    <div className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-bold text-xs">
+                      <Lock className="w-3.5 h-3.5 text-amber-700" />
+                      <span>A cargo exclusivo de Mecánico o Administración</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1498,10 +1502,10 @@ export default function OrdenDetallePage() {
           {/* Grilla con las 4 preguntas respondidas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* 1. Reset de servicio */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="font-bold text-slate-800">1. ¿Se realizó reset de servicio?</span>
               <span
-                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] self-start sm:self-auto shrink-0 ${
                   controlCalidadSalida.realizoResetServicio
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                     : "bg-slate-200 text-slate-700 border border-slate-300"
@@ -1512,10 +1516,10 @@ export default function OrdenDetallePage() {
             </div>
 
             {/* 2. Condujo en carretera */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="font-bold text-slate-800">2. ¿Se condujo en carretera?</span>
               <span
-                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] self-start sm:self-auto shrink-0 ${
                   controlCalidadSalida.condujoCarretera
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                     : "bg-slate-200 text-slate-700 border border-slate-300"
@@ -1526,10 +1530,10 @@ export default function OrdenDetallePage() {
             </div>
 
             {/* 3. Desperfecto solucionado */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="font-bold text-slate-800">3. ¿Desperfecto solucionado?</span>
               <span
-                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] self-start sm:self-auto shrink-0 ${
                   controlCalidadSalida.desperfectoSolucionado
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                     : "bg-amber-100 text-amber-800 border border-amber-300"
@@ -1540,10 +1544,10 @@ export default function OrdenDetallePage() {
             </div>
 
             {/* 4. Desperfecto nuevo */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="font-bold text-slate-800">4. ¿Apareció nuevo desperfecto tras prueba?</span>
               <span
-                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg font-extrabold text-[11px] self-start sm:self-auto shrink-0 ${
                   controlCalidadSalida.desperfectoNuevoDetectado
                     ? "bg-rose-100 text-rose-800 border border-rose-300"
                     : "bg-emerald-100 text-emerald-800 border border-emerald-300"
@@ -1564,10 +1568,10 @@ export default function OrdenDetallePage() {
       )}
 
       {/* SECCIÓN BITÁCORA Y NOTAS DIARIAS DEL PROCESO DE ARREGLO */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
@@ -1579,7 +1583,7 @@ export default function OrdenDetallePage() {
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full self-start sm:self-auto">
             {order.workLogs.length} {order.workLogs.length === 1 ? "nota registrada" : "notas registradas"}
           </span>
         </div>
@@ -1599,16 +1603,16 @@ export default function OrdenDetallePage() {
                 key={log.id}
                 className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-1.5"
               >
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
                       #{order.workLogs.length - idx}
                     </span>
                     <span className="font-extrabold text-slate-800">
                       🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono">
+                  <span className="text-[11px] text-slate-400 font-mono pl-8 sm:pl-0">
                     {new Date(log.fechaRegistro).toLocaleString("es-AR")}
                   </span>
                 </div>
