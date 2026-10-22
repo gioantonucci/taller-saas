@@ -36,7 +36,17 @@ export async function GET(request: NextRequest) {
           select: {
             workOrdersMechanic: {
               where: {
-                estado: { notIn: ["ENTREGADO", "CANCELADO"] },
+                estado: {
+                  notIn: [
+                    "FINALIZADO",
+                    "REPARADO",
+                    "TERMINADO",
+                    "ENTREGADO",
+                    "ARCHIVADO",
+                    "CANCELADO",
+                    "CANCELADA",
+                  ],
+                },
               },
             },
           },

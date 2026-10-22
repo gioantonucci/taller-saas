@@ -12,21 +12,20 @@ import {
   Search,
   CheckCircle2,
   AlertCircle,
-  ShieldAlert,
+  AlertTriangle,
   Lock,
   Eye,
   EyeOff,
   RefreshCw,
   Plus,
-  KeyRound,
   Mail,
   Calendar,
-  Layers,
   Sparkles,
-  ChevronRight,
-  ArrowRight,
   X,
   UserMinus,
+  ArrowRight,
+  Car,
+  Clock,
 } from "lucide-react";
 import { StaffMember } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
@@ -50,6 +49,16 @@ export default function GestionPersonalPage() {
     password: "",
     role: "MECHANIC" as "MECHANIC" | "RECEPTION",
   });
+
+  // Modal Baja y Reasignación de Órdenes
+  const [bajaModalOpen, setBajaModalOpen] = useState(false);
+  const [bajaMember, setBajaMember] = useState<StaffMember | null>(null);
+  const [bajaOrders, setBajaOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [bajaReasignacion, setBajaReasignacion] = useState<"MECANICO" | "SIN_ASIGNAR">("SIN_ASIGNAR");
+  const [nuevoMecanicoId, setNuevoMecanicoId] = useState<string>("");
+  const [bajaSubmitting, setBajaSubmitting] = useState(false);
+  const [bajaError, setBajaError] = useState<string | null>(null);
 
   // Notificación de éxito temporal
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -80,7 +89,7 @@ export default function GestionPersonalPage() {
     setSuccessToast(msg);
     setTimeout(() => {
       setSuccessToast(null);
-    }, 4000);
+    }, 4500);
   };
 
   // Contadores
@@ -97,7 +106,18 @@ export default function GestionPersonalPage() {
     return { total, activos, mecanicos, recepcion, inactivos };
   }, [staff]);
 
-  // Filtrado
+  // Lista de otros mecánicos activos para reasignación
+  const otherActiveMechanics = useMemo(() => {
+    if (!bajaMember) return [];
+    return staff.filter(
+      (s) =>
+        s.id !== bajaMember.id &&
+        s.status === "ACTIVE" &&
+        (s.role === "MECHANIC" || s.role === "MECANICO")
+    );
+  }, [staff, bajaMember]);
+
+  // Filtrado de personal en tabla
   const filteredStaff = useMemo(() => {
     return staff.filter((member) => {
       const matchSearch =
@@ -129,18 +149,58 @@ export default function GestionPersonalPage() {
     });
   }, [staff, search, roleFilter]);
 
-  // Dar de baja a un miembro
-  const handleDarDeBaja = async (member: StaffMember) => {
-    const rolLabel =
-      member.role === "MECHANIC" || member.role === "MECANICO"
-        ? "Mecánico"
-        : "Recepción";
+  // Iniciar flujo de Dar de Baja
+  const handleDarDeBajaClick = async (member: StaffMember) => {
+    const isMechanic = member.role === "MECHANIC" || member.role === "MECANICO";
 
+    if (isMechanic) {
+      // Para mecánicos, abrir el modal de baja y reasignación de órdenes
+      setBajaMember(member);
+      setBajaModalOpen(true);
+      setLoadingOrders(true);
+      setBajaError(null);
+
+      // Calcular opciones de otros mecánicos
+      const others = staff.filter(
+        (s) =>
+          s.id !== member.id &&
+          s.status === "ACTIVE" &&
+          (s.role === "MECHANIC" || s.role === "MECANICO")
+      );
+      if (others.length > 0) {
+        setNuevoMecanicoId(others[0].id);
+        setBajaReasignacion("MECANICO");
+      } else {
+        setNuevoMecanicoId("");
+        setBajaReasignacion("SIN_ASIGNAR");
+      }
+
+      try {
+        const res = await fetch(`/api/staff/${member.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBajaOrders(data.activeOrders || []);
+        } else {
+          setBajaOrders([]);
+        }
+      } catch {
+        setBajaOrders([]);
+      } finally {
+        setLoadingOrders(false);
+      }
+    } else {
+      // Para Recepción (sin órdenes asignadas de taller), confirmación directa
+      await executeDirectBaja(member);
+    }
+  };
+
+  // Baja directa (para Recepción)
+  const executeDirectBaja = async (member: StaffMember) => {
     const confirmed = await confirm({
       title: `¿Dar de baja a ${member.nombre} ${member.apellido || ""}?`,
-      message: `El usuario (${rolLabel}) será desactivado del sistema.`,
+      message: "El usuario (Recepción) será desactivado del sistema.",
       description:
-        "Ya no podrá iniciar sesión en la plataforma ni ser asignado a nuevas órdenes de trabajo. Todos los registros históricos, trabajos previos y logs de auditoría se conservarán de forma íntegra.",
+        "Ya no podrá iniciar sesión en la plataforma. Todos los registros históricos, ingresos de clientes y logs de auditoría se conservarán de forma íntegra.",
       confirmText: "Confirmar baja",
       cancelText: "Cancelar",
       variant: "danger",
@@ -175,6 +235,57 @@ export default function GestionPersonalPage() {
         message: "No fue posible comunicarse con el servidor",
         variant: "danger",
       });
+    }
+  };
+
+  // Confirmar baja y reasignación desde el Modal de Mecánico
+  const handleConfirmBajaMecanico = async () => {
+    if (!bajaMember) return;
+    setBajaSubmitting(true);
+    setBajaError(null);
+
+    try {
+      const payload: any = {
+        status: "INACTIVE",
+      };
+
+      if (bajaOrders.length > 0) {
+        payload.reasignacion = bajaReasignacion;
+        if (bajaReasignacion === "MECANICO") {
+          if (!nuevoMecanicoId) {
+            setBajaError("Selecciona el mecánico al que deseas transferir las órdenes");
+            setBajaSubmitting(false);
+            return;
+          }
+          payload.nuevoMecanicoId = nuevoMecanicoId;
+        }
+      }
+
+      const res = await fetch(`/api/staff/${bajaMember.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBajaError(data.error || "Error al procesar la baja y reasignación");
+        setBajaSubmitting(false);
+        return;
+      }
+
+      setBajaModalOpen(false);
+      triggerToast(
+        data.reasignacion
+          ? `Baja procesada. ${data.reasignacion}`
+          : `Se dio de baja a ${bajaMember.nombre} ${bajaMember.apellido || ""}`
+      );
+      await fetchStaff();
+    } catch (err: any) {
+      console.error("Error confirmando baja de mecánico:", err);
+      setBajaError("Error de conexión al procesar la baja");
+    } finally {
+      setBajaSubmitting(false);
     }
   };
 
@@ -292,7 +403,7 @@ export default function GestionPersonalPage() {
     <div className="space-y-6 max-w-6xl pb-16">
       {/* Toast Notificación */}
       {successToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-900/90 text-white px-4 py-3 rounded-2xl shadow-xl border border-emerald-700/60 flex items-center gap-3 backdrop-blur animate-in fade-in slide-in-from-bottom-2">
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-950/90 text-white px-4 py-3 rounded-2xl shadow-xl border border-emerald-700/60 flex items-center gap-3 backdrop-blur animate-in fade-in slide-in-from-bottom-2">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-xs font-bold">{successToast}</span>
         </div>
@@ -315,7 +426,7 @@ export default function GestionPersonalPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-1.5 max-w-2xl leading-relaxed">
-            Administra las cuentas de acceso del taller. Da de alta nuevos miembros del equipo (Mecánicos y Recepción) o dales de baja según las necesidades operativas.
+            Administra las cuentas de acceso del taller. Da de alta nuevos miembros del equipo (Mecánicos y Recepción) o dales de baja con reasignación inteligente de órdenes activas.
           </p>
         </div>
 
@@ -477,6 +588,7 @@ export default function GestionPersonalPage() {
             const isMechanic = member.role === "MECHANIC" || member.role === "MECANICO";
             const isInactive = member.status === "INACTIVE";
             const initials = `${member.nombre.charAt(0)}${member.apellido ? member.apellido.charAt(0) : ""}`.toUpperCase();
+            const activeOrdersCount = member._count?.workOrdersMechanic ?? 0;
 
             return (
               <div
@@ -559,10 +671,14 @@ export default function GestionPersonalPage() {
                   {isMechanic && (
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-slate-400 font-medium">Órdenes asignadas</span>
-                      <span className="font-bold text-slate-700">
-                        {member._count?.workOrdersMechanic !== undefined
-                          ? `${member._count.workOrdersMechanic} activas`
-                          : "–"}
+                      <span
+                        className={`font-bold ${
+                          activeOrdersCount > 0 ? "text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200" : "text-slate-500"
+                        }`}
+                      >
+                        {activeOrdersCount > 0
+                          ? `${activeOrdersCount} activas`
+                          : "Sin órdenes pendientes"}
                       </span>
                     </div>
                   )}
@@ -593,7 +709,7 @@ export default function GestionPersonalPage() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleDarDeBaja(member)}
+                      onClick={() => handleDarDeBajaClick(member)}
                       className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-colors cursor-pointer"
                     >
                       <UserMinus className="w-3.5 h-3.5" />
@@ -604,6 +720,254 @@ export default function GestionPersonalPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL: BAJA Y REASIGNACIÓN DE ÓRDENES (MECÁNICO) */}
+      {bajaModalOpen && bajaMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <UserMinus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900">
+                    Dar de Baja a {bajaMember.nombre} {bajaMember.apellido || ""}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Mecánico de Taller · {bajaMember.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBajaModalOpen(false)}
+                className="w-7 h-7 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {bajaError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{bajaError}</span>
+              </div>
+            )}
+
+            {/* Contenido Dinámico */}
+            {loadingOrders ? (
+              <div className="py-8 flex flex-col items-center justify-center text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin text-purple-600 mb-2" />
+                <span className="text-xs font-semibold">Consultando órdenes activas del mecánico...</span>
+              </div>
+            ) : bajaOrders.length === 0 ? (
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 text-xs space-y-1">
+                  <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Sin órdenes activas en curso</span>
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Este mecánico no tiene órdenes de trabajo pendientes ni en reparación. Puedes confirmar su baja directamente.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+                  Al dar de baja la cuenta, el mecánico ya no podrá ingresar al sistema ni tomar nuevas órdenes. Todo el historial y los trabajos realizados se conservarán.
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={bajaSubmitting}
+                    onClick={() => setBajaModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bajaSubmitting}
+                    onClick={handleConfirmBajaMecanico}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {bajaSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Confirmando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserMinus className="w-3.5 h-3.5" />
+                        <span>Confirmar Baja</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Alerta de órdenes activas */}
+                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-950">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      Tiene {bajaOrders.length} {bajaOrders.length === 1 ? "orden de trabajo activa" : "órdenes de trabajo activas"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    Antes de dar de baja a este mecánico, debes indicar qué hacer con las órdenes que actualmente tiene asignadas en el taller:
+                  </p>
+
+                  {/* Lista desplegable / resumen de órdenes */}
+                  <div className="max-h-28 overflow-y-auto space-y-1 pr-1 bg-white/70 p-2 rounded-xl border border-amber-200 text-[11px]">
+                    {bajaOrders.map((ord) => (
+                      <div
+                        key={ord.id}
+                        className="flex items-center justify-between text-slate-800 py-0.5 border-b border-amber-100 last:border-b-0"
+                      >
+                        <span className="font-bold text-slate-900">
+                          Orden #{ord.numeroOrden}
+                        </span>
+                        <span className="text-slate-600 truncate max-w-[170px]">
+                          {ord.vehicle?.patente} · {ord.vehicle?.marca} {ord.vehicle?.modelo}
+                        </span>
+                        <span className="font-semibold text-amber-700 text-[10px]">
+                          {ord.estado}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Selección de Reasignación */}
+                <div className="space-y-2.5">
+                  <label className="block text-xs font-bold text-slate-800">
+                    ¿A quién deseas reasignar todas sus órdenes? *
+                  </label>
+
+                  {/* Opción 1: Reasignar a otro mecánico */}
+                  <label
+                    className={`block p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                      bajaReasignacion === "MECANICO"
+                        ? "border-purple-500 bg-purple-50/50 ring-2 ring-purple-500/20"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="radio"
+                        name="reasignacion"
+                        value="MECANICO"
+                        checked={bajaReasignacion === "MECANICO"}
+                        onChange={() => setBajaReasignacion("MECANICO")}
+                        disabled={otherActiveMechanics.length === 0}
+                        className="mt-1 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-slate-900 block">
+                          Reasignar a otro mecánico activo
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                          El mecánico elegido asumirá la continuidad y la hoja de ruta de los vehículos en reparación.
+                        </p>
+
+                        {/* Selector de mecánico destino */}
+                        {bajaReasignacion === "MECANICO" && (
+                          <div className="mt-2.5">
+                            {otherActiveMechanics.length === 0 ? (
+                              <span className="text-[11px] font-semibold text-rose-600 block bg-rose-50 p-2 rounded-xl">
+                                No hay otros mecánicos activos en plantilla para recibir las órdenes.
+                              </span>
+                            ) : (
+                              <select
+                                value={nuevoMecanicoId}
+                                onChange={(e) => setNuevoMecanicoId(e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                              >
+                                {otherActiveMechanics.map((m) => (
+                                  <option key={m.id} value={m.id}>
+                                    {m.nombre} {m.apellido || ""} ({m.email})
+                                    {m._count?.workOrdersMechanic !== undefined
+                                      ? ` · ${m._count.workOrdersMechanic} órdenes actuales`
+                                      : ""}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Opción 2: Dejar sin asignar */}
+                  <label
+                    className={`block p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                      bajaReasignacion === "SIN_ASIGNAR"
+                        ? "border-purple-500 bg-purple-50/50 ring-2 ring-purple-500/20"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <input
+                        type="radio"
+                        name="reasignacion"
+                        value="SIN_ASIGNAR"
+                        checked={bajaReasignacion === "SIN_ASIGNAR"}
+                        onChange={() => setBajaReasignacion("SIN_ASIGNAR")}
+                        className="mt-1 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs font-bold text-slate-900 block">
+                          Dejar sin asignar
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
+                          Las órdenes quedarán en estado &quot;Pendiente de asignación&quot; para ser distribuidas manualmente más adelante desde el módulo de Órdenes.
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Acciones */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={bajaSubmitting}
+                    onClick={() => setBajaModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      bajaSubmitting ||
+                      (bajaReasignacion === "MECANICO" && (!nuevoMecanicoId || otherActiveMechanics.length === 0))
+                    }
+                    onClick={handleConfirmBajaMecanico}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {bajaSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Procesando baja y reasignación...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserMinus className="w-3.5 h-3.5" />
+                        <span>Confirmar Baja y Reasignar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -628,7 +992,7 @@ export default function GestionPersonalPage() {
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="w-7 h-7 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -783,7 +1147,7 @@ export default function GestionPersonalPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

@@ -5,6 +5,87 @@ import { recordAuditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
 
+const CLOSED_STATES = [
+  "FINALIZADO",
+  "REPARADO",
+  "TERMINADO",
+  "ENTREGADO",
+  "ARCHIVADO",
+  "CANCELADO",
+  "CANCELADA",
+];
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    if (session.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Acceso exclusivo para administradores" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = params;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nombre: true,
+        apellido: true,
+        email: true,
+        role: true,
+        status: true,
+        creadoEn: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    // Buscar órdenes activas asignadas a este usuario (si es mecánico)
+    const activeOrders = await prisma.workOrder.findMany({
+      where: {
+        mechanicId: id,
+        estado: { notIn: CLOSED_STATES },
+      },
+      select: {
+        id: true,
+        numeroOrden: true,
+        estado: true,
+        vehicle: {
+          select: {
+            patente: true,
+            marca: true,
+            modelo: true,
+          },
+        },
+      },
+      orderBy: { numeroOrden: "desc" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      user,
+      activeOrders,
+    });
+  } catch (error: any) {
+    console.error("Error en GET /api/staff/[id]:", error);
+    return NextResponse.json(
+      { error: "Error al obtener información del miembro de personal" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -33,17 +114,6 @@ export async function PATCH(
 
     const user = await prisma.user.findUnique({
       where: { id },
-      include: {
-        _count: {
-          select: {
-            workOrdersMechanic: {
-              where: {
-                estado: { notIn: ["ENTREGADO", "CANCELADO"] },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!user) {
@@ -85,6 +155,59 @@ export async function PATCH(
       dataToUpdate.passwordHash = await hashPassword(body.password);
     }
 
+    const isBaja = body.status === "INACTIVE";
+    let reassignedInfo = "";
+
+    // Si se está dando de baja, procesar la reasignación de sus órdenes activas
+    if (isBaja) {
+      const activeOrders = await prisma.workOrder.findMany({
+        where: {
+          mechanicId: id,
+          estado: { notIn: CLOSED_STATES },
+        },
+        select: {
+          id: true,
+          numeroOrden: true,
+        },
+      });
+
+      if (activeOrders.length > 0) {
+        const orderIds = activeOrders.map((o) => o.id);
+        const orderNums = activeOrders.map((o) => `#${o.numeroOrden}`).join(", ");
+
+        if (body.reasignacion === "MECANICO" && body.nuevoMecanicoId) {
+          const nuevoMecanico = await prisma.user.findFirst({
+            where: {
+              id: body.nuevoMecanicoId,
+              role: { in: ["MECHANIC", "MECANICO"] },
+              status: "ACTIVE",
+            },
+          });
+
+          if (!nuevoMecanico) {
+            return NextResponse.json(
+              { error: "El mecánico de destino para la reasignación no es válido o está inactivo" },
+              { status: 400 }
+            );
+          }
+
+          await prisma.workOrder.updateMany({
+            where: { id: { in: orderIds } },
+            data: { mechanicId: nuevoMecanico.id },
+          });
+
+          reassignedInfo = `${activeOrders.length} órdenes (${orderNums}) reasignadas al mecánico ${nuevoMecanico.nombre} ${nuevoMecanico.apellido || ""}`;
+        } else if (body.reasignacion === "SIN_ASIGNAR") {
+          await prisma.workOrder.updateMany({
+            where: { id: { in: orderIds } },
+            data: { mechanicId: null },
+          });
+
+          reassignedInfo = `${activeOrders.length} órdenes (${orderNums}) quedaron sin asignar`;
+        }
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: dataToUpdate,
@@ -100,7 +223,6 @@ export async function PATCH(
       },
     });
 
-    const isBaja = body.status === "INACTIVE";
     const isReactivacion = body.status === "ACTIVE";
     const rolLabel = user.role === "MECHANIC" || user.role === "MECANICO" ? "Mecánico" : "Recepción";
 
@@ -111,12 +233,13 @@ export async function PATCH(
       entidadId: id,
       detallesCambio: {
         descripcion: isBaja
-          ? `Baja de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})`
+          ? `Baja de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})${reassignedInfo ? `. Reasignación: ${reassignedInfo}` : ""}`
           : isReactivacion
           ? `Reactivación de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})`
           : `Actualización de datos de personal: ${user.nombre} ${user.apellido || ""}`,
         estadoAnterior: user.status,
         nuevoEstado: updatedUser.status,
+        reasignacion: reassignedInfo || null,
         cambios: {
           status: body.status,
           nombreModificado: Boolean(body.nombre),
@@ -125,7 +248,11 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true, user: updatedUser });
+    return NextResponse.json({
+      success: true,
+      user: updatedUser,
+      reasignacion: reassignedInfo || null,
+    });
   } catch (error: any) {
     console.error("Error en PATCH /api/staff/[id]:", error);
     return NextResponse.json(
