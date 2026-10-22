@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Settings,
   Building2,
@@ -8,6 +9,8 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Users,
+  ArrowRight,
 } from "lucide-react";
 
 export default function ConfiguracionPage() {
@@ -142,6 +145,31 @@ export default function ConfiguracionPage() {
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {/* Banner de Acceso Rápido a Personal */}
+      <div className="bg-gradient-to-r from-purple-50 via-indigo-50/40 to-white p-5 rounded-3xl border border-purple-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-purple-600/30">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-extrabold text-slate-900">
+              Personal del Taller (Mecánicos y Recepción)
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Crea nuevas cuentas de acceso y gestiona las altas o bajas del personal operativo.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/app/admin/personal"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold shadow-2xs transition-all cursor-pointer shrink-0"
+        >
+          <span>Gestionar Personal</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Sección 1: Identidad del Taller y White-Label */}

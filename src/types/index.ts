@@ -110,3 +110,18 @@ export interface OCRPartItem {
   costo: number;
   precioSugerido?: number;
 }
+
+export interface StaffMember {
+  id: string;
+  nombre: string;
+  apellido?: string | null;
+  email: string;
+  role: Role;
+  status: "ACTIVE" | "INACTIVE";
+  creadoEn: string | Date;
+  updatedAt?: string | Date;
+  _count?: {
+    workOrdersMechanic?: number;
+  };
+}
+

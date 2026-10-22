@@ -136,6 +136,13 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       mobileBadge: "Taller",
     },
     {
+      href: "/app/admin/personal",
+      label: "Personal",
+      icon: UserCheck,
+      roles: ["ADMIN"],
+      mobileBadge: "Personal",
+    },
+    {
       href: "/app/admin/auditoria",
       label: "Historial y Auditoría",
       icon: History,
