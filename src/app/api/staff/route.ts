@@ -153,13 +153,27 @@ export async function POST(request: NextRequest) {
     await recordAuditLog({
       user: session,
       accion: "CREATE",
+      entidad: "Users",
       entidadAfectada: "Users",
       entidadId: newUser.id,
+      valores: {
+        nuevo: {
+          nombre: newUser.nombre,
+          apellido: newUser.apellido,
+          email: newUser.email,
+          role: newUser.role,
+          status: "ACTIVE",
+        },
+      },
       detallesCambio: {
+        nuevo: {
+          nombre: newUser.nombre,
+          apellido: newUser.apellido,
+          email: newUser.email,
+          role: newUser.role,
+          status: "ACTIVE",
+        },
         descripcion: `Alta de personal: ${newUser.nombre} ${newUser.apellido || ""} (${rolLabel})`,
-        email: newUser.email,
-        role: newUser.role,
-        status: "ACTIVE",
       },
     });
 

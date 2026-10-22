@@ -54,16 +54,26 @@ interface UserItem {
 // Diccionario de nombres legibles para campos de la base de datos
 const FIELD_LABELS: Record<string, string> = {
   estado: "Estado de la orden",
+  status: "Estado (Activo / Inactivo)",
+  role: "Rol en el sistema",
+  rol: "Rol asignado",
+  activo: "Estado activo",
   diagnostico: "Diagnóstico inicial",
   trabajoARealizar: "Trabajo a realizar",
   observaciones: "Observaciones",
   presupuestoEstimado: "Presupuesto estimado",
   montoTotal: "Total facturado",
   costoTotal: "Costo de repuestos",
+  costoManoDeObra: "Costo mano de obra",
+  totalPresupuesto: "Presupuesto total",
   senia: "Seña / Anticipo",
   descuento: "Descuento aplicado",
   kilometraje: "Kilometraje",
   nivelCombustible: "Nivel de combustible",
+  nivelNafta: "Nivel de combustible",
+  detallesIngreso: "Motivo de ingreso / Falla reportada",
+  comentariosDuenio: "Declaración inicial de daños",
+  motivoCancelacion: "Motivo de baja / cancelación",
   fechaPrometida: "Fecha prometida de entrega",
   fechaEntrega: "Fecha efectiva de entrega",
   mecanicoId: "Mecánico asignado",
@@ -74,7 +84,9 @@ const FIELD_LABELS: Record<string, string> = {
   anio: "Año del vehículo",
   color: "Color",
   vin: "N° Bastidor (VIN)",
+  nroChasis: "N° Bastidor / Chasis (VIN)",
   motor: "N° de Motor",
+  nroMotor: "N° de Motor",
   nombre: "Nombre",
   apellido: "Apellido",
   telefono: "Teléfono",
@@ -92,8 +104,7 @@ const FIELD_LABELS: Record<string, string> = {
   horas: "Horas computadas",
   descripcion: "Descripción",
   motivo: "Motivo del cambio",
-  rol: "Rol asignado",
-  activo: "Estado activo",
+  reasignacion: "Reasignación de órdenes",
   esPresupuesto: "Modo presupuesto",
   notasInternas: "Notas internas",
   whatsapp: "WhatsApp del taller",
@@ -106,13 +117,19 @@ const FIELD_LABELS: Record<string, string> = {
 // Diccionario de estados en lenguaje natural
 const STATUS_LABELS: Record<string, string> = {
   PENDIENTE: "Pendiente de inicio",
+  PENDIENTE_PERITAJE: "Pendiente de peritaje",
+  INGRESADO: "Ingresado a taller",
+  EN_CURSO: "En reparación",
+  EN_REPARACION: "En reparación",
   EN_PROCESO: "En reparación",
   ESPERANDO_REPUESTOS: "Esperando repuestos",
+  EN_ESPERA_REPUESTOS: "Esperando repuestos",
   TERMINADO: "Listo para retirar",
   REPARADO: "Listo para retirar",
+  FINALIZADO: "Listo para retirar",
   ENTREGADO: "Entregado al cliente",
   ARCHIVADO: "Archivado",
-  CANCELADO: "Cancelado",
+  CANCELADO: "Cancelado / Dado de baja",
 };
 
 // Formateador amigable de valores
@@ -121,6 +138,23 @@ function formatFieldValue(key: string, val: any): string {
   if (typeof val === "boolean") return val ? "Sí" : "No";
 
   const keyLower = key.toLowerCase();
+
+  if (keyLower === "estado") {
+    return STATUS_LABELS[val] || String(val);
+  }
+
+  if (keyLower === "status") {
+    if (val === "ACTIVE" || val === true) return "Activo";
+    if (val === "INACTIVE" || val === false) return "Inactivo / Dado de baja";
+    return STATUS_LABELS[val] || String(val);
+  }
+
+  if (keyLower === "role" || keyLower === "rol") {
+    if (val === "ADMIN") return "Administrador";
+    if (val === "MECHANIC" || val === "MECANICO") return "Mecánico";
+    if (val === "RECEPTION" || val === "RECEPCION") return "Recepción";
+  }
+
   if (
     keyLower.includes("monto") ||
     keyLower.includes("presupuesto") ||
@@ -311,6 +345,7 @@ export default function AuditoriaPage() {
   const getActionFriendlyName = (accion: string, entidad: string) => {
     switch (accion) {
       case "CREATE":
+        if (entidad.includes("User") || entidad.includes("Staff") || entidad.includes("Personal")) return "Alta de personal";
         if (entidad.includes("WorkLog")) return "Nota en bitácora";
         if (entidad.includes("Order")) return "Apertura de orden";
         if (entidad.includes("Client")) return "Alta de cliente";
@@ -319,11 +354,15 @@ export default function AuditoriaPage() {
         if (entidad.includes("Part")) return "Carga de repuesto";
         return "Nueva alta";
       case "UPDATE":
+        if (entidad.includes("User") || entidad.includes("Staff") || entidad.includes("Personal")) return "Modificación de personal";
         if (entidad.includes("Settings")) return "Cambio en configuración";
         if (entidad.includes("Inventory")) return "Ajuste de inventario";
         return "Modificación de datos";
       case "STATUS_CHANGE":
+        if (entidad.includes("User") || entidad.includes("Staff") || entidad.includes("Personal")) return "Cambio estado personal";
         return "Cambio de estado";
+      case "DAR_DE_BAJA":
+        return "Baja de orden";
       case "ASIGNACION_MECANICO":
         return "Asignación de mecánico";
       case "PERITAJE_PROFUNDO":
@@ -336,6 +375,8 @@ export default function AuditoriaPage() {
         return "Vehículo entregado";
       case "SOFT_DELETE":
       case "DELETE":
+        if (entidad.includes("User") || entidad.includes("Staff") || entidad.includes("Personal")) return "Baja de personal";
+        if (entidad.includes("Order")) return "Baja de orden";
         if (entidad.includes("Client")) return "Baja de cliente";
         if (entidad.includes("Vehicle")) return "Baja de vehículo";
         if (entidad.includes("Part")) return "Repuesto eliminado";
@@ -375,6 +416,7 @@ export default function AuditoriaPage() {
         return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
       case "AVISO_CLIENTE":
         return "bg-teal-50 text-teal-700 border-teal-200";
+      case "DAR_DE_BAJA":
       case "SOFT_DELETE":
       case "DELETE":
       case "DELETE_MULTIMEDIA":
@@ -402,6 +444,11 @@ export default function AuditoriaPage() {
       case "Vehicles":
       case "Vehicle":
         return "Vehículos";
+      case "Users":
+      case "User":
+      case "Staff":
+      case "Personal":
+        return "Personal y Usuarios";
       case "Parts":
       case "Part":
         return "Repuestos y Stock";
@@ -445,10 +492,18 @@ export default function AuditoriaPage() {
       return "Cierre de sesión seguro en la plataforma";
     }
 
-    // Cambio de estado
-    if (log.accion === "STATUS_CHANGE" || log.accion === "FINALIZACION_REPARACION" || log.accion === "ENTREGA_VEHICULO") {
+    // Cambio de estado o baja de orden
+    if (
+      log.accion === "STATUS_CHANGE" ||
+      log.accion === "FINALIZACION_REPARACION" ||
+      log.accion === "ENTREGA_VEHICULO" ||
+      log.accion === "DAR_DE_BAJA"
+    ) {
       const prev = STATUS_LABELS[p.anterior] || p.anterior;
       const next = STATUS_LABELS[p.nuevo] || p.nuevo;
+      if (log.accion === "DAR_DE_BAJA" || p.nuevo === "CANCELADO") {
+        return `Se dio de baja la orden${p.patente ? ` (${p.patente})` : ""}${p.motivoCancelacion ? `. Motivo: ${p.motivoCancelacion}` : ""}`;
+      }
       if (prev && next) {
         return `El estado pasó de "${prev}" a "${next}"${p.patente ? ` (Vehículo: ${p.patente})` : ""}`;
       }
@@ -523,7 +578,7 @@ export default function AuditoriaPage() {
 
       for (const k of allKeys) {
         // Ignorar campos técnicos de base de datos irrelevantes para el usuario
-        if (["id", "createdAt", "updatedAt", "tenantId", "userId"].includes(k)) continue;
+        if (["id", "createdAt", "updatedAt", "tenantId", "userId", "passwordHash", "detallesParsed"].includes(k)) continue;
 
         if (JSON.stringify(p.anterior[k]) !== JSON.stringify(p.nuevo[k])) {
           diffs.push({
@@ -534,6 +589,51 @@ export default function AuditoriaPage() {
           });
         }
       }
+
+      if (p.motivoCancelacion && !diffs.some((d) => d.field === "motivoCancelacion")) {
+        diffs.push({
+          field: "motivoCancelacion",
+          label: FIELD_LABELS.motivoCancelacion || "Motivo de baja / cancelación",
+          prev: null,
+          next: p.motivoCancelacion,
+        });
+      }
+
+      return diffs;
+    }
+
+    // Si anterior y nuevo son valores primitivos directos (ej. cambio de estado de orden)
+    if (
+      p.anterior !== undefined &&
+      p.nuevo !== undefined &&
+      (typeof p.anterior !== "object" || typeof p.nuevo !== "object")
+    ) {
+      const fieldKey =
+        log.accion.includes("STATUS") ||
+        log.accion.includes("FINALIZACION") ||
+        log.accion.includes("ENTREGA") ||
+        log.accion.includes("BAJA")
+          ? "estado"
+          : p.campo || "valor";
+
+      const diffs: { field: string; label: string; prev: any; next: any }[] = [
+        {
+          field: fieldKey,
+          label: FIELD_LABELS[fieldKey] || fieldKey,
+          prev: p.anterior,
+          next: p.nuevo,
+        },
+      ];
+
+      if (p.motivoCancelacion) {
+        diffs.push({
+          field: "motivoCancelacion",
+          label: FIELD_LABELS.motivoCancelacion || "Motivo de baja / cancelación",
+          prev: null,
+          next: p.motivoCancelacion,
+        });
+      }
+
       return diffs;
     }
 
@@ -552,9 +652,9 @@ export default function AuditoriaPage() {
     const targetObj = p.nuevo && typeof p.nuevo === "object" ? p.nuevo : typeof p === "object" ? p : null;
     if (targetObj) {
       const keys = Object.keys(targetObj).filter(
-        (k) => !["id", "createdAt", "updatedAt", "tenantId", "userId", "detallesParsed"].includes(k)
+        (k) => !["id", "createdAt", "updatedAt", "tenantId", "userId", "passwordHash", "detallesParsed", "descripcion"].includes(k)
       );
-      return keys.slice(0, 8).map((k) => ({
+      return keys.slice(0, 15).map((k) => ({
         field: k,
         label: FIELD_LABELS[k] || k,
         prev: null,
@@ -718,6 +818,7 @@ export default function AuditoriaPage() {
               <option value="WorkOrders">Órdenes de Trabajo</option>
               <option value="Clients">Clientes</option>
               <option value="Vehicles">Vehículos</option>
+              <option value="Users">Personal y Usuarios</option>
               <option value="Parts">Repuestos y Stock</option>
               <option value="WorkLogs">Bitácora Técnica</option>
               <option value="Multimedia">Fotos y Evidencias</option>
@@ -742,6 +843,7 @@ export default function AuditoriaPage() {
               <option value="FINALIZACION_REPARACION">Reparación Finalizada</option>
               <option value="ENTREGA_VEHICULO">Entrega de Vehículo</option>
               <option value="AVISO_CLIENTE">Avisos al Cliente</option>
+              <option value="DAR_DE_BAJA">Baja de Órdenes</option>
               <option value="DELETE">Eliminaciones y Bajas</option>
               <option value="MULTIMEDIA">Fotos y Evidencias</option>
               <option value="AUTH">Inicios y Cierres de Sesión</option>

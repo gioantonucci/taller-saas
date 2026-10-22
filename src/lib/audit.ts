@@ -29,8 +29,40 @@ export async function recordAuditLog({
 }: AuditLogParams) {
   try {
     const targetEntity = entidad || entidadAfectada || "General";
-    const changeValues = valores !== undefined ? valores : detallesCambio || {};
-    const valuesString = typeof changeValues === "string" ? changeValues : JSON.stringify(changeValues);
+
+    // Consolidamos valores y detallesCambio para que la base de datos guarde
+    // tanto la descripción humana como los datos comparativos (anterior y nuevo)
+    let payload: any = {};
+
+    if (typeof valores === "object" && valores !== null) {
+      payload = { ...payload, ...valores };
+    }
+
+    if (typeof detallesCambio === "object" && detallesCambio !== null) {
+      payload = { ...payload, ...detallesCambio };
+    } else if (typeof detallesCambio === "string") {
+      try {
+        const parsed = JSON.parse(detallesCambio);
+        if (typeof parsed === "object" && parsed !== null) {
+          payload = { ...payload, ...parsed };
+        } else {
+          payload.descripcion = detallesCambio;
+        }
+      } catch {
+        payload.descripcion = detallesCambio;
+      }
+    }
+
+    // Preservar anterior y nuevo si venían en valores
+    if (valores?.anterior && !payload.anterior) payload.anterior = valores.anterior;
+    if (valores?.nuevo && !payload.nuevo) payload.nuevo = valores.nuevo;
+
+    if (Object.keys(payload).length === 0) {
+      if (typeof valores === "string") payload = { valor: valores };
+      else if (typeof detallesCambio === "string") payload = { descripcion: detallesCambio };
+    }
+
+    const payloadString = JSON.stringify(payload);
 
     return await prisma.auditLog.create({
       data: {
@@ -41,8 +73,8 @@ export async function recordAuditLog({
         entidad: targetEntity,
         entidadAfectada: targetEntity,
         entidadId: entidadId || null,
-        valores: valuesString,
-        detallesCambio: valuesString,
+        valores: payloadString,
+        detallesCambio: payloadString,
         ipAddress: ipAddress || null,
       },
     });

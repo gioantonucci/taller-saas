@@ -82,8 +82,13 @@ export async function PATCH(
         entidad: "Clients",
         entidadAfectada: "Clients",
         entidadId: id,
-        valores: { anterior: currentClient, nuevo: softDeleted },
+        valores: {
+          anterior: { status: currentClient.status, isDeleted: currentClient.isDeleted },
+          nuevo: { status: "INACTIVE", isDeleted: true },
+        },
         detallesCambio: {
+          anterior: { status: currentClient.status, isDeleted: currentClient.isDeleted },
+          nuevo: { status: "INACTIVE", isDeleted: true },
           descripcion: `Baja lógica (Soft Delete) del cliente ${currentClient.nombre} ${currentClient.apellido} (DNI ${currentClient.dni})`,
         },
       });
@@ -112,15 +117,34 @@ export async function PATCH(
       data: updateData,
     });
 
+    const anteriorDiff = {
+      nombre: currentClient.nombre,
+      apellido: currentClient.apellido,
+      dni: currentClient.dni,
+      telefono: currentClient.telefono,
+      email: currentClient.email,
+      direccion: currentClient.direccion,
+    };
+    const nuevoDiff = {
+      nombre: updated.nombre,
+      apellido: updated.apellido,
+      dni: updated.dni,
+      telefono: updated.telefono,
+      email: updated.email,
+      direccion: updated.direccion,
+    };
+
     await recordAuditLog({
       user: session,
       accion: "UPDATE",
       entidad: "Clients",
       entidadAfectada: "Clients",
       entidadId: id,
-      valores: { anterior: currentClient, nuevo: updated },
+      valores: { anterior: anteriorDiff, nuevo: nuevoDiff },
       detallesCambio: {
-        descripcion: `Actualización de datos del cliente ${currentClient.nombre} ${currentClient.apellido}`,
+        anterior: anteriorDiff,
+        nuevo: nuevoDiff,
+        descripcion: `Actualización de datos del cliente ${currentClient.nombre} ${currentClient.apellido} (DNI ${currentClient.dni})`,
       },
     });
 
@@ -164,14 +188,13 @@ export async function DELETE(
       entidadAfectada: "Clients",
       entidadId: id,
       valores: {
-        id,
-        nombre: currentClient.nombre,
-        apellido: currentClient.apellido,
-        dni: currentClient.dni,
-        isDeleted: true,
+        anterior: { status: currentClient.status, isDeleted: currentClient.isDeleted },
+        nuevo: { status: "INACTIVE", isDeleted: true },
       },
       detallesCambio: {
-        descripcion: `Baja lógica (Soft Delete) del cliente ${currentClient.nombre} ${currentClient.apellido}`,
+        anterior: { status: currentClient.status, isDeleted: currentClient.isDeleted },
+        nuevo: { status: "INACTIVE", isDeleted: true },
+        descripcion: `Baja lógica (Soft Delete) del cliente ${currentClient.nombre} ${currentClient.apellido} (DNI ${currentClient.dni})`,
       },
     });
 

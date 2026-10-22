@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       if (entidad === "WorkOrders") targetEntities = ["WorkOrders", "WorkOrder"];
       else if (entidad === "Clients") targetEntities = ["Clients", "Client"];
       else if (entidad === "Vehicles") targetEntities = ["Vehicles", "Vehicle"];
+      else if (entidad === "Users") targetEntities = ["Users", "User", "Staff", "Personal"];
       else if (entidad === "Parts") targetEntities = ["Parts", "Part", "Inventory"];
       else if (entidad === "WorkLogs") targetEntities = ["WorkLogs", "WorkLog"];
       else if (entidad === "Multimedia") targetEntities = ["Multimedia", "Storage"];
@@ -70,10 +71,12 @@ export async function GET(request: NextRequest) {
         andConditions.push({ accion: "ENTREGA_VEHICULO" });
       } else if (accion === "AVISO_CLIENTE") {
         andConditions.push({ accion: "AVISO_CLIENTE" });
-      } else if (accion === "DELETE" || accion === "ELIMINACION") {
+      } else if (accion === "DELETE" || accion === "ELIMINACION" || accion === "BAJA") {
         andConditions.push({
-          accion: { in: ["DELETE", "SOFT_DELETE", "DELETE_MULTIMEDIA"] },
+          accion: { in: ["DELETE", "SOFT_DELETE", "DELETE_MULTIMEDIA", "DAR_DE_BAJA"] },
         });
+      } else if (accion === "DAR_DE_BAJA") {
+        andConditions.push({ accion: "DAR_DE_BAJA" });
       } else if (accion === "MULTIMEDIA") {
         andConditions.push({
           accion: { in: ["UPLOAD_MULTIMEDIA", "UPLOAD_FILE", "DELETE_MULTIMEDIA"] },
@@ -125,7 +128,7 @@ export async function GET(request: NextRequest) {
       prisma.auditLog.findMany({
         where,
         orderBy: { timestamp: "desc" },
-        take: 200,
+        take: 500,
       }),
       prisma.user.findMany({
         select: {

@@ -804,13 +804,23 @@ export async function PATCH(
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: id,
+        valores: {
+          anterior: { estado: previousValues.estado },
+          nuevo: {
+            estado: newValues.estado,
+            ...(updateData.motivoCancelacion ? { motivoCancelacion: updateData.motivoCancelacion } : {}),
+          },
+        },
         detallesCambio: {
           anterior: previousValues.estado,
           nuevo: newValues.estado,
+          motivoCancelacion: updateData.motivoCancelacion || null,
           ordenId: id,
           numeroOrden: currentOrder.numeroOrden,
           patente: currentOrder.vehicle?.patente,
-          descripcion: `Cambio de estado en Orden #${currentOrder.numeroOrden} (${currentOrder.vehicle.patente}): de '${previousValues.estado}' a '${newValues.estado}'`,
+          descripcion: newValues.estado === "CANCELADO"
+            ? `Baja y archivo de Orden #${currentOrder.numeroOrden} (${currentOrder.vehicle?.patente})${updateData.motivoCancelacion ? `. Motivo: ${updateData.motivoCancelacion}` : ""}`
+            : `Cambio de estado en Orden #${currentOrder.numeroOrden} (${currentOrder.vehicle?.patente}): de '${previousValues.estado}' a '${newValues.estado}'`,
         },
       });
     }
@@ -824,6 +834,10 @@ export async function PATCH(
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: id,
+        valores: {
+          anterior: previousValues,
+          nuevo: newValues,
+        },
         detallesCambio: {
           anterior: previousValues,
           nuevo: newValues,
@@ -840,6 +854,78 @@ export async function PATCH(
     console.error("Error en PATCH /api/work-orders/[id]:", error);
     return NextResponse.json(
       { error: "Error al actualizar la orden de trabajo" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    if (session.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Acceso exclusivo para el Administrador del taller" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = params;
+    const currentOrder = await prisma.workOrder.findUnique({
+      where: { id },
+      include: { vehicle: true },
+    });
+
+    if (!currentOrder) {
+      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+    }
+
+    const cancelledOrder = await prisma.workOrder.update({
+      where: { id },
+      data: {
+        estado: "CANCELADO",
+        fechaCancelacion: new Date(),
+        fechaCambioEstado: new Date(),
+        motivoCancelacion: "Baja solicitada por administración",
+      },
+    });
+
+    await recordAuditLog({
+      user: session,
+      accion: "DAR_DE_BAJA",
+      entidad: "WorkOrders",
+      entidadAfectada: "WorkOrders",
+      entidadId: id,
+      valores: {
+        anterior: { estado: currentOrder.estado },
+        nuevo: { estado: "CANCELADO", motivoCancelacion: "Baja solicitada por administración" },
+      },
+      detallesCambio: {
+        anterior: currentOrder.estado,
+        nuevo: "CANCELADO",
+        motivoCancelacion: "Baja solicitada por administración",
+        ordenId: id,
+        numeroOrden: currentOrder.numeroOrden,
+        patente: currentOrder.vehicle?.patente,
+        descripcion: `Baja y archivo de Orden #${currentOrder.numeroOrden} (${currentOrder.vehicle?.patente}) solicitada por administración`,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Orden dada de baja correctamente",
+      order: cancelledOrder,
+    });
+  } catch (error: any) {
+    console.error("Error en DELETE /api/work-orders/[id]:", error);
+    return NextResponse.json(
+      { error: "Error al dar de baja la orden" },
       { status: 500 }
     );
   }

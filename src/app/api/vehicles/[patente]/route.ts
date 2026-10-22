@@ -100,8 +100,13 @@ export async function PATCH(
         entidad: "Vehicles",
         entidadAfectada: "Vehicles",
         entidadId: current.id,
-        valores: { anterior: current, nuevo: softDeleted },
+        valores: {
+          anterior: { status: current.status, isDeleted: current.isDeleted },
+          nuevo: { status: "INACTIVE", isDeleted: true },
+        },
         detallesCambio: {
+          anterior: { status: current.status, isDeleted: current.isDeleted },
+          nuevo: { status: "INACTIVE", isDeleted: true },
           descripcion: `Baja lógica (Soft Delete) del vehículo ${current.marca} ${current.modelo} (${current.patente})`,
         },
       });
@@ -128,15 +133,34 @@ export async function PATCH(
       include: { client: true },
     });
 
+    const anteriorVehicleDiff = {
+      marca: current.marca,
+      modelo: current.modelo,
+      anio: current.anio,
+      color: current.color,
+      nroChasis: current.nroChasis,
+      nroMotor: current.nroMotor,
+    };
+    const nuevoVehicleDiff = {
+      marca: updated.marca,
+      modelo: updated.modelo,
+      anio: updated.anio,
+      color: updated.color,
+      nroChasis: updated.nroChasis,
+      nroMotor: updated.nroMotor,
+    };
+
     await recordAuditLog({
       user: session,
       accion: "UPDATE",
       entidad: "Vehicles",
       entidadAfectada: "Vehicles",
       entidadId: current.id,
-      valores: { anterior: current, nuevo: updated },
+      valores: { anterior: anteriorVehicleDiff, nuevo: nuevoVehicleDiff },
       detallesCambio: {
-        descripcion: `Actualización de ficha técnica del vehículo ${current.patente}`,
+        anterior: anteriorVehicleDiff,
+        nuevo: nuevoVehicleDiff,
+        descripcion: `Actualización de ficha técnica del vehículo ${current.patente} (${updated.marca} ${updated.modelo})`,
       },
     });
 
@@ -184,13 +208,12 @@ export async function DELETE(
       entidadAfectada: "Vehicles",
       entidadId: current.id,
       valores: {
-        id: current.id,
-        patente: current.patente,
-        marca: current.marca,
-        modelo: current.modelo,
-        isDeleted: true,
+        anterior: { status: current.status, isDeleted: current.isDeleted },
+        nuevo: { status: "INACTIVE", isDeleted: true },
       },
       detallesCambio: {
+        anterior: { status: current.status, isDeleted: current.isDeleted },
+        nuevo: { status: "INACTIVE", isDeleted: true },
         descripcion: `Baja lógica (Soft Delete) del vehículo ${current.marca} ${current.modelo} (${current.patente})`,
       },
     });

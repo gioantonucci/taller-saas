@@ -229,9 +229,16 @@ export async function PATCH(
     await recordAuditLog({
       user: session,
       accion: isBaja ? "SOFT_DELETE" : isReactivacion ? "STATUS_CHANGE" : "UPDATE",
+      entidad: "Users",
       entidadAfectada: "Users",
       entidadId: id,
+      valores: {
+        anterior: { status: user.status, nombre: user.nombre, apellido: user.apellido, email: user.email, role: user.role },
+        nuevo: { status: updatedUser.status, nombre: updatedUser.nombre, apellido: updatedUser.apellido, email: updatedUser.email, role: updatedUser.role },
+      },
       detallesCambio: {
+        anterior: { status: user.status, nombre: user.nombre, apellido: user.apellido, email: user.email, role: user.role },
+        nuevo: { status: updatedUser.status, nombre: updatedUser.nombre, apellido: updatedUser.apellido, email: updatedUser.email, role: updatedUser.role },
         descripcion: isBaja
           ? `Baja de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})${reassignedInfo ? `. Reasignación: ${reassignedInfo}` : ""}`
           : isReactivacion
@@ -257,6 +264,73 @@ export async function PATCH(
     console.error("Error en PATCH /api/staff/[id]:", error);
     return NextResponse.json(
       { error: "Error al actualizar el estado del personal" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    if (session.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Acceso denegado: solo el administrador puede dar de baja usuarios" },
+        { status: 403 }
+      );
+    }
+
+    const { id } = params;
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    if (user.id === session.id) {
+      return NextResponse.json(
+        { error: "No puedes darte de baja a ti mismo" },
+        { status: 400 }
+      );
+    }
+
+    const softDeleted = await prisma.user.update({
+      where: { id },
+      data: { status: "INACTIVE" },
+      select: { id: true, nombre: true, apellido: true, email: true, role: true, status: true },
+    });
+
+    await recordAuditLog({
+      user: session,
+      accion: "SOFT_DELETE",
+      entidad: "Users",
+      entidadAfectada: "Users",
+      entidadId: id,
+      valores: {
+        anterior: { status: user.status },
+        nuevo: { status: "INACTIVE" },
+      },
+      detallesCambio: {
+        anterior: { status: user.status },
+        nuevo: { status: "INACTIVE" },
+        descripcion: `Baja lógica de personal/usuario: ${user.nombre} ${user.apellido || ""} (${user.role})`,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Usuario dado de baja correctamente",
+      user: softDeleted,
+    });
+  } catch (error: any) {
+    console.error("Error en DELETE /api/staff/[id]:", error);
+    return NextResponse.json(
+      { error: "Error al dar de baja el usuario" },
       { status: 500 }
     );
   }
