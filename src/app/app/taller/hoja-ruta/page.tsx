@@ -96,6 +96,9 @@ export default function HojaRutaMecanicoPage() {
   const [finalizarModalOpen, setFinalizarModalOpen] = useState(false);
   const [orderToFinalize, setOrderToFinalize] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [mechanics, setMechanics] = useState<any[]>([]);
+  const [mechanicFilter, setMechanicFilter] = useState<string>("TODOS");
+  const [updatingMechanic, setUpdatingMechanic] = useState(false);
 
   // Estados para Registro de Horas (WorkLog)
   const [horasInput, setHorasInput] = useState("1.0");
@@ -112,6 +115,53 @@ export default function HojaRutaMecanicoPage() {
       }
     } catch (err) {
       console.error("Error al obtener usuario actual:", err);
+    }
+  };
+
+  const fetchMechanics = async () => {
+    try {
+      const res = await fetch("/api/mechanics");
+      if (res.ok) {
+        const data = await res.json();
+        setMechanics(data.mechanics || []);
+      }
+    } catch (err) {
+      console.error("Error al cargar mecánicos:", err);
+    }
+  };
+
+  const handleAssignMechanic = async (orderId: string, newMechanicId: string) => {
+    setUpdatingMechanic(true);
+    try {
+      const res = await fetch(`/api/work-orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mechanicId: newMechanicId || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        await alert({
+          title: "Error al asignar mecánico",
+          message: data.error || "No se pudo actualizar el mecánico asignado.",
+          variant: "danger",
+        });
+        return;
+      }
+      setOrders((prev) =>
+        prev.map((o) => (o.id === data.order.id ? data.order : o))
+      );
+      if (selectedOrder && selectedOrder.id === orderId) {
+        syncSelectedOrder(data.order);
+      }
+    } catch (err) {
+      console.error("Error al reasignar mecánico:", err);
+      await alert({
+        title: "Error de conexión",
+        message: "No se pudo conectar con el servidor para reasignar el mecánico.",
+        variant: "danger",
+      });
+    } finally {
+      setUpdatingMechanic(false);
     }
   };
 
@@ -164,6 +214,7 @@ export default function HojaRutaMecanicoPage() {
   useEffect(() => {
     fetchOrders();
     fetchCurrentUser();
+    fetchMechanics();
   }, []);
 
   const handleFinalizarSuccess = (updatedOrder: any) => {
@@ -414,11 +465,16 @@ export default function HojaRutaMecanicoPage() {
 
 
   // Filtrado de órdenes activas (excluye canceladas y archivadas)
-  const filteredOrders = orders.filter((o) => {
+  const baseActiveOrders = orders.filter((o) => {
     if (isCancelledOrder(o) || o.estado === "CANCELADO" || o.estado === "ENTREGADO" || o.estado === "ARCHIVADO") {
       return false;
     }
+    if (mechanicFilter === "TODOS") return true;
+    if (mechanicFilter === "UNASSIGNED") return !o.mechanicId && !o.mechanic;
+    return o.mechanicId === mechanicFilter || o.mechanic?.id === mechanicFilter;
+  });
 
+  const filteredOrders = baseActiveOrders.filter((o) => {
     if (searchQuery.trim()) {
       const matchesSearch = matchesSearchMulti(
         [
@@ -429,6 +485,8 @@ export default function HojaRutaMecanicoPage() {
           o.vehicle?.client?.apellido,
           o.numeroOrden,
           o.detallesIngreso,
+          o.mechanic?.nombre,
+          o.mechanic?.apellido,
         ],
         searchQuery
       );
@@ -453,17 +511,12 @@ export default function HojaRutaMecanicoPage() {
     return true;
   });
 
-  // Conteo de órdenes activas (excluye canceladas y archivadas)
-  const activeOrdersForCounts = orders.filter(
-    (o) => !isCancelledOrder(o) && o.estado !== "CANCELADO" && o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
-  );
-
   const counts = {
-    total: activeOrdersForCounts.length,
-    pendiente: activeOrdersForCounts.filter((o) => o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO").length,
-    enCurso: activeOrdersForCounts.filter((o) => o.estado === "EN_CURSO" || o.estado === "EN_REPARACION" || o.estado === "PERITADO").length,
-    esperandoRepuestos: activeOrdersForCounts.filter((o) => o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO").length,
-    finalizado: activeOrdersForCounts.filter((o) => o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO").length,
+    total: baseActiveOrders.length,
+    pendiente: baseActiveOrders.filter((o) => o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO").length,
+    enCurso: baseActiveOrders.filter((o) => o.estado === "EN_CURSO" || o.estado === "EN_REPARACION" || o.estado === "PERITADO").length,
+    esperandoRepuestos: baseActiveOrders.filter((o) => o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO").length,
+    finalizado: baseActiveOrders.filter((o) => o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO").length,
   };
 
   const totalHorasInvertidas =
@@ -523,13 +576,15 @@ export default function HojaRutaMecanicoPage() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider block">
-                    Módulo de Taller
+                    {isEncargado ? "Vista General de Taller (Admin)" : "Módulo de Taller"}
                   </span>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
                     Hoja de Ruta
                   </h1>
                   <p className="text-xs text-sky-300 font-medium mt-0.5">
-                    Panel Táctil para Mecánicos • {counts.total} autos en taller
+                    {isEncargado
+                      ? `Órdenes de todos los mecánicos • ${counts.total} autos en taller`
+                      : `Panel Táctil para Mecánicos • ${counts.total} autos en taller`}
                   </p>
                 </div>
               </div>
@@ -606,7 +661,7 @@ export default function HojaRutaMecanicoPage() {
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <input
                 type="text"
-                placeholder="Buscar por patente, modelo o titular..."
+                placeholder="Buscar por patente, modelo, cliente o mecánico..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none"
@@ -649,6 +704,90 @@ export default function HojaRutaMecanicoPage() {
                 </button>
               ))}
             </div>
+
+            {/* Filtro de Mecánicos para Admin / Encargado */}
+            {isEncargado && (
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <Wrench className="w-3.5 h-3.5 text-sky-600" />
+                    Filtrar por Mecánico:
+                  </span>
+                  {mechanicFilter !== "TODOS" && (
+                    <button
+                      type="button"
+                      onClick={() => setMechanicFilter("TODOS")}
+                      className="text-[10px] font-bold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer"
+                    >
+                      Mostrar todos
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-bold scrollbar-none">
+                  <button
+                    type="button"
+                    onClick={() => setMechanicFilter("TODOS")}
+                    className={`px-2.5 py-1.5 rounded-xl border whitespace-nowrap transition-all cursor-pointer ${
+                      mechanicFilter === "TODOS"
+                        ? "bg-slate-900 text-white border-slate-900 shadow-2xs font-extrabold"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    👥 Todos los mecánicos ({orders.filter((o) => !isCancelledOrder(o) && o.estado !== "CANCELADO" && o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO").length})
+                  </button>
+                  {mechanics.map((m) => {
+                    const count = orders.filter(
+                      (o) =>
+                        !isCancelledOrder(o) &&
+                        o.estado !== "CANCELADO" &&
+                        o.estado !== "ENTREGADO" &&
+                        o.estado !== "ARCHIVADO" &&
+                        (o.mechanicId === m.id || o.mechanic?.id === m.id)
+                    ).length;
+                    const isSelected = mechanicFilter === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setMechanicFilter(m.id)}
+                        className={`px-2.5 py-1.5 rounded-xl border whitespace-nowrap transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs font-extrabold"
+                            : "bg-indigo-50/60 text-indigo-700 border-indigo-200/80 hover:bg-indigo-100/60"
+                        }`}
+                      >
+                        🔧 {m.nombre} {m.apellido || ""} ({count})
+                      </button>
+                    );
+                  })}
+                  {(() => {
+                    const unassignedCount = orders.filter(
+                      (o) =>
+                        !isCancelledOrder(o) &&
+                        o.estado !== "CANCELADO" &&
+                        o.estado !== "ENTREGADO" &&
+                        o.estado !== "ARCHIVADO" &&
+                        !o.mechanicId &&
+                        !o.mechanic
+                    ).length;
+                    const isSelected = mechanicFilter === "UNASSIGNED";
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setMechanicFilter("UNASSIGNED")}
+                        className={`px-2.5 py-1.5 rounded-xl border whitespace-nowrap transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-amber-600 text-white border-amber-600 shadow-2xs font-extrabold"
+                            : "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100/60"
+                        }`}
+                      >
+                        ⚠️ Sin asignar ({unassignedCount})
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Listado de Tarjetas de Autos */}
@@ -737,9 +876,21 @@ export default function HojaRutaMecanicoPage() {
                           </h3>
                         </div>
 
-                        <p className="text-[11px] text-slate-500 mt-1 font-medium">
-                          Orden #{order.numeroOrden} • {order.vehicle.client.nombre} {order.vehicle.client.apellido || ""}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Orden #{order.numeroOrden} • {order.vehicle.client.nombre} {order.vehicle.client.apellido || ""}
+                          </p>
+                          {order.mechanic ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                              <Wrench className="w-2.5 h-2.5 text-indigo-500" />
+                              {order.mechanic.nombre} {order.mechanic.apellido || ""}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/80">
+                              ⚠️ Sin mecánico
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <span
@@ -839,13 +990,20 @@ export default function HojaRutaMecanicoPage() {
           <div className="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-sm space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                     Vehículo en Taller
                   </span>
                   <span className="text-slate-300">•</span>
                   <span className="text-[10px] text-slate-500 font-medium">
                     Ingresó: {new Date(selectedOrder.fechaIngreso).toLocaleDateString("es-AR")}
+                  </span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200 flex items-center gap-1">
+                    <Wrench className="w-3 h-3 text-indigo-600" />
+                    {selectedOrder.mechanic
+                      ? `Mecánico: ${selectedOrder.mechanic.nombre} ${selectedOrder.mechanic.apellido || ""}`
+                      : "Sin mecánico asignado"}
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
@@ -854,6 +1012,30 @@ export default function HojaRutaMecanicoPage() {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap">
+                {/* Selector rápido de reasignación para Encargado/Admin */}
+                {isEncargado && (
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Mecánico:</span>
+                    <select
+                      value={selectedOrder.mechanicId || selectedOrder.mechanic?.id || ""}
+                      onChange={(e) => handleAssignMechanic(selectedOrder.id, e.target.value)}
+                      disabled={updatingMechanic}
+                      aria-label="Asignar mecánico a la orden"
+                      className="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">⚠️ Sin asignar</option>
+                      {mechanics.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nombre} {m.apellido || ""}
+                        </option>
+                      ))}
+                    </select>
+                    {updatingMechanic && (
+                      <span className="text-[10px] text-sky-600 font-bold animate-pulse">...</span>
+                    )}
+                  </div>
+                )}
+
                 {/* Matrícula compacta */}
                 <div className="inline-flex items-center px-2.5 py-0.5 border border-slate-300 rounded-lg bg-slate-100 text-slate-900 font-mono font-black text-xs tracking-wider select-none shadow-2xs">
                   {selectedOrder.vehicle.patente}

@@ -38,14 +38,28 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtrar por mecánico si se especifica en parámetros o scope específico de hoja de ruta
+    const isAdminOrReception =
+      session.role === "ADMIN" ||
+      session.role === "RECEPTION" ||
+      session.role === "RECEPCION";
+
+    if (mechanicId && mechanicId !== "TODOS" && mechanicId !== "mine") {
+      if (mechanicId === "UNASSIGNED") {
+        where.mechanicId = null;
+      } else {
+        where.mechanicId = mechanicId;
+      }
+    } else if (scope === "mine" || mechanicId === "mine") {
+      if (!isAdminOrReception) {
+        where.mechanicId = session.id;
+      }
+    }
+
     if (scope === "mine" || mechanicId === "mine") {
-      where.mechanicId = session.id;
       if (!estado || estado === "TODOS") {
         where.estado = { notIn: ["CANCELADO", "ENTREGADO", "ARCHIVADO"] };
         where.motivoCancelacion = null;
       }
-    } else if (mechanicId && mechanicId !== "TODOS") {
-      where.mechanicId = mechanicId;
     }
 
     const orders = await prisma.workOrder.findMany({
