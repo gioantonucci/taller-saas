@@ -80,20 +80,6 @@ const CORE_STATUSES = [
   },
 ] as const;
 
-// Sugerencias rápidas táctiles para el mecánico
-const QUICK_TASKS = [
-  "Cambio de pastillas delanteras",
-  "Cambio de aceite y filtros",
-  "Revisión de tren delantero",
-  "Alineación y balanceo",
-  "Diagnóstico computarizado",
-  "Reparación de suspensión",
-  "Purgado de sistema de frenos",
-  "Sustitución de correa y tensores",
-  "Reparación de embrague",
-  "Prueba de ruta satisfactoria",
-];
-
 const QUICK_HOURS = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0];
 
 export default function HojaRutaMecanicoPage() {
@@ -1281,16 +1267,11 @@ export default function HojaRutaMecanicoPage() {
               </div>
             ) : (
               <form onSubmit={handleAddWorkLog} className="space-y-4">
-                {/* Tarea con Carrusel de Sugerencias Táctiles */}
+                {/* Tarea o Arreglo Realizado */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-extrabold text-slate-800">
-                      Tarea o Arreglo Realizado:
-                    </label>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Tocá una sugerencia rápida ➔
-                    </span>
-                  </div>
+                  <label className="block text-xs font-extrabold text-slate-800 mb-1.5">
+                    Tarea o Arreglo Realizado:
+                  </label>
 
                   <input
                     type="text"
@@ -1300,24 +1281,6 @@ export default function HojaRutaMecanicoPage() {
                     onChange={(e) => setTareaInput(e.target.value)}
                     className="w-full px-4 py-3 rounded-2xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder:text-slate-400"
                   />
-
-                  {/* Sugerencias en flex-wrap para que se vean prolijas y no cortadas */}
-                  <div className="flex flex-wrap gap-1.5 pt-2">
-                    {QUICK_TASKS.map((quick) => (
-                      <button
-                        key={quick}
-                        type="button"
-                        onClick={() => setTareaInput(quick)}
-                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition-all active:scale-95 cursor-pointer ${
-                          tareaInput === quick
-                            ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                            : "bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 border-slate-200/90 shadow-2xs"
-                        }`}
-                      >
-                        + {quick}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Horas Empleadas con Stepper Táctil y Presets */}
