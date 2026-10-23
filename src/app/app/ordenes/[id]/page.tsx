@@ -1660,7 +1660,7 @@ export default function OrdenDetallePage() {
             {order.multimedia.map((item: any) => {
               const isVid =
                 item.tipo === "VIDEO" ||
-                /\.(mp4|webm|mov|m4v)$/i.test(item.urlStorage || "");
+                /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
               return (
                 <div
                   key={item.id}
@@ -1713,7 +1713,7 @@ export default function OrdenDetallePage() {
             className="max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3"
             onClick={(e) => e.stopPropagation()}
           >
-            {/\.(mp4|webm|mov|m4v)$/i.test(activeModalImg) || activeModalImg.includes("video") ? (
+            {/\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(activeModalImg) || activeModalImg.includes("video") ? (
               <video
                 src={activeModalImg}
                 controls

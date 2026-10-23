@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
       "video/mp4",
       "video/webm",
       "video/quicktime",
+      "video/3gpp",
+      "video/3gp",
+      "video/x-matroska",
+      "video/avi",
+      "video/x-msvideo",
       "application/pdf",
     ];
 
@@ -59,6 +64,9 @@ export async function POST(request: NextRequest) {
       else if (["mp4", "m4v"].includes(ext)) detectedMime = "video/mp4";
       else if (["webm"].includes(ext)) detectedMime = "video/webm";
       else if (["mov"].includes(ext)) detectedMime = "video/quicktime";
+      else if (["3gp", "3gpp"].includes(ext)) detectedMime = "video/3gpp";
+      else if (["mkv"].includes(ext)) detectedMime = "video/x-matroska";
+      else if (["avi"].includes(ext)) detectedMime = "video/avi";
       else if (["pdf"].includes(ext)) detectedMime = "application/pdf";
       else detectedMime = "image/jpeg"; // fallback seguro para fotos de taller
     }

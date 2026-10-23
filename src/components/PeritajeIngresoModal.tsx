@@ -531,10 +531,27 @@ export default function PeritajeIngresoModal({
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const isVideo = file.type.startsWith("video/") || /\.(mp4|webm|mov|m4v|avi|quicktime)$/i.test(file.name);
+        const isVideo =
+          file.type.startsWith("video/") ||
+          /\.(mp4|webm|mov|m4v|avi|quicktime|3gp|3gpp|mkv)$/i.test(file.name);
+        const isImage =
+          file.type.startsWith("image/") ||
+          /\.(jpe?g|png|webp|heic|heif|gif|bmp|tiff?)$/i.test(file.name);
+
+        if (!isVideo && !isImage) {
+          await alert({
+            title: "Formato no permitido",
+            message: `El archivo "${file.name}" no es una foto ni un video válido. Solo se admiten fotos y videos desde la galería.`,
+            variant: "warning",
+            icon: "warning",
+          });
+          continue;
+        }
 
         let fileToUpload: File | Blob = file;
-        if (!isVideo) {
+        let uploadFileName = file.name;
+
+        if (isImage) {
           setUploadMsg(
             files.length > 1
               ? `Comprimiendo imagen ${i + 1} de ${files.length}...`
@@ -543,6 +560,7 @@ export default function PeritajeIngresoModal({
 
           const { file: compressedFile, originalSize, compressedSize } = await compressImageClient(file);
           fileToUpload = compressedFile;
+          uploadFileName = compressedFile.name || file.name;
           setUploadMsg(
             files.length > 1
               ? `Subiendo imagen ${i + 1} de ${files.length}...`
@@ -558,7 +576,7 @@ export default function PeritajeIngresoModal({
 
         const uploadedFile = await uploadFileWithChunking(
           fileToUpload,
-          file.name,
+          uploadFileName,
           isVideo,
           (msg) => setUploadMsg(msg)
         );
@@ -1619,17 +1637,21 @@ export default function PeritajeIngresoModal({
                       />
                     </label>
 
-                    {/* Botón 3: Galería */}
+                    {/* Botón 3: Galería (Fotos y Videos) */}
                     <label
-                      className={`flex flex-col items-center justify-center gap-1.5 bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-800 font-bold py-3.5 px-2 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer text-center ${
+                      className={`flex flex-col items-center justify-center gap-1 bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-800 font-bold py-2.5 px-2 rounded-2xl text-xs border border-slate-300 shadow-xs transition-all cursor-pointer text-center ${
                         uploading ? "opacity-50 pointer-events-none" : ""
                       }`}
+                      title="Seleccionar fotos y/o videos desde la galería"
                     >
                       <Upload className="w-5 h-5 text-emerald-600 shrink-0" />
-                      <span>Galería</span>
+                      <div className="leading-tight">
+                        <span className="block font-bold">Galería</span>
+                        <span className="block text-[10px] text-slate-500 font-medium">Fotos y videos</span>
+                      </div>
                       <input
                         type="file"
-                        accept="image/*,video/*,video/mp4,video/webm,video/quicktime"
+                        accept="image/*,video/*"
                         multiple
                         onChange={handlePhotoCapture}
                         disabled={uploading}
@@ -1662,7 +1684,9 @@ export default function PeritajeIngresoModal({
                   {(() => {
                     const allMedia = [...uploadedPhotos, ...(order.multimedia || [])];
                     const videoCount = allMedia.filter(
-                      (item: any) => item.tipo === "VIDEO" || /\.(mp4|webm|mov)$/i.test(item.urlStorage || item.url || "")
+                      (item: any) =>
+                        item.tipo === "VIDEO" ||
+                        /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || item.url || "")
                     ).length;
                     const photoCount = allMedia.length - videoCount;
 
@@ -1680,7 +1704,7 @@ export default function PeritajeIngresoModal({
                           {allMedia.map((item: any, idx: number) => {
                             const isVid =
                               item.tipo === "VIDEO" ||
-                              /\.(mp4|webm|mov|m4v)$/i.test(item.urlStorage || item.url || "");
+                              /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || item.url || "");
                             const mediaUrl = item.urlStorage || item.url;
                             return (
                               <div
