@@ -3,6 +3,8 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Car,
   Search,
@@ -15,9 +17,9 @@ import {
   Trash2,
   RefreshCw,
 } from "lucide-react";
+import { quickVehicleAndClientSchema, QuickVehicleAndClientValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
 import { getStatusInfo } from "@/lib/order-status";
-import IngresarAutoModal from "@/components/IngresarAutoModal";
 
 function getVehicleStatus(v: any) {
   const orders = v.workOrders || [];
@@ -64,7 +66,33 @@ function VehiculosContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(initialOpen);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<QuickVehicleAndClientValues>({
+    resolver: zodResolver(quickVehicleAndClientSchema),
+    defaultValues: {
+      marca: "",
+      modelo: "",
+      anio: new Date().getFullYear(),
+      patente: "",
+      color: "",
+      nroChasis: "",
+      modoCliente: "EXISTENTE",
+      clientId: initialClientId,
+      clienteNombre: "",
+      clienteApellido: "",
+      clienteDni: "",
+      clienteTelefono: "",
+      clienteEmail: "",
+    },
+  });
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -105,6 +133,59 @@ function VehiculosContent() {
     }, 250);
     return () => clearTimeout(delayDebounce);
   }, [search]);
+
+  const openCreateModal = () => {
+    setSubmitError(null);
+    reset({
+      marca: "",
+      modelo: "",
+      anio: new Date().getFullYear(),
+      patente: "",
+      color: "",
+      nroChasis: "",
+      modoCliente: "EXISTENTE",
+      clientId: clients[0]?.id || "",
+      clienteNombre: "",
+      clienteApellido: "",
+      clienteDni: "",
+      clienteTelefono: "",
+      clienteEmail: "",
+    });
+    setModalOpen(true);
+  };
+
+  const onSubmit = async (values: QuickVehicleAndClientValues) => {
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/vehicles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSubmitError(data.error || "Error al registrar vehículo");
+        setSubmitting(false);
+        return;
+      }
+
+      setModalOpen(false);
+      setActionSuccess(
+        `Vehículo ${data.vehicle.marca} ${data.vehicle.modelo} (${data.vehicle.patente}) registrado exitosamente.`
+      );
+      setTimeout(() => setActionSuccess(null), 4000);
+      fetchVehicles();
+      fetchClientsList();
+    } catch {
+      setSubmitError("Error de comunicación con el servidor");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleSoftDelete = async (v: any) => {
     const confirmDelete = await confirm({
@@ -167,11 +248,11 @@ function VehiculosContent() {
         </div>
 
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Registrar Auto</span>
+          <span>Registrar Vehículo</span>
         </button>
       </div>
 
@@ -409,20 +490,230 @@ function VehiculosContent() {
         )}
       </div>
 
-      {/* Modal Unificado de Ingreso / Registro de Auto */}
-      <IngresarAutoModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        initialClientId={initialClientId}
-        onSuccess={(createdOrder) => {
-          fetchVehicles();
-          fetchClientsList();
-          setActionSuccess(
-            `Vehículo ${createdOrder.vehicle?.marca} ${createdOrder.vehicle?.modelo} (${createdOrder.vehicle?.patente}) ingresado con éxito con la Orden #${createdOrder.numeroOrden}.`
-          );
-          setTimeout(() => setActionSuccess(null), 5000);
-        }}
-      />
+      {/* Modal de Alta de Vehículo con ZOD + REACT HOOK FORM */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Header del Modal */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold">
+                  <Car className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900">
+                    Registro de Nuevo Vehículo
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-semibold block">
+                    Asignación a cliente existente o alta rápida simultánea
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Error general */}
+            {submitError && (
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* Formulario scrolleable */}
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Sección 1: Datos Técnicos del Vehículo */}
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  1. Información Técnica del Auto
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Marca <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register("marca")}
+                      placeholder="Ej. Toyota, Volkswagen, Ford"
+                      className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 focus:outline-none focus:ring-2 font-medium ${
+                        errors.marca
+                          ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
+                          : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
+                      }`}
+                    />
+                    {errors.marca && (
+                      <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                        {errors.marca.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Modelo <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register("modelo")}
+                      placeholder="Ej. Corolla XEI, Gol Trend"
+                      className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 focus:outline-none focus:ring-2 font-medium ${
+                        errors.modelo
+                          ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
+                          : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
+                      }`}
+                    />
+                    {errors.modelo && (
+                      <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                        {errors.modelo.message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Patente / Dominio <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      {...register("patente")}
+                      placeholder="AF 142 XY"
+                      className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 font-mono font-bold uppercase focus:outline-none focus:ring-2 ${
+                        errors.patente
+                          ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
+                          : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
+                      }`}
+                    />
+                    {errors.patente && (
+                      <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                        {errors.patente.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Año de Fabricación <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      {...register("anio", { valueAsNumber: true })}
+                      placeholder="2022"
+                      className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 font-medium focus:outline-none focus:ring-2 ${
+                        errors.anio
+                          ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
+                          : "border-slate-200 focus:ring-sky-500 bg-slate-50/40"
+                      }`}
+                    />
+                    {errors.anio && (
+                      <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                        {errors.anio.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Color
+                    </label>
+                    <input
+                      type="text"
+                      {...register("color")}
+                      placeholder="Gris Plata"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Nº Bastidor (VIN)</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register("nroChasis")}
+                    placeholder="Ej. VF1RFB00869123847"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 font-mono font-bold uppercase focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40"
+                  />
+                  {errors.nroChasis && (
+                    <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                      {errors.nroChasis.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sección 2: Asignación de Propietario (Cliente) */}
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  2. Propietario / Titular del Vehículo
+                </span>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Seleccionar Cliente Registrado <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    {...register("clientId")}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/40 font-medium"
+                  >
+                    <option value="">-- Seleccionar cliente --</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre} {c.apellido} (DNI {c.dni})
+                      </option>
+                    ))}
+                  </select>
+                  {errors.clientId && (
+                    <span className="text-[10px] font-semibold text-rose-600 mt-1 block">
+                      {errors.clientId.message}
+                    </span>
+                  )}
+                  <p className="text-[11px] text-slate-400 mt-1.5">
+                    El registro asocia el vehículo al cliente seleccionado. Para dar de alta un nuevo titular, hacelo desde la sección{" "}
+                    <Link href="/app/clientes" className="text-sky-600 font-bold hover:underline">
+                      Clientes
+                    </Link>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  {submitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Registrando...</span>
+                    </>
+                  ) : (
+                    <span>Registrar Vehículo</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
