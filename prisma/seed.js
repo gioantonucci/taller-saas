@@ -102,6 +102,30 @@ async function main() {
     },
   });
 
+  const mecanicoInactivo = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      nombre: "Gonzalo",
+      apellido: "Peralta",
+      email: "gonzalo.peralta@taller.com",
+      passwordHash: passwordMecanico,
+      role: "MECHANIC",
+      status: "INACTIVE",
+    },
+  });
+
+  const recepcionInactiva = await prisma.user.create({
+    data: {
+      tenantId: tenant.id,
+      nombre: "Sofía",
+      apellido: "Ramos",
+      email: "sofia.ramos@taller.com",
+      passwordHash: passwordRecepcion,
+      role: "RECEPTION",
+      status: "INACTIVE",
+    },
+  });
+
   console.log("Usuarios y mecánicos creados exitosamente.");
 
   // 4. Clientes con datos y direcciones completas
@@ -162,6 +186,19 @@ async function main() {
       telefono: "+34 655 667 788",
       email: "santiago.fb@yahoo.es",
       status: "ACTIVE",
+    },
+  });
+
+  const clienteInactivo = await prisma.client.create({
+    data: {
+      nombre: "Esteban",
+      apellido: "Quaranta",
+      dni: "28401923L",
+      direccion: "Carrer de Xàtiva 15, 46002 València",
+      telefono: "+34 677 889 900",
+      email: "esteban.quaranta@correo.es",
+      status: "INACTIVE",
+      isDeleted: true,
     },
   });
 
@@ -372,6 +409,7 @@ async function main() {
       estado: "EN_REPARACION",
       fechaIngreso: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       fechaEstimada: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 5 * 60 * 60 * 1000),
       nivelNafta: "3/4",
       kilometraje: 54300,
       detallesIngreso:
@@ -468,6 +506,7 @@ async function main() {
       estado: "EN_ESPERA_REPUESTOS",
       fechaIngreso: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
       fechaEstimada: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 14 * 60 * 60 * 1000),
       nivelNafta: "1/4",
       kilometraje: 88750,
       detallesIngreso:
@@ -549,6 +588,7 @@ async function main() {
       estado: "FINALIZADO",
       fechaIngreso: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
       fechaEstimada: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 2 * 60 * 60 * 1000),
       fechaEntrega: null,
       nivelNafta: "LLENO",
       kilometraje: 42100,
@@ -612,6 +652,7 @@ async function main() {
       estado: "PENDIENTE_PERITAJE",
       fechaIngreso: new Date(Date.now() - 3 * 60 * 60 * 1000), // Hace 3 horas
       fechaEstimada: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 3 * 60 * 60 * 1000),
       nivelNafta: "1/2",
       kilometraje: 29800,
       detallesIngreso:
@@ -635,6 +676,7 @@ async function main() {
       fechaIngreso: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000),
       fechaEstimada: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       fechaEntrega: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 48 * 60 * 60 * 1000),
       nivelNafta: "3/4",
       kilometraje: 71500,
       detallesIngreso:
@@ -695,6 +737,7 @@ async function main() {
       estado: "EN_REPARACION",
       fechaIngreso: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       fechaEstimada: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 4 * 60 * 60 * 1000),
       nivelNafta: "1/2",
       kilometraje: 63400,
       detallesIngreso:
@@ -791,6 +834,7 @@ async function main() {
       estado: "PENDIENTE_PERITAJE",
       fechaIngreso: new Date(Date.now() - 1 * 60 * 60 * 1000), // Hace 1 hora
       fechaEstimada: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 1 * 60 * 60 * 1000),
       nivelNafta: "VACIO",
       kilometraje: 95200,
       detallesIngreso:
@@ -813,6 +857,7 @@ async function main() {
       estado: "CANCELADO",
       fechaIngreso: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       fechaCancelacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      fechaCambioEstado: new Date(Date.now() - 18 * 60 * 60 * 1000),
       motivoCancelacion:
         "El titular decide no afrontar la reparación integral de la mecatrónica de transmisión en este período por presupuesto elevado. Se entrega en grúa particular sin costo devengado.",
       nivelNafta: "1/4",
@@ -1157,6 +1202,74 @@ async function main() {
   await prisma.auditLog.createMany({
     data: [
       {
+        userId: admin.id,
+        userEmail: admin.email,
+        userName: `${admin.nombre} ${admin.apellido}`,
+        accion: "LOGIN",
+        entidad: "Auth",
+        entidadAfectada: "Auth",
+        entidadId: admin.id,
+        valores: JSON.stringify({ rol: "ADMIN", metodo: "Credenciales" }),
+        detallesCambio: JSON.stringify({ descripcion: "Inicio de sesión administrativo exitoso" }),
+        ipAddress: "192.168.1.45",
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        userId: admin.id,
+        userEmail: admin.email,
+        userName: `${admin.nombre} ${admin.apellido}`,
+        accion: "CREATE",
+        entidad: "Users",
+        entidadAfectada: "Users",
+        entidadId: mecanico1.id,
+        valores: JSON.stringify({ nuevo: { nombre: "Lucas", apellido: "Benítez", email: "mecanico@taller.com", role: "MECHANIC" } }),
+        detallesCambio: JSON.stringify({ descripcion: "Alta de personal técnico: Lucas Benítez (Mecánico)" }),
+        ipAddress: "192.168.1.45",
+        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 10 * 60 * 1000),
+      },
+      {
+        userId: admin.id,
+        userEmail: admin.email,
+        userName: `${admin.nombre} ${admin.apellido}`,
+        accion: "SOFT_DELETE",
+        entidad: "Users",
+        entidadAfectada: "Users",
+        entidadId: mecanicoInactivo.id,
+        valores: JSON.stringify({
+          anterior: { status: "ACTIVE" },
+          nuevo: { status: "INACTIVE" },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Baja de personal técnico (Gonzalo Peralta). Órdenes reasignadas a Lucas Benítez" }),
+        ipAddress: "192.168.1.45",
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        userId: recepcion.id,
+        userEmail: recepcion.email,
+        userName: `${recepcion.nombre} ${recepcion.apellido}`,
+        accion: "CREATE",
+        entidad: "Clients",
+        entidadAfectada: "Clients",
+        entidadId: cliente1.id,
+        valores: JSON.stringify({ nuevo: { nombre: "Federico Álvarez", dni: "47289123K", telefono: "+34 611 223 344" } }),
+        detallesCambio: JSON.stringify({ descripcion: "Registro de nuevo cliente en mostrador: Federico Álvarez" }),
+        ipAddress: "192.168.1.50",
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
+      },
+      {
+        userId: recepcion.id,
+        userEmail: recepcion.email,
+        userName: `${recepcion.nombre} ${recepcion.apellido}`,
+        accion: "CREATE",
+        entidad: "Vehicles",
+        entidadAfectada: "Vehicles",
+        entidadId: auto1.id,
+        valores: JSON.stringify({ nuevo: { patente: "4821 KRP", marca: "Toyota", modelo: "Corolla", nroChasis: "JTNB11BX500342188" } }),
+        detallesCambio: JSON.stringify({ descripcion: "Vinculación de vehículo 4821 KRP con Nº Bastidor al cliente Federico Álvarez" }),
+        ipAddress: "192.168.1.50",
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 40 * 60 * 1000),
+      },
+      {
         userId: recepcion.id,
         userEmail: recepcion.email,
         userName: `${recepcion.nombre} ${recepcion.apellido}`,
@@ -1164,9 +1277,23 @@ async function main() {
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: orden1001.id,
-        valores: JSON.stringify({ numeroOrden: 1001, vehiculo: "4821 KRP", cliente: "Federico Álvarez" }),
-        detallesCambio: JSON.stringify({ motivo: "Recepción de vehículo en mostrador y apertura de orden" }),
+        valores: JSON.stringify({ numeroOrden: 1001, vehiculo: "4821 KRP", cliente: "Federico Álvarez", estado: "PENDIENTE" }),
+        detallesCambio: JSON.stringify({ descripcion: "Recepción de vehículo en mostrador y apertura de orden #1001" }),
+        ipAddress: "192.168.1.50",
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        userId: recepcion.id,
+        userEmail: recepcion.email,
+        userName: `${recepcion.nombre} ${recepcion.apellido}`,
+        accion: "UPLOAD_MULTIMEDIA",
+        entidad: "Storage",
+        entidadAfectada: "Storage",
+        entidadId: orden1001.id,
+        valores: JSON.stringify({ tipo: "MULTIMEDIA", cantidad: 4, formatos: ["image/webp", "video/mp4"] }),
+        detallesCambio: JSON.stringify({ descripcion: "Carga de 3 fotografías de peritaje de ingreso y 1 video de motor" }),
+        ipAddress: "192.168.1.50",
+        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000),
       },
       {
         userId: mecanico1.id,
@@ -1176,8 +1303,12 @@ async function main() {
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: orden1001.id,
-        valores: JSON.stringify({ estado: "EN_REPARACION", peritaje: "COMPLETADO" }),
-        detallesCambio: JSON.stringify({ motivo: "Constatación y cierre de acta de peritaje de ingreso e inicio de tareas" }),
+        valores: JSON.stringify({
+          anterior: { estado: "PENDIENTE" },
+          nuevo: { estado: "EN_REPARACION" },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Constatación y cierre de acta de peritaje de ingreso e inicio de tareas" }),
+        ipAddress: "192.168.1.62",
         timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000),
       },
       {
@@ -1188,9 +1319,29 @@ async function main() {
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: orden1002.id,
-        valores: JSON.stringify({ estadoAnterior: "EN_REPARACION", estadoNuevo: "ESPERANDO_REPUESTOS" }),
-        detallesCambio: JSON.stringify({ motivo: "Pausa por espera de kit de bomba de agua y distribución" }),
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        valores: JSON.stringify({
+          anterior: { estado: "EN_REPARACION" },
+          nuevo: { estado: "EN_ESPERA_REPUESTOS" },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Pausa de orden #1002 por espera de kit de bomba de agua y distribución" }),
+        ipAddress: "192.168.1.63",
+        timestamp: new Date(Date.now() - 14 * 60 * 60 * 1000),
+      },
+      {
+        userId: mecanico3.id,
+        userEmail: mecanico3.email,
+        userName: `${mecanico3.nombre} ${mecanico3.apellido}`,
+        accion: "UPDATE",
+        entidad: "WorkOrders",
+        entidadAfectada: "WorkOrders",
+        entidadId: orden1003.id,
+        valores: JSON.stringify({
+          anterior: { estado: "EN_REPARACION" },
+          nuevo: { estado: "FINALIZADO" },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Finalización técnica de orden #1003 con checklist y prueba de ruta OK" }),
+        ipAddress: "192.168.1.64",
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
       },
       {
         userId: admin.id,
@@ -1200,9 +1351,29 @@ async function main() {
         entidad: "WorkOrders",
         entidadAfectada: "WorkOrders",
         entidadId: orden1005.id,
-        valores: JSON.stringify({ estado: "ENTREGADO", fechaEntrega: new Date().toISOString() }),
-        detallesCambio: JSON.stringify({ motivo: "Entrega conforme del vehículo al cliente y liquidación completa" }),
-        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        valores: JSON.stringify({
+          anterior: { estado: "FINALIZADO" },
+          nuevo: { estado: "ENTREGADO", fechaEntrega: new Date().toISOString() },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Entrega conforme del vehículo al cliente y liquidación completa" }),
+        ipAddress: "192.168.1.45",
+        timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      },
+      {
+        userId: admin.id,
+        userEmail: admin.email,
+        userName: `${admin.nombre} ${admin.apellido}`,
+        accion: "UPDATE",
+        entidad: "WorkOrders",
+        entidadAfectada: "WorkOrders",
+        entidadId: orden1008.id,
+        valores: JSON.stringify({
+          anterior: { estado: "PENDIENTE" },
+          nuevo: { estado: "CANCELADO" },
+        }),
+        detallesCambio: JSON.stringify({ descripcion: "Baja formal de orden #1008 por presupuesto elevado desistido por el cliente" }),
+        ipAddress: "192.168.1.45",
+        timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
       },
     ],
   });
