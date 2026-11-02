@@ -264,6 +264,12 @@ export default function PeritajeIngresoModal({
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      setUploadedPhotos([]);
+    }
+  }, [isOpen, order?.id]);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && navigator.permissions?.query) {
       navigator.permissions
         .query({ name: "camera" as any })
@@ -1732,7 +1738,22 @@ export default function PeritajeIngresoModal({
 
                   {/* Muestra de fotos y videos existentes y recién subidos en la orden */}
                   {(() => {
-                    const allMedia = [...uploadedPhotos, ...(order.multimedia || [])];
+                    // Deduplicar estrictamente por URL o ID para evitar que se dupliquen al subir o refrescar
+                    const mediaMap = new Map<string, any>();
+
+                    (order?.multimedia || []).forEach((item: any) => {
+                      const key = (item.urlStorage || item.url || item.id || "").trim();
+                      if (key) mediaMap.set(key, item);
+                    });
+
+                    uploadedPhotos.forEach((item: any) => {
+                      const key = (item.urlStorage || item.url || item.id || "").trim();
+                      if (key && !mediaMap.has(key)) {
+                        mediaMap.set(key, item);
+                      }
+                    });
+
+                    const allMedia = Array.from(mediaMap.values());
                     const videoCount = allMedia.filter(
                       (item: any) =>
                         item.tipo === "VIDEO" ||

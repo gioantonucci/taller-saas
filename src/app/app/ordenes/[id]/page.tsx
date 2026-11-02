@@ -1669,17 +1669,31 @@ export default function OrdenDetallePage() {
             </div>
           </div>
           <span className="text-xs font-bold text-slate-400 self-start sm:self-auto">
-            {order.multimedia.length} archivos
+            {(() => {
+              const uniqueItems = Array.from(
+                new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
+              );
+              return `${uniqueItems.length} archivos`;
+            })()}
           </span>
         </div>
 
-        {order.multimedia.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500">
-            No se han registrado fotografías de evidencia para este vehículo.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {order.multimedia.map((item: any) => {
+        {(() => {
+          const uniqueItems = Array.from(
+            new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
+          );
+
+          if (uniqueItems.length === 0) {
+            return (
+              <div className="p-8 text-center text-xs text-slate-500">
+                No se han registrado fotografías de evidencia para este vehículo.
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {uniqueItems.map((item: any) => {
               const isVid =
                 item.tipo === "VIDEO" ||
                 /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
@@ -1721,8 +1735,9 @@ export default function OrdenDetallePage() {
                 </div>
               );
             })}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* MODAL FOTO O VIDEO FULL VIEW */}
