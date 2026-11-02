@@ -14,7 +14,6 @@ import {
   Loader2,
   Image as ImageIcon,
   MessageSquare,
-  Sparkles,
 } from "lucide-react";
 import { compressImageClient } from "@/lib/client-compress";
 
@@ -37,17 +36,6 @@ interface PhotoInput {
   url: string;
   nota: string;
 }
-
-const COMMON_REPAIRS = [
-  "Pastillas y Discos de Freno",
-  "Kit de Distribución",
-  "Kit de Embrague",
-  "Amortiguadores y Coperos",
-  "Bomba de Agua y Mangueras",
-  "Bujías y Bobinas de Encendido",
-  "Rótulas y Extremos de Dirección",
-  "Batería y Alternador",
-];
 
 export default function PausaRepuestoModal({
   isOpen,
@@ -366,24 +354,6 @@ export default function PausaRepuestoModal({
               placeholder="Ej: Cambio de pastillas y discos delanteros por desgaste crítico..."
               className="w-full text-sm p-3.5 rounded-2xl border-2 border-slate-200 focus:border-amber-500 focus:outline-hidden transition-all bg-slate-50/50 resize-none font-medium"
             />
-            {/* Sugerencias rápidas para escribir con 1 tap en el celular */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> Taps rápidos:
-              </span>
-              {COMMON_REPAIRS.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    setFallaReparar((prev) => (prev ? `${prev}, ${tag}` : tag));
-                  }}
-                  className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 text-[11px] font-bold border border-slate-200 transition-colors"
-                >
-                  + {tag}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* 2. LISTA DE REPUESTOS SOLICITADOS (Al menos 1) */}
