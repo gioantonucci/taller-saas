@@ -361,6 +361,25 @@ export default function HojaRutaMecanicoPage() {
           setPeritajeModalOpen(true);
           return;
         }
+
+        // Regla de especificación: La orden vuelve a En reparación solo si no queda ningún pedido de repuestos abierto
+        if (newStatus === "EN_CURSO" || newStatus === "EN_REPARACION") {
+          const openSpareRequests = (targetOrder.sparePartRequests || []).filter(
+            (sp: any) => sp.estado !== "RECIBIDO" && sp.estado !== "CANCELADO" && sp.estado !== "RECIBIDO_TOTAL"
+          );
+          if (openSpareRequests.length > 0) {
+            const pedidosList = openSpareRequests
+              .map((sp: any) => `Pedido #${sp.id.slice(-4)} (${sp.estado})`)
+              .join(", ");
+            await alert({
+              title: "Pedidos de Repuestos Pendientes",
+              message: `No se puede reanudar la reparación técnica porque la orden tiene pedidos de repuestos abiertos: ${pedidosList}. Todos los pedidos deben estar en estado 'Recibido' o 'Cancelado'.`,
+              variant: "warning",
+              icon: "warning",
+            });
+            return;
+          }
+        }
       }
 
       if (newStatus === "FINALIZADO" || newStatus === "TERMINADO") {

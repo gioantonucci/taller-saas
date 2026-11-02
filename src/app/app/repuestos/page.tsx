@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Package,
   Clock,
@@ -15,8 +16,6 @@ import {
   Camera,
   Truck,
   FileText,
-  CheckSquare,
-  Square,
   ArrowRight,
   ExternalLink,
   User,
@@ -25,1266 +24,1576 @@ import {
   RefreshCw,
   X,
   Loader2,
-  ClipboardList,
-  Sparkles,
-  PlayCircle,
+  Calendar,
   Building2,
+  History,
+  RotateCcw,
+  Ban,
+  MessageSquare,
+  ChevronRight,
+  ShieldCheck,
+  Send,
 } from "lucide-react";
-import { SparePartRequest, SparePartItem } from "@/types";
+import { SparePartRequest, SparePartItem, SparePartPhoto } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
+import { normalizeRole } from "@/lib/auth";
+import {
+  SPARE_PARTS_CONFIG,
+  SPARE_PART_STATUS_MAP,
+  normalizeSparePartStatus,
+  isSparePartEscalated,
+  isLlegadaVencida,
+  formatTiempoTranscurrido,
+} from "@/lib/spare-parts-config";
+import PausaRepuestoModal from "@/components/PausaRepuestoModal";
 
 export default function RepuestosPage() {
   const { alert, confirm } = useAppDialog();
+  const searchParams = useSearchParams();
+  const initialPedidoId = searchParams.get("pedidoId");
+  const initialEstado = searchParams.get("estado");
+
   const [requests, setRequests] = useState<SparePartRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Filtros
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("TODOS");
-  const [activeTab, setActiveTab] = useState<"SOLICITUDES_MECANICOS" | "PEDIDOS_RECEPCION">("SOLICITUDES_MECANICOS");
+  const [statusFilter, setStatusFilter] = useState<string>(initialEstado || "TODOS");
+  const [mechanicFilter, setMechanicFilter] = useState<string>("TODOS");
 
-  // Modales
-  const [photoModalUrl, setPhotoModalUrl] = useState<string | null>(null);
-  
-  // Modal de Procesamiento de Admin
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [selectedReqForAdmin, setSelectedReqForAdmin] = useState<SparePartRequest | null>(null);
-  const [adminItems, setAdminItems] = useState<SparePartItem[]>([]);
-  const [adminProveedor, setAdminProveedor] = useState("");
-  const [adminNotas, setAdminNotas] = useState("");
-  const [savingAdmin, setSavingAdmin] = useState(false);
+  // Modal de Detalle / Gestión del Pedido
+  const [selectedRequest, setSelectedRequest] = useState<SparePartRequest | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Modal de Recepción
-  const [recepcionModalOpen, setRecepcionModalOpen] = useState(false);
-  const [selectedReqForRecepcion, setSelectedReqForRecepcion] = useState<SparePartRequest | null>(null);
-  const [recepcionItems, setRecepcionItems] = useState<SparePartItem[]>([]);
-  const [remitoNro, setRemitoNro] = useState("");
-  const [notasRecepcion, setNotasRecepcion] = useState("");
-  const [reactivarOrden, setReactivarOrden] = useState(true);
-  const [savingRecepcion, setSavingRecepcion] = useState(false);
+  // Estados para Acciones del Administrador en el modal
+  const [editItemsMode, setEditItemsMode] = useState(false);
+  const [itemsAEncargarEditable, setItemsAEncargarEditable] = useState<SparePartItem[]>([]);
+  const [notasAdminInput, setNotasAdminInput] = useState("");
+  const [devolverModalOpen, setDevolverModalOpen] = useState(false);
+  const [motivoDevolucionInput, setMotivoDevolucionInput] = useState("");
 
-  // Cargar usuario actual
+  // Estados para Acciones de Recepción
+  const [encargoModalOpen, setEncargoModalOpen] = useState(false);
+  const [proveedorInput, setProveedorInput] = useState("");
+  const [fechaEstimadaInput, setFechaEstimadaInput] = useState("");
+
+  const [recibidoModalOpen, setRecibidoModalOpen] = useState(false);
+  const [remitoNroInput, setRemitoNroInput] = useState("");
+  const [notasRecepcionInput, setNotasRecepcionInput] = useState("");
+
+  // Estados para Cancelación
+  const [cancelarModalOpen, setCancelarModalOpen] = useState(false);
+  const [motivoCancelacionInput, setMotivoCancelacionInput] = useState("");
+
+  // Modal para que el mecánico reenvíe un pedido devuelto
+  const [reenviarModalOpen, setReenviarModalOpen] = useState(false);
+  const [reqToResend, setReqToResend] = useState<SparePartRequest | null>(null);
+
+  // Modal de foto grande (lightbox)
+  const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
+
+  // Obtener usuario actual
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.user) {
           setCurrentUser(data.user);
-          const userRole = String(data.user.role || "").toUpperCase();
-          // Si el usuario es de recepción, arranca en la pestaña de Recepción por defecto
-          if (userRole === "RECEPTION" || userRole === "RECEPCION") {
-            setActiveTab("PEDIDOS_RECEPCION");
+          const r = normalizeRole(data.user.role);
+
+          // Filtro por defecto según el rol (Sección 8):
+          // Administrador: ve lo que está por revisar
+          // Recepción: ve lo que falta encargar o recibir
+          // Mecánico: ve sus propios pedidos
+          if (!initialEstado) {
+            if (r === "ADMIN") {
+              setStatusFilter("POR_REVISAR");
+            } else if (r === "RECEPTION") {
+              setStatusFilter("PENDIENTES_RECEPCION");
+            } else if (r === "MECHANIC") {
+              setStatusFilter("TODOS");
+            }
           }
         }
       })
       .catch((err) => console.error("Error al obtener usuario:", err));
-  }, []);
+  }, [initialEstado]);
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  // Cargar pedidos desde la API
+  const fetchRequests = useCallback(async () => {
     try {
-      const res = await fetch("/api/spare-parts");
-      if (res.ok) {
-        const data = await res.json();
-        setRequests(data);
+      setLoading(true);
+      const res = await fetch("/api/spare-parts", { cache: "no-store" });
+      if (!res.ok) throw new Error("Error al consultar pedidos de repuestos");
+      const data = await res.json();
+      setRequests(data);
+
+      // Si venía un pedidoId en URL, abrir su detalle automáticamente
+      if (initialPedidoId) {
+        const found = data.find((r: SparePartRequest) => r.id === initialPedidoId);
+        if (found) {
+          openDetail(found);
+        }
       }
-    } catch (err) {
-      console.error("Error al cargar solicitudes de repuestos:", err);
+    } catch (err: any) {
+      console.error("Error al cargar pedidos:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [initialPedidoId]);
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+    // Refresco cada 60s
+    const interval = setInterval(fetchRequests, SPARE_PARTS_CONFIG.POLLING_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchRequests]);
 
-  const isAdmin = currentUser?.role === "ADMIN";
-  const isReception =
-    currentUser?.role === "RECEPTION" ||
-    currentUser?.role === "RECEPCION" ||
-    currentUser?.role === "ADMIN";
+  const userRole = currentUser ? normalizeRole(currentUser.role) : "RECEPTION";
 
-  // =========================================================================
-  // HANDLERS PARA ADMINISTRADOR
-  // =========================================================================
-  const handleOpenAdminModal = (req: SparePartRequest) => {
-    setSelectedReqForAdmin(req);
-    setAdminProveedor(req.proveedor || "");
-    setAdminNotas(req.notasAdmin || "");
+  // Abrir detalle del pedido
+  const openDetail = async (req: SparePartRequest) => {
+    try {
+      // Consultamos el detalle individual para asegurar auditoría y datos actualizados
+      const res = await fetch(`/api/spare-parts/${req.id}`);
+      if (res.ok) {
+        const fresh = await res.json();
+        setSelectedRequest(fresh);
+        initAdminEditableItems(fresh);
+      } else {
+        setSelectedRequest(req);
+        initAdminEditableItems(req);
+      }
+    } catch {
+      setSelectedRequest(req);
+      initAdminEditableItems(req);
+    }
+    setDetailModalOpen(true);
+  };
 
-    // Si ya tenía items procesados, cargarlos
-    if (req.itemsProcesados) {
-      try {
-        const parsed = JSON.parse(req.itemsProcesados);
+  const initAdminEditableItems = (req: SparePartRequest) => {
+    // Al abrir la revisión se precarga con los solicitados para que el Administrador los edite
+    try {
+      if (req.itemsAEncargar) {
+        const parsed =
+          typeof req.itemsAEncargar === "string"
+            ? JSON.parse(req.itemsAEncargar)
+            : req.itemsAEncargar;
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setAdminItems(parsed);
-          setAdminModalOpen(true);
+          setItemsAEncargarEditable(parsed);
+          setNotasAdminInput(req.notasAdmin || "");
           return;
         }
-      } catch (e) {
-        console.error("Error parsing itemsProcesados:", e);
       }
+      if (req.itemsSolicitados) {
+        const parsed =
+          typeof req.itemsSolicitados === "string"
+            ? JSON.parse(req.itemsSolicitados)
+            : req.itemsSolicitados;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItemsAEncargarEditable(
+            parsed.map((it: any) => ({
+              id: it.id || `item-${Math.random()}`,
+              descripcion: it.descripcion || it.nombre || "",
+              cantidad: it.cantidad || 1,
+            }))
+          );
+          setNotasAdminInput(req.notasAdmin || "");
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback con texto libre
+    if (req.repuestosLista) {
+      const itemsFromText = req.repuestosLista
+        .split("\n")
+        .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
+        .filter(Boolean)
+        .map((l, idx) => ({
+          id: `item-${idx}`,
+          descripcion: l,
+          cantidad: 1,
+        }));
+      setItemsAEncargarEditable(
+        itemsFromText.length > 0
+          ? itemsFromText
+          : [{ id: "item-0", descripcion: "", cantidad: 1 }]
+      );
+    } else {
+      setItemsAEncargarEditable([{ id: "item-0", descripcion: "", cantidad: 1 }]);
     }
-
-    // Si es primera vez, pre-parsear el texto libre del mecánico
-    const lines = req.repuestosLista
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith("Notas adicionales:"));
-
-    const initialItems: SparePartItem[] = [];
-    lines.forEach((line, idx) => {
-      // Intentar extraer si tiene formato "• 2x Nombre (obs)"
-      let cantidad = 1;
-      let nombre = line.replace(/^[•\-\*]\s*/, "");
-      let observaciones = "";
-
-      const matchCant = nombre.match(/^(\d+)x\s+(.+)$/i);
-      if (matchCant) {
-        cantidad = parseInt(matchCant[1]) || 1;
-        nombre = matchCant[2];
-      }
-
-      const matchObs = nombre.match(/^([^\(]+)\s*\((.+)\)$/);
-      if (matchObs) {
-        nombre = matchObs[1].trim();
-        observaciones = matchObs[2].trim();
-      }
-
-      initialItems.push({
-        id: `item-${Date.now()}-${idx}`,
-        nombre: nombre || "Repuesto",
-        codigo: "",
-        cantidad,
-        proveedor: req.proveedor || "",
-        notas: observaciones,
-        recibido: false,
-      });
-    });
-
-    if (initialItems.length === 0) {
-      initialItems.push({
-        id: `item-${Date.now()}-0`,
-        nombre: "",
-        codigo: "",
-        cantidad: 1,
-        proveedor: "",
-        notas: "",
-        recibido: false,
-      });
-    }
-
-    setAdminItems(initialItems);
-    setAdminModalOpen(true);
+    setNotasAdminInput(req.notasAdmin || "");
   };
 
-  const handleAddAdminItem = () => {
-    setAdminItems((prev) => [
-      ...prev,
-      {
-        id: `item-${Date.now()}-${prev.length}`,
-        nombre: "",
-        codigo: "",
-        cantidad: 1,
-        proveedor: adminProveedor,
-        notas: "",
-        recibido: false,
-      },
-    ]);
-  };
+  // =========================================================================
+  // ACCIONES ADMINISTRADOR
+  // =========================================================================
+  const handleAdminAprobar = async () => {
+    if (!selectedRequest) return;
 
-  const handleRemoveAdminItem = (id: string) => {
-    if (adminItems.length <= 1) return;
-    setAdminItems((prev) => prev.filter((it) => it.id !== id));
-  };
-
-  const handleAdminItemChange = (id: string, field: keyof SparePartItem, value: any) => {
-    setAdminItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, [field]: value } : it))
+    const validItems = itemsAEncargarEditable.filter(
+      (it) => it.descripcion && it.descripcion.trim().length > 0
     );
-  };
-
-  const handleSaveAdminProcessing = async () => {
-    if (!selectedReqForAdmin) return;
-
-    const validItems = adminItems.filter((it) => it.nombre.trim().length > 0);
     if (validItems.length === 0) {
       await alert({
         title: "Lista requerida",
-        message: "Debe ingresar al menos un repuesto para generar la lista que recibirá Recepción.",
+        message: "Debe confirmar al menos un repuesto a encargar con su cantidad.",
         variant: "warning",
       });
       return;
     }
 
-    setSavingAdmin(true);
+    setActionLoading(true);
     try {
-      const res = await fetch(`/api/spare-parts/${selectedReqForAdmin.id}`, {
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "PROCESAR_ADMIN",
-          itemsProcesados: validItems,
-          proveedor: adminProveedor.trim() || null,
-          notasAdmin: adminNotas.trim() || null,
-          estado: "PROCESADO_ADMIN",
+          action: "CONFIRMAR_ENCARGO",
+          itemsAEncargar: validItems,
+          notasAdmin: notasAdminInput.trim() || undefined,
         }),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Error al procesar el pedido de repuestos");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al confirmar encargo");
       }
 
       await alert({
-        title: "¡Pedido Procesado con Éxito!",
-        message: "La lista de repuestos fue formalizada y enviada a la bandeja de Recepción para su control de ingreso.",
+        title: "Pedido Aprobado",
+        message:
+          "La lista definitiva de repuestos fue confirmada. El pedido pasó a Recepción ('Para encargar').",
         variant: "success",
       });
 
-      setAdminModalOpen(false);
+      setDetailModalOpen(false);
       fetchRequests();
     } catch (err: any) {
       await alert({
         title: "Error",
-        message: err.message || "Ocurrió un error al procesar el pedido.",
+        message: err.message || "No se pudo aprobar el pedido.",
         variant: "danger",
       });
     } finally {
-      setSavingAdmin(false);
+      setActionLoading(false);
     }
   };
 
-  // =========================================================================
-  // HANDLERS PARA RECEPCIÓN
-  // =========================================================================
-  const handleOpenRecepcionModal = (req: SparePartRequest) => {
-    setSelectedReqForRecepcion(req);
-    setRemitoNro(req.remitoNro || "");
-    setNotasRecepcion(req.notasRecepcion || "");
-    setReactivarOrden(true);
-
-    let parsedItems: SparePartItem[] = [];
-    if (req.itemsProcesados) {
-      try {
-        parsedItems = JSON.parse(req.itemsProcesados);
-      } catch (e) {
-        console.error("Error parseando items de recepcion:", e);
-      }
+  const handleAdminDevolver = async () => {
+    if (!selectedRequest) return;
+    if (!motivoDevolucionInput.trim()) {
+      await alert({
+        title: "Motivo obligatorio",
+        message: "Debe ingresar el motivo de la devolución para que el mecánico pueda corregirlo.",
+        variant: "warning",
+      });
+      return;
     }
 
-    if (parsedItems.length === 0) {
-      // Fallback
-      parsedItems = [
-        {
-          id: "item-rec-0",
-          nombre: req.repuestosLista,
-          cantidad: 1,
-          recibido: req.estado === "RECIBIDO_TOTAL",
-        },
-      ];
-    }
-
-    setRecepcionItems(parsedItems);
-    setRecepcionModalOpen(true);
-  };
-
-  const handleToggleRecepcionItem = (id: string) => {
-    setRecepcionItems((prev) =>
-      prev.map((it) =>
-        it.id === id
-          ? {
-              ...it,
-              recibido: !it.recibido,
-              fechaRecibido: !it.recibido ? new Date().toISOString() : undefined,
-            }
-          : it
-      )
-    );
-  };
-
-  const handleMarcarTodosRecibidos = () => {
-    setRecepcionItems((prev) =>
-      prev.map((it) => ({
-        ...it,
-        recibido: true,
-        fechaRecibido: new Date().toISOString(),
-      }))
-    );
-  };
-
-  const handleSaveRecepcion = async () => {
-    if (!selectedReqForRecepcion) return;
-
-    const allChecked = recepcionItems.length > 0 && recepcionItems.every((it) => it.recibido);
-    const anyChecked = recepcionItems.some((it) => it.recibido);
-
-    const nextEstado = allChecked
-      ? "RECIBIDO_TOTAL"
-      : anyChecked
-      ? "RECIBIDO_PARCIAL"
-      : "PROCESADO_ADMIN";
-
-    setSavingRecepcion(true);
+    setActionLoading(true);
     try {
-      const res = await fetch(`/api/spare-parts/${selectedReqForRecepcion.id}`, {
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "RECEPCIONAR",
-          itemsProcesados: recepcionItems,
-          remitoNro: remitoNro.trim() || null,
-          notasRecepcion: notasRecepcion.trim() || null,
-          estado: nextEstado,
-          reactivarOrden: allChecked && reactivarOrden,
+          action: "DEVOLVER",
+          motivoDevolucion: motivoDevolucionInput.trim(),
         }),
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Error al asentar la recepción");
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al devolver pedido");
       }
 
       await alert({
-        title: allChecked ? "¡Repuestos Recepcionados Totalmente!" : "Recepción Asentada",
-        message: allChecked
-          ? reactivarOrden
-            ? "Todos los repuestos ingresaron al taller. La orden fue reactivada a 'En Reparación' para que el mecánico continúe el trabajo."
-            : "Todos los repuestos ingresaron al taller y quedaron registrados."
-          : "Se guardó el ingreso parcial de repuestos en el control del taller.",
-        variant: "success",
+        title: "Pedido Devuelto",
+        message: "El pedido fue devuelto al mecánico con el motivo registrado.",
+        variant: "info",
       });
 
-      setRecepcionModalOpen(false);
+      setDevolverModalOpen(false);
+      setMotivoDevolucionInput("");
+      setDetailModalOpen(false);
       fetchRequests();
     } catch (err: any) {
       await alert({
         title: "Error",
-        message: err.message || "Error al procesar la recepción",
+        message: err.message || "No se pudo devolver el pedido.",
         variant: "danger",
       });
     } finally {
-      setSavingRecepcion(false);
+      setActionLoading(false);
     }
   };
 
-  // Filtrado de solicitudes
-  const filteredRequests = requests.filter((req) => {
-    // Filtro de búsqueda
-    const q = searchQuery.toLowerCase().trim();
-    if (q) {
-      const matchPatente = req.workOrder?.vehicle?.patente?.toLowerCase().includes(q);
-      const matchMarca = req.workOrder?.vehicle?.marca?.toLowerCase().includes(q);
-      const matchModelo = req.workOrder?.vehicle?.modelo?.toLowerCase().includes(q);
-      const matchOrden = String(req.workOrder?.numeroOrden || "").includes(q);
-      const matchMecanico = `${req.mechanic?.nombre || ""} ${req.mechanic?.apellido || ""}`
-        .toLowerCase()
-        .includes(q);
-      const matchFalla = req.fallaReparar?.toLowerCase().includes(q);
-      const matchRepuestos = req.repuestosLista?.toLowerCase().includes(q);
-      const matchProveedor = req.proveedor?.toLowerCase().includes(q);
+  // =========================================================================
+  // ACCIONES RECEPCIÓN
+  // =========================================================================
+  const handleRecepcionEncargoRealizado = async () => {
+    if (!selectedRequest) return;
 
-      if (
-        !matchPatente &&
-        !matchMarca &&
-        !matchModelo &&
-        !matchOrden &&
-        !matchMecanico &&
-        !matchFalla &&
-        !matchRepuestos &&
-        !matchProveedor
-      ) {
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ENCARGO_REALIZADO",
+          proveedor: proveedorInput.trim() || undefined,
+          fechaEstimadaLlegada: fechaEstimadaInput || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al registrar encargo");
+      }
+
+      await alert({
+        title: "Encargo Registrado",
+        message: "El encargo ha sido marcado como realizado. El recordatorio continuo ha finalizado.",
+        variant: "success",
+      });
+
+      setEncargoModalOpen(false);
+      setProveedorInput("");
+      setFechaEstimadaInput("");
+      setDetailModalOpen(false);
+      fetchRequests();
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo registrar el encargo.",
+        variant: "danger",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRecepcionMarcarRecibido = async () => {
+    if (!selectedRequest) return;
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "RECIBIDO",
+          remitoNro: remitoNroInput.trim() || undefined,
+          notasRecepcion: notasRecepcionInput.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al marcar recibido");
+      }
+
+      await alert({
+        title: "Repuestos Recibidos",
+        message:
+          "Se confirmó la llegada de los repuestos al taller. Se notificó al mecánico para reanudar la reparación.",
+        variant: "success",
+      });
+
+      setRecibidoModalOpen(false);
+      setRemitoNroInput("");
+      setNotasRecepcionInput("");
+      setDetailModalOpen(false);
+      fetchRequests();
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo marcar como recibido.",
+        variant: "danger",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleTodaviaNoClick = async () => {
+    if (!selectedRequest) return;
+
+    setActionLoading(true);
+    try {
+      const tipo =
+        selectedRequest.estado === "ENCARGO_REALIZADO" ? "LLEGADA" : "ENCARGO";
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "TODAVIA_NO",
+          tipo,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al posponer recordatorio");
+      }
+
+      await alert({
+        title: "Recordatorio Pospuesto",
+        message: `Se registró 'Todavía no' en auditoría. El recordatorio se pospuso por ${SPARE_PARTS_CONFIG.RECORDATORIO_INTERVALO_MINUTOS} minutos.`,
+        variant: "info",
+      });
+
+      setDetailModalOpen(false);
+      fetchRequests();
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo posponer.",
+        variant: "danger",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // =========================================================================
+  // ACCIONES CANCELACIÓN (Admin o Mecánico en Solicitado)
+  // =========================================================================
+  const handleConfirmCancelar = async () => {
+    if (!selectedRequest) return;
+    if (!motivoCancelacionInput.trim()) {
+      await alert({
+        title: "Motivo obligatorio",
+        message: "Debe ingresar el motivo de la cancelación.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CANCELAR",
+          motivoCancelacion: motivoCancelacionInput.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al cancelar pedido");
+      }
+
+      await alert({
+        title: "Pedido Cancelado",
+        message: "El pedido de repuestos fue cancelado con éxito.",
+        variant: "info",
+      });
+
+      setCancelarModalOpen(false);
+      setMotivoCancelacionInput("");
+      setDetailModalOpen(false);
+      fetchRequests();
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo cancelar el pedido.",
+        variant: "danger",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Mecánicos disponibles para filtro
+  const mechanicsList = useMemo(() => {
+    const map = new Map<string, string>();
+    requests.forEach((r) => {
+      if (r.mechanic?.id && r.mechanic?.nombre) {
+        map.set(r.mechanic.id, `${r.mechanic.nombre} ${r.mechanic.apellido || ""}`.trim());
+      }
+    });
+    return Array.from(map.entries());
+  }, [requests]);
+
+  // Métricas para tarjetas de cabecera
+  const metrics = useMemo(() => {
+    let solicitados = 0;
+    let paraEncargar = 0;
+    let escalados = 0;
+    let encargados = 0;
+    let recibidos = 0;
+
+    requests.forEach((r) => {
+      const st = normalizeSparePartStatus(r.estado);
+      if (st === "SOLICITADO" || st === "EN_REVISION") solicitados++;
+      if (st === "PARA_ENCARGAR") {
+        paraEncargar++;
+        if (isSparePartEscalated(r)) escalados++;
+      }
+      if (st === "ENCARGO_REALIZADO") encargados++;
+      if (st === "RECIBIDO") recibidos++;
+    });
+
+    return {
+      total: requests.length,
+      solicitados,
+      paraEncargar,
+      escalados,
+      encargados,
+      recibidos,
+    };
+  }, [requests]);
+
+  // Filtrado y ordenamiento con ESCALADOS PRIMERO (rojos arriba)
+  const filteredRequests = useMemo(() => {
+    return requests.filter((r) => {
+      const st = normalizeSparePartStatus(r.estado);
+
+      // Filtro por Estado
+      if (statusFilter === "POR_REVISAR") {
+        const isEscalated = isSparePartEscalated(r);
+        if (st !== "SOLICITADO" && st !== "EN_REVISION" && !isEscalated) return false;
+      } else if (statusFilter === "PENDIENTES_RECEPCION") {
+        if (st !== "PARA_ENCARGAR" && st !== "ENCARGO_REALIZADO") return false;
+      } else if (statusFilter === "ESCALADOS") {
+        if (!isSparePartEscalated(r)) return false;
+      } else if (statusFilter !== "TODOS" && st !== statusFilter) {
         return false;
       }
-    }
 
-    // Filtro de pestañas
-    if (activeTab === "SOLICITUDES_MECANICOS") {
-      // En solicitudes de mecánicos vemos todo, pero principalmente lo que el admin debe procesar
-      if (statusFilter === "PENDIENTES") return req.estado === "PENDIENTE_ADMIN";
-      if (statusFilter === "PROCESADAS") return req.estado === "PROCESADO_ADMIN";
-      if (statusFilter === "RECIBIDAS")
-        return req.estado === "RECIBIDO_PARCIAL" || req.estado === "RECIBIDO_TOTAL";
-    } else {
-      // En pedidos de recepción vemos los pedidos ya procesados por admin o recibidos
-      if (statusFilter === "PENDIENTES_LLEGADA") return req.estado === "PROCESADO_ADMIN";
-      if (statusFilter === "PARCIALES") return req.estado === "RECIBIDO_PARCIAL";
-      if (statusFilter === "COMPLETADOS") return req.estado === "RECIBIDO_TOTAL";
-    }
+      // Filtro por Mecánico
+      if (mechanicFilter !== "TODOS") {
+        if (r.mechanicId !== mechanicFilter && r.workOrder?.mechanicId !== mechanicFilter) {
+          return false;
+        }
+      }
 
-    return true;
-  });
+      // Filtro por búsqueda (patente, orden, falla o cliente)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const patente = r.workOrder?.vehicle?.patente?.toLowerCase() || "";
+        const nroOrden = String(r.workOrder?.numeroOrden || "");
+        const falla = r.fallaReparar?.toLowerCase() || "";
+        const cliente = `${r.workOrder?.vehicle?.client?.nombre || ""} ${r.workOrder?.vehicle?.client?.apellido || ""}`.toLowerCase();
+        const modelo = `${r.workOrder?.vehicle?.marca || ""} ${r.workOrder?.vehicle?.modelo || ""}`.toLowerCase();
 
-  // Métricas
-  const totalCount = requests.length;
-  const pendientesAdminCount = requests.filter((r) => r.estado === "PENDIENTE_ADMIN").length;
-  const enEsperaLlegadaCount = requests.filter(
-    (r) => r.estado === "PROCESADO_ADMIN" || r.estado === "RECIBIDO_PARCIAL"
-  ).length;
-  const recibidosTotalCount = requests.filter((r) => r.estado === "RECIBIDO_TOTAL").length;
+        return (
+          patente.includes(q) ||
+          nroOrden.includes(q) ||
+          falla.includes(q) ||
+          cliente.includes(q) ||
+          modelo.includes(q)
+        );
+      }
+
+      return true;
+    });
+  }, [requests, statusFilter, mechanicFilter, searchQuery]);
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* ========================================================================= */}
-      {/* ENCABEZADO Y TÍTULO                                                      */}
-      {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      
+      {/* CABECERA PRINCIPAL */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5 text-amber-700" />
-              Módulo de Repuestos & Compras
-            </span>
-            <span className="text-xs text-slate-500 font-medium">
-              Flujo Mecánico ➔ Administración ➔ Recepción
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-xs">
+              <Package className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Pedido y Seguimiento de Repuestos
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">
+                Gestión integral de pausas mecánicas, revisión de ítems, encargos y recepción
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-            <span>Gestión de Repuestos</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Control integral de solicitudes técnicas de mecánicos, formalización de pedidos y control de recepción de piezas.
-          </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={fetchRequests}
+            disabled={loading}
+            className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-all cursor-pointer shadow-xs"
+            title="Refrescar datos"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-600" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* TARJETAS DE MÉTRICAS RÁPIDAS */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("TODOS")}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            statusFilter === "TODOS"
+              ? "bg-slate-900 text-white border-slate-900 shadow-md"
+              : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+          }`}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            Total Pedidos
+          </span>
+          <span className="text-xl font-black mt-1 block">{metrics.total}</span>
+        </button>
 
         <button
           type="button"
-          onClick={fetchRequests}
-          disabled={loading}
-          className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+          onClick={() => setStatusFilter("POR_REVISAR")}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            statusFilter === "POR_REVISAR"
+              ? "bg-purple-900 text-white border-purple-900 shadow-md"
+              : "bg-white border-purple-200 text-purple-950 hover:bg-purple-50/50"
+          }`}
         >
-          <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${loading ? "animate-spin" : ""}`} />
-          <span>Actualizar</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            Por Revisar (Admin)
+          </span>
+          <span className="text-xl font-black mt-1 block text-purple-600 dark:text-purple-300">
+            {metrics.solicitados}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter("PARA_ENCARGAR")}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            statusFilter === "PARA_ENCARGAR"
+              ? "bg-amber-600 text-white border-amber-600 shadow-md"
+              : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+              Para Encargar
+            </span>
+            {metrics.escalados > 0 && (
+              <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm animate-pulse">
+                {metrics.escalados} en rojo
+              </span>
+            )}
+          </div>
+          <span className="text-xl font-black mt-1 block text-amber-600">
+            {metrics.paraEncargar}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter("ENCARGO_REALIZADO")}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            statusFilter === "ENCARGO_REALIZADO"
+              ? "bg-blue-600 text-white border-blue-600 shadow-md"
+              : "bg-white border-blue-200 text-blue-950 hover:bg-blue-50/50"
+          }`}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            Encargados / En Tránsito
+          </span>
+          <span className="text-xl font-black mt-1 block text-blue-600">{metrics.encargados}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setStatusFilter("RECIBIDO")}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            statusFilter === "RECIBIDO"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+              : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
+          }`}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            Recibidos en Taller
+          </span>
+          <span className="text-xl font-black mt-1 block text-emerald-600">{metrics.recibidos}</span>
         </button>
       </div>
 
-      {/* ========================================================================= */}
-      {/* TARJETAS DE MÉTRICAS RÁPIDAS                                             */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-slate-900 leading-none">
-              {pendientesAdminCount}
-            </p>
-            <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mt-1 truncate">
-              Aguardando Admin
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-200/60">
-            <Truck className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-slate-900 leading-none">
-              {enEsperaLlegadaCount}
-            </p>
-            <p className="text-[11px] font-bold text-sky-800 uppercase tracking-wider mt-1 truncate">
-              Esperando Llegada
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200/60">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-slate-900 leading-none">
-              {recibidosTotalCount}
-            </p>
-            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider mt-1 truncate">
-              Recibidos en Taller
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200">
-            <Package className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-2xl font-black text-slate-900 leading-none">
-              {totalCount}
-            </p>
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-1 truncate">
-              Total Solicitudes
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* SELECTOR DE PESTAÑAS (ADMIN / RECEPCIÓN)                                */}
-      {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl w-fit">
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("SOLICITUDES_MECANICOS");
-                setStatusFilter("TODOS");
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === "SOLICITUDES_MECANICOS"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Wrench className="w-4 h-4 text-amber-600" />
-              <span>Solicitudes de Mecánicos</span>
-              {pendientesAdminCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-pulse">
-                  {pendientesAdminCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {isReception && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("PEDIDOS_RECEPCION");
-                setStatusFilter("TODOS");
-              }}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
-                activeTab === "PEDIDOS_RECEPCION"
-                  ? "bg-white text-slate-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              <Truck className="w-4 h-4 text-sky-600" />
-              <span>Control de Pedidos (Recepción)</span>
-              {enEsperaLlegadaCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-sky-600 text-white text-[10px] font-black">
-                  {enEsperaLlegadaCount}
-                </span>
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Buscador Rápido */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      {/* BARRA DE FILTROS Y BÚSQUEDA */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por patente, repuesto, orden..."
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-400"
+            placeholder="Buscar por patente, orden, modelo o falla diagnosticada..."
+            className="w-full text-xs pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium transition-all"
           />
         </div>
-      </div>
 
-      {/* ========================================================================= */}
-      {/* VISTA 1: SOLICITUDES DE MECÁNICOS (ADMINISTRACIÓN)                       */}
-      {/* ========================================================================= */}
-      {activeTab === "SOLICITUDES_MECANICOS" && (
-        <div className="space-y-4">
-          {/* Subfiltros de estado */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
-              <Filter className="w-3.5 h-3.5" />
-              Estado:
-            </span>
-            {[
-              { id: "TODOS", label: "Todas las solicitudes" },
-              { id: "PENDIENTES", label: "Pendientes de procesar" },
-              { id: "PROCESADAS", label: "Procesadas (enviadas a recepción)" },
-              { id: "RECIBIDAS", label: "Recibidas en taller" },
-            ].map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setStatusFilter(st.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === st.id
-                    ? "bg-slate-900 text-white shadow-2xs"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Filtro por estado */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-slate-400">Estado:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="TODOS">Todos los estados</option>
+              <option value="POR_REVISAR">Por revisar (Admin)</option>
+              <option value="PENDIENTES_RECEPCION">Pendientes (Recepción)</option>
+              <option value="ESCALADOS">🚨 Escalados en Rojo ({">"} 4h)</option>
+              <option value="SOLICITADO">1. Solicitado</option>
+              <option value="EN_REVISION">2. En revisión</option>
+              <option value="PARA_ENCARGAR">3. Para encargar</option>
+              <option value="DEVUELTO">4. Devuelto</option>
+              <option value="ENCARGO_REALIZADO">5. Encargo realizado</option>
+              <option value="RECIBIDO">6. Recibido</option>
+              <option value="CANCELADO">7. Cancelado</option>
+            </select>
           </div>
 
-          {/* Listado de tarjetas de solicitud para Administrador */}
-          {loading ? (
-            <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
-              <span>Cargando solicitudes de repuestos...</span>
-            </div>
-          ) : filteredRequests.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-2xs space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-                <Package className="w-6 h-6" />
-              </div>
-              <h3 className="font-extrabold text-sm text-slate-800">
-                No hay solicitudes de repuestos
-              </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Cuando los mecánicos pausen órdenes por repuestos o averías imprevistas, aparecerán listadas aquí con fotos, fallas y piezas requeridas.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredRequests.map((req) => {
-                const vehicle = req.workOrder?.vehicle;
-                const client = vehicle?.client;
-                const isPendiente = req.estado === "PENDIENTE_ADMIN";
-                const isProcesado = req.estado === "PROCESADO_ADMIN";
-                const isRecibido = req.estado === "RECIBIDO_TOTAL" || req.estado === "RECIBIDO_PARCIAL";
-
-                return (
-                  <div
-                    key={req.id}
-                    className={`p-5 rounded-3xl bg-white border transition-all shadow-2xs ${
-                      isPendiente
-                        ? "border-amber-300 ring-2 ring-amber-100"
-                        : "border-slate-200/80 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                      {/* Información Principal del Vehículo y Orden */}
-                      <div className="space-y-3 flex-1 min-w-0">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <Link
-                            href={`/app/ordenes/${req.workOrderId}`}
-                            className="px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-black tracking-wider uppercase transition-colors"
-                          >
-                            Orden #{req.workOrder?.numeroOrden}
-                          </Link>
-
-                          {vehicle && (
-                            <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 font-mono text-xs font-black tracking-widest uppercase">
-                              {vehicle.patente}
-                            </span>
-                          )}
-
-                          <span className="text-sm font-extrabold text-slate-900">
-                            {vehicle?.marca} {vehicle?.modelo} ({vehicle?.anio})
-                          </span>
-
-                          {/* Badge de Estado */}
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ml-auto lg:ml-0 ${
-                              isPendiente
-                                ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                : isProcesado
-                                ? "bg-sky-100 text-sky-900 border border-sky-300"
-                                : "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                            }`}
-                          >
-                            {isPendiente
-                              ? "⚠️ Pendiente de Procesar"
-                              : isProcesado
-                              ? "📦 Pedido Procesado (En Recepción)"
-                              : req.estado === "RECIBIDO_PARCIAL"
-                              ? "🚚 Recepcionado Parcial"
-                              : "✅ Repuestos en Taller"}
-                          </span>
-                        </div>
-
-                        {/* Mecánico solicitante y cliente */}
-                        <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
-                          <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                            <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                            <span>
-                              Mecánico: {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
-                            </span>
-                          </span>
-
-                          {client && (
-                            <span className="flex items-center gap-1.5 text-slate-700">
-                              <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span>
-                                Cliente: {client.nombre} {client.apellido}
-                              </span>
-                            </span>
-                          )}
-
-                          <span className="text-[11px] text-slate-400">
-                            Solicitado el {new Date(req.createdAt).toLocaleString("es-AR")}
-                          </span>
-                        </div>
-
-                        {/* Bloques de Falla y Repuestos cargados por el mecánico */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                          {/* Falla a Reparar */}
-                          <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                              Falla / Diagnóstico Informado
-                            </span>
-                            <p className="text-xs text-slate-800 font-medium whitespace-pre-line">
-                              {req.fallaReparar}
-                            </p>
-                          </div>
-
-                          {/* Repuestos Solicitados */}
-                          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1">
-                              <Package className="w-3.5 h-3.5 text-slate-600" />
-                              Repuestos Requeridos por el Técnico
-                            </span>
-                            <p className="text-xs text-slate-800 font-mono font-medium whitespace-pre-line">
-                              {req.repuestosLista}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Si ya fue procesado por el admin, mostrar resumen de lo enviado a recepción */}
-                        {req.itemsProcesados && (
-                          <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-200/80 text-xs space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="font-extrabold text-[11px] text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
-                                <Truck className="w-3.5 h-3.5 text-sky-600" />
-                                Lista Oficial Procesada para Recepción
-                                {req.proveedor && (
-                                  <span className="text-sky-700 font-normal lowercase">
-                                    • Proveedor: <strong>{req.proveedor}</strong>
-                                  </span>
-                                )}
-                              </span>
-                              {req.fechaProcesado && (
-                                <span className="text-[10px] text-sky-700">
-                                  Procesado el {new Date(req.fechaProcesado).toLocaleDateString("es-AR")}
-                                </span>
-                              )}
-                            </div>
-                            {(() => {
-                              try {
-                                const items: SparePartItem[] = JSON.parse(req.itemsProcesados);
-                                return (
-                                  <div className="flex flex-wrap gap-2 pt-0.5">
-                                    {items.map((it, idx) => (
-                                      <span
-                                        key={it.id || idx}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 ${
-                                          it.recibido
-                                            ? "bg-emerald-100 text-emerald-900 border-emerald-300"
-                                            : "bg-white text-slate-800 border-sky-200"
-                                        }`}
-                                      >
-                                        <span className="w-2 h-2 rounded-full bg-current" />
-                                        <span>
-                                          {it.cantidad}x {it.nombre}
-                                        </span>
-                                        {it.codigo && (
-                                          <span className="text-[10px] opacity-70">
-                                            [{it.codigo}]
-                                          </span>
-                                        )}
-                                      </span>
-                                    ))}
-                                  </div>
-                                );
-                              } catch {
-                                return null;
-                              }
-                            })()}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Foto y Botones de Acción a la derecha */}
-                      <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                        {/* Thumbnail de la foto cargada por el mecánico */}
-                        {req.fotoUrl ? (
-                          <div
-                            onClick={() => setPhotoModalUrl(req.fotoUrl || null)}
-                            className="relative w-28 h-28 rounded-2xl overflow-hidden border-2 border-slate-200 hover:border-amber-400 group cursor-pointer shadow-xs transition-all shrink-0 bg-slate-900"
-                            title="Haga clic para ver la foto en tamaño completo"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={req.fotoUrl}
-                              alt="Foto de la avería"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
-                              <Eye className="w-4 h-4" />
-                              <span>Ampliar</span>
-                            </div>
-                            <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-mono">
-                              📷 FOTO
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="w-28 h-28 rounded-2xl border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-[10px] text-center p-2 shrink-0">
-                            <Camera className="w-5 h-5 mb-1 text-slate-300" />
-                            <span>Sin foto adjunta</span>
-                          </div>
-                        )}
-
-                        {/* Botón de Acción Principal para el Administrador */}
-                        <div className="space-y-2 w-full lg:w-auto text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAdminModal(req)}
-                            className={`w-full lg:w-auto px-4 py-2.5 rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                              isPendiente
-                                ? "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/20 active:scale-95"
-                                : "bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/10"
-                            }`}
-                          >
-                            <Sparkles className="w-4 h-4 text-amber-300" />
-                            <span>
-                              {isPendiente
-                                ? "Procesar y Armar Pedido"
-                                : "Editar Pedido Procesado"}
-                            </span>
-                          </button>
-
-                          <Link
-                            href={`/app/ordenes/${req.workOrderId}`}
-                            className="block text-[11px] font-bold text-slate-500 hover:text-slate-900 text-center"
-                          >
-                            Ver Orden Completa ➔
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Filtro por mecánico */}
+          {userRole !== "MECHANIC" && mechanicsList.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400">Mecánico:</span>
+              <select
+                value={mechanicFilter}
+                onChange={(e) => setMechanicFilter(e.target.value)}
+                className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="TODOS">Todos los mecánicos</option>
+                {mechanicsList.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* ========================================================================= */}
-      {/* VISTA 2: CONTROL DE PEDIDOS Y RECEPCIÓN (TABLA POR PEDIDOS)               */}
-      {/* ========================================================================= */}
-      {activeTab === "PEDIDOS_RECEPCION" && (
-        <div className="space-y-4">
-          {/* Subfiltros de estado */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 mr-1">
-              <Filter className="w-3.5 h-3.5" />
-              Estado:
-            </span>
-            {[
-              { id: "TODOS", label: "Todos los pedidos" },
-              { id: "PENDIENTES_LLEGADA", label: "Aguardando llegada" },
-              { id: "PARCIALES", label: "Recepción parcial" },
-              { id: "COMPLETADOS", label: "Recibidos totalmente" },
-            ].map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setStatusFilter(st.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  statusFilter === st.id
-                    ? "bg-sky-900 text-white shadow-2xs"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
+      {/* LISTADO DE PEDIDOS (TABLA / CARDS) */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+        {loading && requests.length === 0 ? (
+          <div className="p-12 text-center space-y-3">
+            <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
+            <p className="text-xs font-bold text-slate-500">Cargando pedidos de repuestos...</p>
           </div>
-
-          {/* Tabla de Control de Recepción de Pedidos */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden">
-            {loading ? (
-              <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-sky-600" />
-                <span>Cargando pedidos para recepción...</span>
-              </div>
-            ) : filteredRequests.length === 0 ? (
-              <div className="p-12 text-center space-y-2">
-                <Truck className="w-8 h-8 text-slate-300 mx-auto" />
-                <h3 className="font-extrabold text-sm text-slate-800">
-                  No hay pedidos pendientes de recepción
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Cuando Administración procese las solicitudes técnicas de los mecánicos, los pedidos aparecerán organizados en esta tabla.
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
-                      <th className="py-3.5 px-4">Pedido / Orden</th>
-                      <th className="py-3.5 px-4">Vehículo & Patente</th>
-                      <th className="py-3.5 px-4">Proveedor</th>
-                      <th className="py-3.5 px-4">Repuestos Esperados</th>
-                      <th className="py-3.5 px-4">Mecánico</th>
-                      <th className="py-3.5 px-4">Estado</th>
-                      <th className="py-3.5 px-4 text-right">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredRequests.map((req) => {
-                      const vehicle = req.workOrder?.vehicle;
-                      const isCompletado = req.estado === "RECIBIDO_TOTAL";
-                      const isParcial = req.estado === "RECIBIDO_PARCIAL";
-                      const isPendienteLlegada = req.estado === "PROCESADO_ADMIN";
-                      const isAguardandoAdmin = req.estado === "PENDIENTE_ADMIN";
-
-                      let itemsParsed: SparePartItem[] = [];
-                      if (req.itemsProcesados) {
-                        try {
-                          itemsParsed = JSON.parse(req.itemsProcesados);
-                        } catch {}
-                      }
-
-                      const totalItems = itemsParsed.length;
-                      const recibidosCount = itemsParsed.filter((it) => it.recibido).length;
-
-                      return (
-                        <tr
-                          key={req.id}
-                          className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-                          onClick={() => handleOpenRecepcionModal(req)}
-                        >
-                          {/* N° Orden */}
-                          <td className="py-3.5 px-4">
-                            <span className="px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-xs font-black">
-                              #{req.workOrder?.numeroOrden}
-                            </span>
-                            <span className="block text-[10px] text-slate-400 mt-1">
-                              {new Date(req.createdAt).toLocaleDateString("es-AR")}
-                            </span>
-                          </td>
-
-                          {/* Vehículo y Patente */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-2">
-                              {vehicle && (
-                                <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono text-[11px] font-black uppercase tracking-wider">
-                                  {vehicle.patente}
-                                </span>
-                              )}
-                              <span className="font-bold text-slate-900">
-                                {vehicle?.marca} {vehicle?.modelo}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Proveedor */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span>{req.proveedor || "Sin especificar"}</span>
-                            </div>
-                            {req.remitoNro && (
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                Remito: {req.remitoNro}
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Repuestos Esperados */}
-                          <td className="py-3.5 px-4 max-w-xs">
-                            {itemsParsed.length > 0 ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="font-bold text-slate-800">
-                                    {recibidosCount} de {totalItems} ítems recibidos
-                                  </span>
-                                  <span className="text-[10px] text-slate-400 font-mono">
-                                    {Math.round((recibidosCount / totalItems) * 100)}%
-                                  </span>
-                                </div>
-                                <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                                  <div
-                                    className={`h-full transition-all ${
-                                      isCompletado
-                                        ? "bg-emerald-500"
-                                        : isParcial
-                                        ? "bg-amber-500"
-                                        : "bg-sky-400"
-                                    }`}
-                                    style={{
-                                      width: `${(recibidosCount / totalItems) * 100}%`,
-                                    }}
-                                  />
-                                </div>
-                                <p className="text-[11px] text-slate-500 truncate">
-                                  {itemsParsed.map((it) => `${it.cantidad}x ${it.nombre}`).join(", ")}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-slate-600 line-clamp-2">
-                                {req.repuestosLista}
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Mecánico */}
-                          <td className="py-3.5 px-4">
-                            <span className="font-semibold text-slate-800">
-                              {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
-                            </span>
-                          </td>
-
-                          {/* Estado */}
-                          <td className="py-3.5 px-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                isCompletado
-                                  ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                                  : isParcial
-                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                  : isPendienteLlegada
-                                  ? "bg-sky-100 text-sky-900 border border-sky-300"
-                                  : "bg-slate-100 text-slate-700 border border-slate-300"
-                              }`}
-                            >
-                              <span className="w-2 h-2 rounded-full bg-current shrink-0" />
-                              <span>
-                                {isCompletado
-                                  ? "Recibido Completo"
-                                  : isParcial
-                                  ? "Recepción Parcial"
-                                  : isPendienteLlegada
-                                  ? "Aguardando Llegada"
-                                  : "Aguardando Admin"}
-                              </span>
-                            </span>
-                          </td>
-
-                          {/* Botón Acción */}
-                          <td
-                            className="py-3.5 px-4 text-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleOpenRecepcionModal(req)}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 ml-auto transition-all cursor-pointer ${
-                                isCompletado
-                                  ? "bg-slate-100 hover:bg-slate-200 text-slate-700"
-                                  : "bg-sky-600 hover:bg-sky-500 text-white shadow-xs"
-                              }`}
-                            >
-                              <CheckSquare className="w-3.5 h-3.5" />
-                              <span>{isCompletado ? "Ver Detalle" : "Recepcionar"}</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        ) : filteredRequests.length === 0 ? (
+          <div className="p-12 text-center space-y-2">
+            <Package className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="text-sm font-bold text-slate-700">No se encontraron pedidos de repuestos</p>
+            <p className="text-xs text-slate-400">
+              Prueba cambiando los filtros seleccionados o la búsqueda.
+            </p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {filteredRequests.map((req) => {
+              const st = normalizeSparePartStatus(req.estado);
+              const statusInfo = SPARE_PART_STATUS_MAP[st] || SPARE_PART_STATUS_MAP.SOLICITADO;
+              const isEscalated = isSparePartEscalated(req);
+              const isVencida = isLlegadaVencida(req);
+
+              // Conteo de repuestos
+              let itemsCount = 1;
+              try {
+                if (req.itemsAEncargar) itemsCount = JSON.parse(req.itemsAEncargar as string).length;
+                else if (req.itemsSolicitados) itemsCount = JSON.parse(req.itemsSolicitados as string).length;
+              } catch {}
+
+              return (
+                <div
+                  key={req.id}
+                  onClick={() => openDetail(req)}
+                  className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all cursor-pointer hover:bg-slate-50/80 ${
+                    isEscalated
+                      ? "bg-rose-50/70 border-l-4 border-l-rose-600 hover:bg-rose-50"
+                      : "border-l-4 border-l-transparent"
+                  }`}
+                >
+                  {/* Vehículo, Orden y Falla */}
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
+                        isEscalated
+                          ? "bg-rose-600 text-white shadow-rose-600/30"
+                          : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      <Package className="w-5 h-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          Orden #{req.workOrder?.numeroOrden}
+                        </span>
+                        <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
+                          {req.workOrder?.vehicle?.patente || "SIN PATENTE"}
+                        </span>
+                        <span className="text-xs font-bold text-slate-700 truncate">
+                          {req.workOrder?.vehicle?.marca} {req.workOrder?.vehicle?.modelo}
+                        </span>
+
+                        {isEscalated && (
+                          <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Escalado ({">"} {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
+                          </span>
+                        )}
+                        {isVencida && (
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-rose-200">
+                            Llegada Vencida
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-800 font-semibold line-clamp-1">
+                        <span className="text-slate-500 font-normal">Falla:</span> {req.fallaReparar}
+                      </p>
+
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3 text-slate-400" />
+                          Mecánico:{" "}
+                          <strong className="text-slate-700">
+                            {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
+                          </strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Cliente: {req.workOrder?.vehicle?.client?.nombre}{" "}
+                          {req.workOrder?.vehicle?.client?.apellido || ""}
+                        </span>
+                        <span>•</span>
+                        <span>{itemsCount} repuesto(s)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Estado, Tiempos y Acceso */}
+                  <div className="flex items-center justify-between lg:justify-end gap-4 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                    <div className="text-left lg:text-right space-y-1">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusInfo.badgeClass}`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
+                        <span>{statusInfo.label}</span>
+                      </span>
+
+                      <div className="text-[11px] text-slate-500 font-medium flex items-center lg:justify-end gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span>Hace {formatTiempoTranscurrido(req.createdAt)}</span>
+                        {req.fechaEstimadaLlegada && (
+                          <span className="ml-1 text-slate-700 font-bold">
+                            • Llega: {new Date(req.fechaEstimadaLlegada).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDetail(req);
+                      }}
+                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-amber-100 hover:text-amber-800 text-slate-600 flex items-center justify-center transition-all cursor-pointer shrink-0"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: PROCESAR SOLICITUD (ADMINISTRADOR)                              */}
+      {/* MODAL DETALLE COMPLETO DEL PEDIDO                                         */}
       {/* ========================================================================= */}
-      {adminModalOpen && selectedReqForAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="bg-slate-900 text-white p-5 sm:p-6 flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                    Panel de Administración
+      {detailModalOpen && selectedRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in">
+          <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+            
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 sm:p-6 flex items-start justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-amber-300 font-mono text-xs font-black uppercase tracking-wider">
+                    Pedido #{selectedRequest.id.slice(-4)}
                   </span>
-                  <span className="text-slate-400 text-xs font-mono">
-                    Orden #{selectedReqForAdmin.workOrder?.numeroOrden}
+                  <span className="text-slate-300 text-xs font-medium">
+                    Orden #{selectedRequest.workOrder?.numeroOrden}
                   </span>
+                  {isSparePartEscalated(selectedRequest) && (
+                    <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider animate-pulse">
+                      🚨 Escalado ({">"} {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                  <span>Procesar y Armar Pedido de Repuestos</span>
+                  <span>
+                    {selectedRequest.workOrder?.vehicle?.marca}{" "}
+                    {selectedRequest.workOrder?.vehicle?.modelo}
+                  </span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-amber-300 font-mono text-xs rounded border border-white/20">
+                    {selectedRequest.workOrder?.vehicle?.patente}
+                  </span>
                 </h3>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Formalice la lista de repuestos requeridos por el mecánico para que Recepción reciba y controle el pedido.
+                <p className="text-xs text-slate-300">
+                  Cliente: {selectedRequest.workOrder?.vehicle?.client?.nombre}{" "}
+                  {selectedRequest.workOrder?.vehicle?.client?.apellido || ""} • Tel:{" "}
+                  {selectedRequest.workOrder?.vehicle?.client?.telefono || "S/D"}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => setAdminModalOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                onClick={() => setDetailModalOpen(false)}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Contenido */}
+            {/* Contenido / Pestañas y Datos */}
             <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-              {/* Información cargada por el Mecánico */}
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                    <Wrench className="w-3.5 h-3.5 text-amber-700" />
-                    Cargado por el Mecánico: {selectedReqForAdmin.mechanic?.nombre}{" "}
-                    {selectedReqForAdmin.mechanic?.apellido || ""}
+              
+              {/* Barra de Estado Actual y Tiempos */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    Estado Actual del Pedido:
                   </span>
-                  {selectedReqForAdmin.fotoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setPhotoModalUrl(selectedReqForAdmin.fotoUrl || null)}
-                      className="text-xs text-amber-800 hover:text-amber-950 font-bold flex items-center gap-1 cursor-pointer underline"
-                    >
-                      <Camera className="w-3.5 h-3.5" />
-                      Ver Foto de la Avería
-                    </button>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                      SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.badgeClass
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.dotClass
+                      }`}
+                    />
+                    <span>{SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.label}</span>
+                  </span>
+                </div>
+
+                <div className="text-xs text-slate-600 space-y-0.5 sm:text-right font-medium">
+                  <div>
+                    Creado: {new Date(selectedRequest.createdAt).toLocaleString()} por{" "}
+                    <strong>
+                      {selectedRequest.mechanic?.nombre} {selectedRequest.mechanic?.apellido || ""}
+                    </strong>
+                  </div>
+                  {selectedRequest.fechaRevision && (
+                    <div className="text-purple-800">
+                      Revisado por Admin: {new Date(selectedRequest.fechaRevision).toLocaleDateString()}
+                    </div>
+                  )}
+                  {selectedRequest.encargadoPor && (
+                    <div className="text-blue-800">
+                      Encargo: {selectedRequest.encargadoPor} (
+                      {selectedRequest.fechaEncargo
+                        ? new Date(selectedRequest.fechaEncargo).toLocaleDateString()
+                        : "S/D"}
+                      )
+                    </div>
+                  )}
+                  {selectedRequest.recibidoPor && (
+                    <div className="text-emerald-800 font-bold">
+                      Recibido por: {selectedRequest.recibidoPor} (
+                      {selectedRequest.fechaRecepcion
+                        ? new Date(selectedRequest.fechaRecepcion).toLocaleDateString()
+                        : "S/D"}
+                      )
+                    </div>
                   )}
                 </div>
-
-                <div className="text-xs space-y-1">
-                  <p className="text-slate-800">
-                    <strong className="text-amber-950">Falla a reparar:</strong>{" "}
-                    {selectedReqForAdmin.fallaReparar}
-                  </p>
-                  <p className="text-slate-700">
-                    <strong className="text-amber-950">Repuestos pedidos:</strong>{" "}
-                    {selectedReqForAdmin.repuestosLista}
-                  </p>
-                </div>
               </div>
 
-              {/* Proveedor y Notas Generales */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-800 block">
-                    Proveedor asignado (Distribuidora / Casa de Repuestos):
-                  </label>
-                  <input
-                    type="text"
-                    value={adminProveedor}
-                    onChange={(e) => setAdminProveedor(e.target.value)}
-                    placeholder="Ej: Warnes Distribuciones / Bosch Argentina"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-xs font-semibold focus:ring-2 focus:ring-amber-500"
-                  />
+              {/* Si está devuelto, mostrar el motivo */}
+              {selectedRequest.motivoDevolucion && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 text-rose-950 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-rose-900">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>Motivo de Devolución al Mecánico:</span>
+                  </div>
+                  <p className="text-xs font-medium pl-6">{selectedRequest.motivoDevolucion}</p>
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-800 block">
-                    Notas o instrucciones para Recepción:
-                  </label>
-                  <input
-                    type="text"
-                    value={adminNotas}
-                    onChange={(e) => setAdminNotas(e.target.value)}
-                    placeholder="Ej: Pedir remito por duplicado / Llega con el chofer del mediodía"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-xs focus:ring-2 focus:ring-amber-500"
-                  />
+              {/* Si está cancelado, mostrar motivo */}
+              {selectedRequest.motivoCancelacion && (
+                <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-slate-900 space-y-1">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-slate-700">
+                    <Ban className="w-4 h-4 text-slate-600" />
+                    <span>Cancelado por: {selectedRequest.canceladoPor || "Usuario"}</span>
+                  </div>
+                  <p className="text-xs font-medium pl-6">
+                    Motivo: "{selectedRequest.motivoCancelacion}"
+                  </p>
                 </div>
+              )}
+
+              {/* 1. ¿Qué se va a reparar con los repuestos? */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                  1. Falla a reparar que motiva los repuestos:
+                </span>
+                <p className="text-sm font-bold text-slate-900 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  {selectedRequest.fallaReparar}
+                </p>
               </div>
 
-              {/* Renglones de Repuestos Formalizados */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-amber-600" />
-                    Lista de Repuestos a Recibir
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddAdminItem}
-                    className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Agregar Ítem</span>
-                  </button>
+              {/* 2. Observaciones del mecánico */}
+              {selectedRequest.observacionesMecanico && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                    Observaciones del Mecánico:
+                  </span>
+                  <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    {selectedRequest.observacionesMecanico}
+                  </p>
+                </div>
+              )}
+
+              {/* 3. Ítems Solicitados vs Ítems a Encargar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                {/* Columna Izquierda: Solicitados por el Mecánico */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wide text-slate-700 flex items-center gap-1.5">
+                      <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Ítems Solicitados</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">Original Mecánico</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {(() => {
+                      let list: any[] = [];
+                      try {
+                        if (selectedRequest.itemsSolicitados) {
+                          list =
+                            typeof selectedRequest.itemsSolicitados === "string"
+                              ? JSON.parse(selectedRequest.itemsSolicitados)
+                              : selectedRequest.itemsSolicitados;
+                        }
+                      } catch {}
+
+                      if (list.length > 0) {
+                        return list.map((it, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2.5 bg-white rounded-xl border border-slate-200 text-xs flex items-center justify-between"
+                          >
+                            <span className="font-semibold text-slate-800">
+                              {it.descripcion || it.nombre}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono font-black text-slate-900">
+                              {it.cantidad}x
+                            </span>
+                          </div>
+                        ));
+                      }
+
+                      return (
+                        <p className="text-xs text-slate-700 font-mono whitespace-pre-line bg-white p-3 rounded-xl border border-slate-200">
+                          {selectedRequest.repuestosLista}
+                        </p>
+                      );
+                    })()}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {adminItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-2 p-2.5 rounded-2xl bg-slate-50 border border-slate-200"
-                    >
-                      <span className="text-[11px] font-bold text-slate-400 w-5 text-center shrink-0">
-                        {index + 1}.
-                      </span>
+                {/* Columna Derecha: Ítems a Encargar (Administrador) */}
+                <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wide text-amber-900 flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Ítems a Encargar</span>
+                    </span>
+                    <span className="text-[10px] font-black text-amber-700 uppercase">
+                      Definido por Admin
+                    </span>
+                  </div>
 
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.cantidad}
-                        onChange={(e) =>
-                          handleAdminItemChange(
-                            item.id,
-                            "cantidad",
-                            parseInt(e.target.value) || 1
-                          )
-                        }
-                        className="w-14 px-2 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs text-center font-bold"
-                        title="Cantidad"
-                      />
+                  {/* Modo Edición para Administrador (cuando está en revisión) */}
+                  {userRole === "ADMIN" &&
+                  (selectedRequest.estado === "SOLICITADO" ||
+                    selectedRequest.estado === "EN_REVISION") ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-amber-800">
+                        Edita la lista definitiva de repuestos que Recepción debe encargar:
+                      </p>
 
-                      <input
-                        type="text"
-                        value={item.nombre}
-                        onChange={(e) =>
-                          handleAdminItemChange(item.id, "nombre", e.target.value)
-                        }
-                        placeholder="Nombre / Descripción de la pieza"
-                        className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold"
-                      />
-
-                      <input
-                        type="text"
-                        value={item.codigo || ""}
-                        onChange={(e) =>
-                          handleAdminItemChange(item.id, "codigo", e.target.value)
-                        }
-                        placeholder="Código / Ref."
-                        className="w-28 hidden sm:block px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-mono"
-                      />
+                      <div className="space-y-2">
+                        {itemsAEncargarEditable.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            className="p-2 bg-white rounded-xl border border-amber-200 flex items-center gap-2"
+                          >
+                            <input
+                              type="text"
+                              value={item.descripcion}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setItemsAEncargarEditable((prev) =>
+                                  prev.map((it, i) =>
+                                    i === idx ? { ...it, descripcion: val } : it
+                                  )
+                                );
+                              }}
+                              placeholder="Descripción del repuesto"
+                              className="flex-1 text-xs px-2 py-1 rounded-lg border border-slate-300 font-medium"
+                            />
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.cantidad}
+                              onChange={(e) => {
+                                const val = Math.max(1, Number(e.target.value) || 1);
+                                setItemsAEncargarEditable((prev) =>
+                                  prev.map((it, i) =>
+                                    i === idx ? { ...it, cantidad: val } : it
+                                  )
+                                );
+                              }}
+                              className="w-14 text-xs px-2 py-1 rounded-lg border border-slate-300 font-bold text-center"
+                            />
+                            {itemsAEncargarEditable.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setItemsAEncargarEditable((prev) =>
+                                    prev.filter((_, i) => i !== idx)
+                                  )
+                                }
+                                className="text-rose-500 hover:text-rose-700 p-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
 
                       <button
                         type="button"
-                        onClick={() => handleRemoveAdminItem(item.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
-                        title="Eliminar"
+                        onClick={() =>
+                          setItemsAEncargarEditable((prev) => [
+                            ...prev,
+                            { id: `item-new-${Date.now()}`, descripcion: "", cantidad: 1 },
+                          ])
+                        }
+                        className="text-[11px] font-bold text-amber-700 hover:text-amber-900 flex items-center gap-1 mt-1"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Plus className="w-3 h-3" />
+                        <span>Agregar otro repuesto</span>
                       </button>
+
+                      <div className="pt-2">
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                          Notas para Recepción:
+                        </label>
+                        <input
+                          type="text"
+                          value={notasAdminInput}
+                          onChange={(e) => setNotasAdminInput(e.target.value)}
+                          placeholder="Ej: Pedir en Distribuidora Norte con descuento de taller..."
+                          className="w-full text-xs px-3 py-1.5 bg-white rounded-lg border border-amber-200"
+                        />
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    /* Vista de solo lectura para los demás roles o estados */
+                    <div className="space-y-2">
+                      {(() => {
+                        let list: any[] = [];
+                        try {
+                          if (selectedRequest.itemsAEncargar) {
+                            list =
+                              typeof selectedRequest.itemsAEncargar === "string"
+                                ? JSON.parse(selectedRequest.itemsAEncargar)
+                                : selectedRequest.itemsAEncargar;
+                          }
+                        } catch {}
+
+                        if (list.length > 0) {
+                          return list.map((it, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2.5 bg-white rounded-xl border border-amber-200 text-xs flex items-center justify-between"
+                            >
+                              <span className="font-bold text-slate-900">
+                                {it.descripcion || it.nombre}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-amber-100 font-mono font-black text-amber-950">
+                                {it.cantidad}x
+                              </span>
+                            </div>
+                          ));
+                        }
+
+                        return (
+                          <p className="text-xs text-slate-500 italic bg-white p-3 rounded-xl border border-slate-200">
+                            Pendiente de definición por el Administrador.
+                          </p>
+                        );
+                      })()}
+
+                      {selectedRequest.notasAdmin && (
+                        <div className="p-2.5 bg-amber-100/60 rounded-xl text-xs text-amber-950">
+                          <strong>Nota del Admin:</strong> {selectedRequest.notasAdmin}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* 4. Galería de Fotos con Notas Ancladas */}
+              {(() => {
+                let photoList: any[] = [];
+                try {
+                  if (selectedRequest.fotos) {
+                    photoList =
+                      typeof selectedRequest.fotos === "string"
+                        ? JSON.parse(selectedRequest.fotos)
+                        : selectedRequest.fotos;
+                  } else if (selectedRequest.fotoUrl) {
+                    photoList = [
+                      { id: "foto-0", url: selectedRequest.fotoUrl, nota: "Foto inicial de evidencia" },
+                    ];
+                  }
+                } catch {}
+
+                if (photoList.length === 0) return null;
+
+                return (
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Fotografías con Nota Anclada ({photoList.length})</span>
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {photoList.map((foto: any, idx: number) => (
+                        <div
+                          key={foto.id || idx}
+                          onClick={() => setActivePhotoUrl(foto.url)}
+                          className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3 cursor-pointer hover:bg-slate-100 transition-colors"
+                        >
+                          <img
+                            src={foto.url}
+                            alt={`Foto repuesto ${idx + 1}`}
+                            className="w-16 h-16 object-cover rounded-xl border border-slate-300 shadow-2xs shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                              Foto #{idx + 1}
+                            </span>
+                            <p className="text-xs text-slate-800 font-medium truncate">
+                              {foto.nota || "Sin nota anclada"}
+                            </p>
+                            <span className="text-[10px] text-amber-600 font-bold hover:underline">
+                              Ver en grande
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 5. Datos de Encargo y Proveedor (Si ya se encargó) */}
+              {selectedRequest.encargadoPor && (
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-blue-900">
+                    <Truck className="w-4 h-4 text-blue-600" />
+                    <span>Datos del Encargo Realizado:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-blue-950">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-blue-500 block">
+                        Proveedor:
+                      </span>
+                      <strong className="text-sm">
+                        {selectedRequest.proveedor || "No indicado"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-blue-500 block">
+                        Fecha Estimada Llegada:
+                      </span>
+                      <strong className="text-sm">
+                        {selectedRequest.fechaEstimadaLlegada
+                          ? new Date(selectedRequest.fechaEstimadaLlegada).toLocaleDateString()
+                          : "No fijada"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-blue-500 block">
+                        Encargado por:
+                      </span>
+                      <strong>{selectedRequest.encargadoPor}</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Datos de Recepción en Taller (Si ya se recibió) */}
+              {selectedRequest.fechaRecepcion && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase text-emerald-900">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Recepción de Piezas Concluida:</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-emerald-950">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-emerald-600 block">
+                        Recibido Por:
+                      </span>
+                      <strong className="text-sm">{selectedRequest.recibidoPor}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-emerald-600 block">
+                        Nº Remito:
+                      </span>
+                      <strong className="text-sm">
+                        {selectedRequest.remitoNro || "Sin remito"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-emerald-600 block">
+                        Notas Recepción:
+                      </span>
+                      <span>{selectedRequest.notasRecepcion || "Conforme"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 7. Registro de Auditoría (Exclusivo Administrador - Sección 9) */}
+              {userRole === "ADMIN" && (
+                <div className="pt-3 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Log de Auditoría Inalterable del Pedido (Admin)</span>
+                    </span>
+                    <Link
+                      href={`/app/admin/auditoria?search=${selectedRequest.id}`}
+                      className="text-[11px] font-bold text-purple-700 hover:text-purple-900 underline flex items-center gap-1"
+                    >
+                      <span>Ver historial completo</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                  <div className="p-3 bg-slate-900 text-slate-200 rounded-2xl font-mono text-[11px] space-y-1">
+                    <div>• ID Pedido: {selectedRequest.id}</div>
+                    <div>• Creado: {selectedRequest.createdAt}</div>
+                    <div>• Estado actual: {selectedRequest.estado}</div>
+                    {selectedRequest.posposiciones && (
+                      <div>
+                        • Posposiciones ('Todavía no'):{" "}
+                        {typeof selectedRequest.posposiciones === "string"
+                          ? selectedRequest.posposiciones
+                          : JSON.stringify(selectedRequest.posposiciones)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Footer */}
-            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            {/* BOTONERA DE ACCIONES SEGÚN ROL Y ESTADO (SECCIÓN 9) */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/app/ordenes/${selectedRequest.workOrderId}`}
+                  className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 shadow-2xs"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Ver Orden Completa</span>
+                </Link>
+
+                {/* Cancelar pedido: Admin (en cualquier estado < RECIBIDO), Mecánico (solo en SOLICITADO) */}
+                {selectedRequest.estado !== "RECIBIDO" &&
+                  selectedRequest.estado !== "CANCELADO" &&
+                  (userRole === "ADMIN" ||
+                    (userRole === "MECHANIC" && selectedRequest.estado === "SOLICITADO")) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMotivoCancelacionInput("");
+                        setCancelarModalOpen(true);
+                      }}
+                      className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Ban className="w-3.5 h-3.5" />
+                      <span>Cancelar Pedido</span>
+                    </button>
+                  )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                
+                {/* ACCIONES DEL ADMINISTRADOR */}
+                {userRole === "ADMIN" &&
+                  (selectedRequest.estado === "SOLICITADO" ||
+                    selectedRequest.estado === "EN_REVISION") && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMotivoDevolucionInput("");
+                          setDevolverModalOpen(true);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Devolver al Mecánico</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={actionLoading}
+                        onClick={handleAdminAprobar}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Aprobar y Pasar a Recepción</span>
+                      </button>
+                    </>
+                  )}
+
+                {/* ACCIONES DE RECEPCIÓN */}
+                {(userRole === "RECEPTION" || userRole === "ADMIN") &&
+                  selectedRequest.estado === "PARA_ENCARGAR" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleTodaviaNoClick}
+                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                      >
+                        Todavía no (Posponer 30m)
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProveedorInput("");
+                          setFechaEstimadaInput("");
+                          setEncargoModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Encargo Realizado</span>
+                      </button>
+                    </>
+                  )}
+
+                {/* Confirmar Llegada / Recibido */}
+                {(userRole === "RECEPTION" || userRole === "ADMIN") &&
+                  selectedRequest.estado === "ENCARGO_REALIZADO" && (
+                    <>
+                      {isLlegadaVencida(selectedRequest) && (
+                        <button
+                          type="button"
+                          onClick={handleTodaviaNoClick}
+                          className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
+                        >
+                          Todavía no llegó (Posponer)
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRemitoNroInput("");
+                          setNotasRecepcionInput("");
+                          setRecibidoModalOpen(true);
+                        }}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Confirmar Recepción de Repuestos</span>
+                      </button>
+                    </>
+                  )}
+
+                {/* ACCIONES DEL MECÁNICO (Reenviar si fue Devuelto) */}
+                {userRole === "MECHANIC" && selectedRequest.estado === "DEVUELTO" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReqToResend(selectedRequest);
+                      setReenviarModalOpen(true);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-600/30 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Corregir y Reenviar Pedido</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DEVOLVER AL MECÁNICO CON MOTIVO OBLIGATORIO                         */}
+      {/* ========================================================================= */}
+      {devolverModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-700 font-extrabold text-base">
+              <RotateCcw className="w-5 h-5" />
+              <span>Devolver Pedido al Mecánico</span>
+            </div>
+            <p className="text-xs text-slate-600">
+              Indica qué debe corregir o aclarar el mecánico para que pueda ajustar su pedido:
+            </p>
+            <textarea
+              required
+              rows={3}
+              value={motivoDevolucionInput}
+              onChange={(e) => setMotivoDevolucionInput(e.target.value)}
+              placeholder="Ej: Aclarar si el disco es ventilado o sólido y verificar número de chasis..."
+              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setAdminModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                onClick={() => setDevolverModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                disabled={savingAdmin}
-                onClick={handleSaveAdminProcessing}
-                className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-xs shadow-md shadow-amber-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={actionLoading}
+                onClick={handleAdminDevolver}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md"
               >
-                {savingAdmin ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Guardando pedido...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>Confirmar y Enviar a Recepción</span>
-                  </>
-                )}
+                Confirmar Devolución
               </button>
             </div>
           </div>
@@ -1292,207 +1601,58 @@ export default function RepuestosPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 2: RECEPCIÓN Y CONTROL DE PEDIDO                                   */}
+      {/* MODAL ENCARGO REALIZADO (RECEPCIÓN)                                       */}
       {/* ========================================================================= */}
-      {recepcionModalOpen && selectedReqForRecepcion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="bg-sky-900 text-white p-5 sm:p-6 flex items-start justify-between">
+      {encargoModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-base">
+              <Truck className="w-5 h-5 text-emerald-600" />
+              <span>Confirmar Encargo de Repuestos</span>
+            </div>
+            <p className="text-xs text-slate-600">
+              Registra los datos del pedido realizado con el proveedor (ambos opcionales):
+            </p>
+            <div className="space-y-3">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 rounded-full bg-sky-400 text-sky-950 text-[10px] font-black uppercase tracking-wider">
-                    Control de Recepción
-                  </span>
-                  <span className="text-sky-200 text-xs font-mono font-bold">
-                    Orden #{selectedReqForRecepcion.workOrder?.numeroOrden}
-                  </span>
-                </div>
-                <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                  <span>Recepción y Verificación de Repuestos</span>
-                </h3>
-                <p className="text-xs text-sky-200 mt-0.5">
-                  Tilde los repuestos que llegaron del proveedor para asentar su ingreso al taller.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setRecepcionModalOpen(false)}
-                className="p-2 rounded-full hover:bg-white/10 text-sky-200 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Contenido */}
-            <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Datos del Pedido */}
-              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200 text-xs">
-                <div>
-                  <span className="text-[10px] font-extrabold text-sky-900 uppercase block">
-                    Vehículo
-                  </span>
-                  <p className="font-bold text-slate-900">
-                    {selectedReqForRecepcion.workOrder?.vehicle?.marca}{" "}
-                    {selectedReqForRecepcion.workOrder?.vehicle?.modelo}
-                  </p>
-                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-mono text-[10px] font-black">
-                    {selectedReqForRecepcion.workOrder?.vehicle?.patente}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-[10px] font-extrabold text-sky-900 uppercase block">
-                    Mecánico Asignado
-                  </span>
-                  <p className="font-bold text-slate-900">
-                    {selectedReqForRecepcion.mechanic?.nombre}{" "}
-                    {selectedReqForRecepcion.mechanic?.apellido || ""}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Proveedor: {selectedReqForRecepcion.proveedor || "No indicado"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Nro de Remito y Notas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-800 block">
-                    N° de Remito o Factura del Proveedor:
-                  </label>
-                  <input
-                    type="text"
-                    value={remitoNro}
-                    onChange={(e) => setRemitoNro(e.target.value)}
-                    placeholder="Ej: R-0001-00028475"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-xs font-mono focus:ring-2 focus:ring-sky-500"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-extrabold text-slate-800 block">
-                    Observaciones de Recepción:
-                  </label>
-                  <input
-                    type="text"
-                    value={notasRecepcion}
-                    onChange={(e) => setNotasRecepcion(e.target.value)}
-                    placeholder="Ej: Llegó todo en caja cerrada sin golpes"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-slate-900 text-xs focus:ring-2 focus:ring-sky-500"
-                  />
-                </div>
-              </div>
-
-              {/* Checklist de Repuestos */}
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckSquare className="w-4 h-4 text-sky-600" />
-                    Checklist de Repuestos Recibidos
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleMarcarTodosRecibidos}
-                    className="text-xs text-sky-700 hover:text-sky-900 font-bold underline cursor-pointer"
-                  >
-                    Marcar todos recibidos
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {recepcionItems.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleToggleRecepcionItem(item.id)}
-                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
-                        item.recibido
-                          ? "bg-emerald-50/80 border-emerald-300 text-emerald-950 font-bold"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border ${
-                            item.recibido
-                              ? "bg-emerald-600 border-emerald-600 text-white"
-                              : "bg-white border-slate-300 text-transparent"
-                          }`}
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-bold block">
-                            {item.cantidad}x {item.nombre}
-                          </span>
-                          {item.codigo && (
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              Cód: {item.codigo}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                          item.recibido
-                            ? "bg-emerald-200/80 text-emerald-900"
-                            : "bg-slate-200 text-slate-600"
-                        }`}
-                      >
-                        {item.recibido ? "Recibido" : "Pendiente"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Opción para reactivar la orden a En Reparación automáticamente */}
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={reactivarOrden}
-                    onChange={(e) => setReactivarOrden(e.target.checked)}
-                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span className="font-extrabold text-emerald-950">
-                    Si todos los repuestos están recibidos, reanudar la orden automáticamente a &ldquo;En Reparación&rdquo;
-                  </span>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Proveedor / Distribuidor
                 </label>
-                <p className="text-[11px] text-emerald-800 mt-1 pl-6">
-                  Le avisará al taller que los repuestos están listos para ser colocados, eliminando el estado de pausa.
-                </p>
+                <input
+                  type="text"
+                  value={proveedorInput}
+                  onChange={(e) => setProveedorInput(e.target.value)}
+                  placeholder="Ej: Distribuidora Central, Repuestos Valencia..."
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Fecha Estimada de Llegada al Taller
+                </label>
+                <input
+                  type="date"
+                  value={fechaEstimadaInput}
+                  onChange={(e) => setFechaEstimadaInput(e.target.value)}
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                />
               </div>
             </div>
-
-            {/* Footer */}
-            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setRecepcionModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+                onClick={() => setEncargoModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
               >
-                Cerrar
+                Cancelar
               </button>
               <button
                 type="button"
-                disabled={savingRecepcion}
-                onClick={handleSaveRecepcion}
-                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs shadow-md shadow-sky-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={actionLoading}
+                onClick={handleRecepcionEncargoRealizado}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
               >
-                {savingRecepcion ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Guardando...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>Guardar Recepción</span>
-                  </>
-                )}
+                Confirmar Encargo
               </button>
             </div>
           </div>
@@ -1500,30 +1660,147 @@ export default function RepuestosPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 3: VISOR DE FOTO COMPLETO (LIGHTBOX)                                */}
+      {/* MODAL RECEPCIÓN DE REPUESTOS                                              */}
       {/* ========================================================================= */}
-      {photoModalUrl && (
+      {recibidoModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-base">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <span>Confirmar Llegada de Repuestos al Taller</span>
+            </div>
+            <p className="text-xs text-slate-600">
+              Registra los datos de recepción del paquete o comprobante:
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Nº Remito / Factura Proveedor (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={remitoNroInput}
+                  onChange={(e) => setRemitoNroInput(e.target.value)}
+                  placeholder="Ej: REM-09941"
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Notas de Recepción / Conformidad (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={notasRecepcionInput}
+                  onChange={(e) => setNotasRecepcionInput(e.target.value)}
+                  placeholder="Paquete en buen estado, piezas verificadas..."
+                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRecibidoModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleRecepcionMarcarRecibido}
+                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
+              >
+                Confirmar Llegada
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL CANCELAR PEDIDO CON MOTIVO                                          */}
+      {/* ========================================================================= */}
+      {cancelarModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-2.5 text-rose-800 font-extrabold text-base">
+              <Ban className="w-5 h-5 text-rose-600" />
+              <span>Cancelar Pedido de Repuestos</span>
+            </div>
+            <p className="text-xs text-slate-600">
+              Ingresa el motivo obligatorio por el cual se cancela este pedido:
+            </p>
+            <textarea
+              required
+              rows={3}
+              value={motivoCancelacionInput}
+              onChange={(e) => setMotivoCancelacionInput(e.target.value)}
+              placeholder="Ej: Repuesto conseguido por el cliente / Desarme no requirió reemplazo..."
+              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
+            />
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCancelarModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleConfirmCancelar}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md"
+              >
+                Confirmar Cancelación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL REENVIAR PEDIDO CORREGIDO POR EL MECÁNICO                           */}
+      {/* ========================================================================= */}
+      {reenviarModalOpen && reqToResend && (
+        <PausaRepuestoModal
+          isOpen={reenviarModalOpen}
+          order={reqToResend.workOrder}
+          existingRequest={reqToResend}
+          onClose={() => {
+            setReenviarModalOpen(false);
+            setReqToResend(null);
+          }}
+          onSuccess={() => {
+            setDetailModalOpen(false);
+            fetchRequests();
+          }}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* LIGHTBOX FOTO EN GRANDE                                                   */}
+      {/* ========================================================================= */}
+      {activePhotoUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setPhotoModalUrl(null)}
+          onClick={() => setActivePhotoUrl(null)}
+          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs cursor-pointer animate-in fade-in"
         >
-          <div
-            className="relative max-w-3xl max-h-[85vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <img
+              src={activePhotoUrl}
+              alt="Foto ampliada repuesto"
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/20"
+            />
             <button
               type="button"
-              onClick={() => setPhotoModalUrl(null)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white transition-all cursor-pointer"
+              onClick={() => setActivePhotoUrl(null)}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
             >
               <X className="w-5 h-5" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoModalUrl}
-              alt="Evidencia en tamaño completo"
-              className="max-h-[80vh] w-auto object-contain rounded-2xl mx-auto"
-            />
           </div>
         </div>
       )}

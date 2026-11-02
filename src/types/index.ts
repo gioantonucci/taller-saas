@@ -127,15 +127,43 @@ export interface StaffMember {
 
 export interface SparePartItem {
   id: string;
-  nombre: string;
-  codigo?: string;
+  descripcion: string;
   cantidad: number;
+  nombre?: string; // Retrocompatibilidad
+  codigo?: string;
   proveedor?: string;
   notas?: string;
   costoEstimado?: number;
   recibido?: boolean;
   fechaRecibido?: string;
 }
+
+export interface SparePartPhoto {
+  id: string;
+  url: string;
+  nota?: string;
+  fecha: string;
+}
+
+export interface SparePartPostpone {
+  usuario: string;
+  fecha: string;
+  tipo: "ENCARGO" | "LLEGADA";
+}
+
+export type SparePartStatus =
+  | "SOLICITADO"
+  | "EN_REVISION"
+  | "PARA_ENCARGAR"
+  | "DEVUELTO"
+  | "ENCARGO_REALIZADO"
+  | "RECIBIDO"
+  | "CANCELADO"
+  // Retrocompatibilidad
+  | "PENDIENTE_ADMIN"
+  | "PROCESADO_ADMIN"
+  | "RECIBIDO_PARCIAL"
+  | "RECIBIDO_TOTAL";
 
 export interface SparePartRequest {
   id: string;
@@ -154,18 +182,48 @@ export interface SparePartRequest {
     nombre: string;
     apellido?: string | null;
   } | null;
+
+  // Datos cargados por el mecánico
   fallaReparar: string;
   repuestosLista: string;
+  itemsSolicitados?: string | SparePartItem[] | null;
+  observacionesMecanico?: string | null;
   fotoUrl?: string | null;
-  estado: "PENDIENTE_ADMIN" | "PROCESADO_ADMIN" | "RECIBIDO_PARCIAL" | "RECIBIDO_TOTAL" | "CANCELADO";
-  itemsProcesados?: string | null;
-  proveedor?: string | null;
+  fotos?: string | SparePartPhoto[] | null;
+
+  // Estado del flujo
+  estado: SparePartStatus;
+
+  // Revisión Administrador
+  fechaRevision?: string | null;
+  motivoDevolucion?: string | null;
+  itemsAEncargar?: string | SparePartItem[] | null;
   notasAdmin?: string | null;
-  fechaProcesado?: string | null;
+
+  // Encargo
+  encargadoPor?: string | null;
+  fechaEncargo?: string | null;
+  proveedor?: string | null;
+  fechaEstimadaLlegada?: string | null;
+
+  // Recepción de repuestos
   fechaRecepcion?: string | null;
   recibidoPor?: string | null;
   remitoNro?: string | null;
   notasRecepcion?: string | null;
+
+  // Cancelación
+  canceladoPor?: string | null;
+  fechaCancelacion?: string | null;
+  motivoCancelacion?: string | null;
+
+  // Posposiciones
+  posposiciones?: string | SparePartPostpone[] | null;
+
+  // Retrocompatibilidad
+  itemsProcesados?: string | null;
+  fechaProcesado?: string | null;
+
   createdAt: string;
   updatedAt: string;
 }

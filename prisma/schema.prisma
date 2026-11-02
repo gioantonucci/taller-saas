@@ -221,25 +221,46 @@ model SparePartRequest {
   admin           User?          @relation("AdminPartRequests", fields: [adminId], references: [id], onDelete: SetNull)
 
   // Datos cargados por el mecánico al pausar
-  fallaReparar    String         @db.Text
-  repuestosLista  String         @db.Text
-  fotoUrl         String?
+  fallaReparar          String         @db.Text
+  repuestosLista        String         @db.Text
+  itemsSolicitados      String?        @db.Text // JSON: [{ id, descripcion, cantidad }]
+  observacionesMecanico String?        @db.Text
+  fotoUrl               String?
+  fotos                 String?        @db.Text // JSON: [{ id, url, nota, fecha }]
 
   // Estado del flujo de repuestos:
-  // "PENDIENTE_ADMIN", "PROCESADO_ADMIN", "RECIBIDO_PARCIAL", "RECIBIDO_TOTAL", "CANCELADO"
-  estado          String         @default("PENDIENTE_ADMIN")
+  // "SOLICITADO", "EN_REVISION", "PARA_ENCARGAR", "DEVUELTO", "ENCARGO_REALIZADO", "RECIBIDO", "CANCELADO"
+  estado                String         @default("SOLICITADO")
 
-  // Datos procesados por el Administrador para Recepción
-  itemsProcesados String?        @db.Text
-  proveedor       String?
-  notasAdmin      String?        @db.Text
-  fechaProcesado  DateTime?
+  // Revisión Administrador
+  fechaRevision         DateTime?
+  motivoDevolucion      String?        @db.Text
+  itemsAEncargar        String?        @db.Text // JSON: [{ id, descripcion, cantidad }]
+  notasAdmin            String?        @db.Text
+
+  // Encargo (Recepción / Admin)
+  encargadoPor          String?
+  fechaEncargo          DateTime?
+  proveedor             String?
+  fechaEstimadaLlegada  DateTime?
 
   // Datos de recepción al recibir el paquete/repuestos
-  fechaRecepcion  DateTime?
-  recibidoPor     String?
-  remitoNro       String?
-  notasRecepcion  String?        @db.Text
+  fechaRecepcion        DateTime?
+  recibidoPor           String?
+  remitoNro             String?
+  notasRecepcion        String?        @db.Text
+
+  // Cancelación
+  canceladoPor          String?
+  fechaCancelacion      DateTime?
+  motivoCancelacion     String?        @db.Text
+
+  // Posposiciones del recordatorio ("Todavía no")
+  posposiciones         String?        @db.Text // JSON: [{ usuario, fecha, tipo }]
+
+  // Retrocompatibilidad
+  itemsProcesados       String?        @db.Text
+  fechaProcesado        DateTime?
 
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

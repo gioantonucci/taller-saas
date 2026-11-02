@@ -140,7 +140,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       href: "/app/repuestos",
       label: "Repuestos",
       icon: Package,
-      roles: ["ADMIN", "RECEPTION"],
+      roles: ["ADMIN", "RECEPTION", "MECHANIC"],
       mobileBadge: "Repuestos",
     },
     {

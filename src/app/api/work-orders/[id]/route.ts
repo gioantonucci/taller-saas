@@ -164,6 +164,22 @@ export async function PATCH(
         );
       }
 
+      // Regla de especificación: Cancelar la orden cancela automáticamente sus pedidos de repuestos abiertos con el mismo motivo
+      await prisma.sparePartRequest.updateMany({
+        where: {
+          workOrderId: id,
+          estado: {
+            notIn: ["RECIBIDO", "CANCELADO", "RECIBIDO_TOTAL"],
+          },
+        },
+        data: {
+          estado: "CANCELADO",
+          motivoCancelacion: `Baja de la orden: ${motivo}`,
+          fechaCancelacion: new Date(),
+          canceladoPor: `${session.nombre} ${session.apellido || ""}`.trim(),
+        },
+      });
+
       previousValues.estado = currentOrder.estado;
       newValues.estado = "CANCELADO";
       updateData.estado = "CANCELADO";
@@ -341,6 +357,31 @@ export async function PATCH(
           },
           { status: 400 }
         );
+      }
+
+      // Regla de especificación: La orden vuelve a En reparación solo si no queda ningún pedido de repuestos abierto
+      if (body.estado === "EN_REPARACION" || body.estado === "EN_CURSO") {
+        const openSpareRequests = await prisma.sparePartRequest.findMany({
+          where: {
+            workOrderId: id,
+            estado: {
+              notIn: ["RECIBIDO", "CANCELADO", "RECIBIDO_TOTAL"],
+            },
+          },
+        });
+
+        if (openSpareRequests.length > 0) {
+          const listaAbiertos = openSpareRequests
+            .map((r) => `Pedido #${r.id.slice(-4)} (${r.estado})`)
+            .join(", ");
+          return NextResponse.json(
+            {
+              error: `Operación bloqueada: No se puede reanudar la reparación porque existen pedidos de repuestos abiertos pendientes: ${listaAbiertos}. Todos los pedidos deben estar 'Recibido' o 'Cancelado'.`,
+              openSpareRequests,
+            },
+            { status: 400 }
+          );
+        }
       }
 
       previousValues.estado = currentOrder.estado;
@@ -904,6 +945,20 @@ export async function DELETE(
         fechaCancelacion: new Date(),
         fechaCambioEstado: new Date(),
         motivoCancelacion: "Baja solicitada por administración",
+      },
+    });
+
+    // Cancelar la orden cancela sus pedidos de repuestos abiertos
+    await prisma.sparePartRequest.updateMany({
+      where: {
+        workOrderId: id,
+        estado: { notIn: ["RECIBIDO", "CANCELADO", "RECIBIDO_TOTAL"] },
+      },
+      data: {
+        estado: "CANCELADO",
+        motivoCancelacion: "Baja de la orden solicitada por administración",
+        fechaCancelacion: new Date(),
+        canceladoPor: `${session.nombre} ${session.apellido || ""}`.trim(),
       },
     });
 
