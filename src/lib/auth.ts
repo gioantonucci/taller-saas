@@ -12,13 +12,8 @@ const COOKIE_NAME = "auth_token";
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
-export function normalizeRole(role: string): "ADMIN" | "RECEPTION" | "MECHANIC" {
-  const r = (role || "").toUpperCase();
-  if (r === "ADMIN") return "ADMIN";
-  if (r === "RECEPTION" || r === "RECEPCION") return "RECEPTION";
-  if (r === "MECHANIC" || r === "MECANICO") return "MECHANIC";
-  return "RECEPTION";
-}
+import { normalizeRole } from "./roles";
+export { normalizeRole };
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);

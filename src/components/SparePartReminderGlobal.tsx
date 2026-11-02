@@ -16,7 +16,7 @@ import {
   BellRing,
 } from "lucide-react";
 import { UserSession } from "@/types";
-import { normalizeRole } from "@/lib/auth";
+import { normalizeRole } from "@/lib/roles";
 import { SPARE_PARTS_CONFIG, formatTiempoTranscurrido } from "@/lib/spare-parts-config";
 
 interface SparePartReminderGlobalProps {

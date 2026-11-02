@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { SparePartRequest, SparePartItem, SparePartPhoto } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
-import { normalizeRole } from "@/lib/auth";
+import { normalizeRole } from "@/lib/roles";
 import {
   SPARE_PARTS_CONFIG,
   SPARE_PART_STATUS_MAP,
