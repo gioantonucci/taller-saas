@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
       // Control de Acceso Basado en Roles (RBAC)
       // =========================================================================
 
-      // 1. Rol MECHANIC: Acceso a Clientes, Vehículos, Órdenes y Hoja de Ruta (/app/taller/*)
+      // 1. Rol MECHANIC: Acceso a Clientes, Vehículos, Órdenes y Hoja de Trabajo (/app/taller/*)
       // Restringido de: /app/admin/*, /app/dashboard, /app/configuracion
       if (role === "MECHANIC" || role === "MECANICO") {
         if (

@@ -872,7 +872,7 @@ export default function GestionPersonalPage() {
                           Reasignar a otro mecánico activo
                         </span>
                         <p className="text-[11px] text-slate-500 mt-0.5 leading-tight">
-                          El mecánico elegido asumirá la continuidad y la hoja de ruta de los vehículos en reparación.
+                          El mecánico elegido asumirá la continuidad y la hoja de trabajo de los vehículos en reparación.
                         </p>
 
                         {/* Selector de mecánico destino */}
@@ -1036,7 +1036,7 @@ export default function GestionPersonalPage() {
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-500 leading-tight">
-                      Acceso a Hoja de Ruta, peritajes técnicos y registro de trabajos.
+                      Acceso a Hoja de Trabajo, peritajes técnicos y registro de trabajos.
                     </p>
                   </button>
 

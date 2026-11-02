@@ -2584,7 +2584,7 @@ export default function OrdenesPage() {
                         </span>
                       </div>
                       <p className="text-[11px] text-emerald-700 leading-relaxed">
-                        Como estás recibiendo el vehículo, la orden se asignará automáticamente a tu Hoja de Ruta.
+                        Como estás recibiendo el vehículo, la orden se asignará automáticamente a tu Hoja de Trabajo.
                       </p>
                     </div>
                   ) : (

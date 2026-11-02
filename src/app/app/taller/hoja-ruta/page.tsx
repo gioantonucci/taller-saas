@@ -579,7 +579,7 @@ export default function HojaRutaMecanicoPage() {
                     {isEncargado ? "Vista General de Taller (Admin)" : "Módulo de Taller"}
                   </span>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
-                    Hoja de Ruta
+                    Hoja de Trabajo
                   </h1>
                   <p className="text-xs text-sky-300 font-medium mt-0.5">
                     {isEncargado
@@ -968,7 +968,7 @@ export default function HojaRutaMecanicoPage() {
               className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white border border-slate-200 text-slate-700 font-extrabold text-xs hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Volver a la Hoja de Ruta</span>
+              <span>Volver a la Hoja de Trabajo</span>
             </button>
 
             <div className="flex items-center gap-2">

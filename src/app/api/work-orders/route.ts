@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filtrar por mecánico si se especifica en parámetros o scope específico de hoja de ruta
+    // Filtrar por mecánico si se especifica en parámetros o scope específico de hoja de trabajo
     const isAdminOrReception =
       session.role === "ADMIN" ||
       session.role === "RECEPTION" ||

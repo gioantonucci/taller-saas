@@ -130,7 +130,7 @@ export default function AppSidebar({ user }: AppSidebarProps) {
     },
     {
       href: "/app/taller/hoja-ruta",
-      label: "Hoja de Ruta",
+      label: "Hoja de Trabajo",
       icon: Wrench,
       roles: ["ADMIN", "MECHANIC"],
       mobileBadge: "Taller",
