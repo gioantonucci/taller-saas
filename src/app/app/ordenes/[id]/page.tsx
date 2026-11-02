@@ -41,6 +41,7 @@ import {
   ResguardoDepositoParams,
 } from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
+import TestigoIcon from "@/components/TestigoIcon";
 
 export default function OrdenDetallePage() {
   const { alert, confirm } = useAppDialog();
@@ -1398,12 +1399,33 @@ export default function OrdenDetallePage() {
                     Luces Testigo en Tablero (Fallas Previas):
                   </span>
                   {activeTestigos.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {activeTestigos.map((t) => (
-                        <span key={t} className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold text-[10px] border border-rose-200">
-                          🔴 {t.toUpperCase()}
-                        </span>
-                      ))}
+                    <div className="flex flex-wrap gap-2">
+                      {activeTestigos.map((t) => {
+                        const labelsMap: Record<string, string> = {
+                          checkEngine: "Check Engine",
+                          abs: "ABS (Frenos)",
+                          airbag: "Airbag",
+                          presionAceite: "Presión de Aceite",
+                          temperatura: "Temperatura",
+                          bateria: "Batería / Alternador",
+                          frenoManoDesgaste: "Pastillas Desgastadas",
+                          direccionAsistida: "Dirección Asistida",
+                        };
+                        return (
+                          <span
+                            key={t}
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-900 font-bold text-xs border border-rose-200 flex items-center gap-2 shadow-2xs"
+                          >
+                            <span className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center p-0.5 shrink-0">
+                              <TestigoIcon tipo={t} className="w-3.5 h-3.5" />
+                            </span>
+                            <span>{labelsMap[t] || t.toUpperCase()}</span>
+                            <span className="text-[10px] text-rose-600 font-mono font-extrabold uppercase">
+                              (Activo)
+                            </span>
+                          </span>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-slate-500 text-xs">

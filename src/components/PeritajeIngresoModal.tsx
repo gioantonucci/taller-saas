@@ -30,6 +30,7 @@ import { PeritajeIngreso, DanioCarroceria, LucesTestigoTablero, DamagePin } from
 import { compressImageClient } from "@/lib/client-compress";
 import CarDamageBlueprint from "@/components/CarDamageBlueprint";
 import { useAppDialog } from "@/components/AppDialog";
+import TestigoIcon from "@/components/TestigoIcon";
 
 interface PeritajeModalProps {
   order: any;
@@ -402,9 +403,7 @@ export default function PeritajeIngresoModal({
     { key: "presionAceite", label: "Presión de Aceite", active: peritaje.lucesTestigo?.presionAceite },
     { key: "frenoManoDesgaste", label: "Freno / Pastillas", active: peritaje.lucesTestigo?.frenoManoDesgaste },
     { key: "direccionAsistida", label: "Dirección Asistida", active: peritaje.lucesTestigo?.direccionAsistida },
-  ]
-    .filter((t) => t.active)
-    .map((t) => t.label);
+  ].filter((t) => t.active);
 
   const allEvidencePhotos = Array.from(
     new Set([
@@ -1027,14 +1026,19 @@ export default function PeritajeIngresoModal({
                   </span>
                   {activeTestigosList.length > 0 ? (
                     <div className="space-y-2">
-                      <div className="flex flex-wrap gap-1.5">
-                        {activeTestigosList.map((testigo, idx) => (
+                      <div className="flex flex-wrap gap-2">
+                        {activeTestigosList.map((testigo) => (
                           <span
-                            key={idx}
-                            className="px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 font-bold text-[11px] flex items-center gap-1"
+                            key={testigo.key}
+                            className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-bold text-xs flex items-center gap-2 shadow-2xs"
                           >
-                            <AlertTriangle className="w-3 h-3 text-rose-600" />
-                            {testigo} (Encendido)
+                            <span className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center p-0.5 shrink-0">
+                              <TestigoIcon tipo={testigo.key} className="w-4 h-4" />
+                            </span>
+                            <span>{testigo.label}</span>
+                            <span className="text-[10px] text-rose-600 font-mono font-extrabold uppercase">
+                              (Encendido)
+                            </span>
                           </span>
                         ))}
                       </div>
@@ -1346,33 +1350,79 @@ export default function PeritajeIngresoModal({
                     <label className="block text-xs font-bold text-slate-900 mb-2">
                       Testigos Lumínicos Previamente Encendidos (Falla Preexistente):
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                       {[
-                        { key: "checkEngine", label: "Check Engine (Motor)", color: "text-amber-600 bg-amber-50 border-amber-300" },
-                        { key: "abs", label: "ABS (Frenos)", color: "text-amber-600 bg-amber-50 border-amber-300" },
-                        { key: "airbag", label: "Airbag", color: "text-rose-600 bg-rose-50 border-rose-300" },
-                        { key: "presionAceite", label: "Presión de Aceite", color: "text-rose-600 bg-rose-50 border-rose-300" },
-                        { key: "temperatura", label: "Temperatura / Agua", color: "text-rose-600 bg-rose-50 border-rose-300" },
-                        { key: "bateria", label: "Batería / Carga", color: "text-rose-600 bg-rose-50 border-rose-300" },
-                        { key: "frenoManoDesgaste", label: "Pastillas Desgastadas", color: "text-amber-600 bg-amber-50 border-amber-300" },
-                        { key: "direccionAsistida", label: "Dirección Asistida (EPS)", color: "text-amber-600 bg-amber-50 border-amber-300" },
-                      ].map(({ key, label, color }) => {
+                        { key: "checkEngine", label: "Check Engine (Motor)", isAmber: true },
+                        { key: "abs", label: "ABS (Frenos)", isAmber: true },
+                        { key: "airbag", label: "Airbag", isAmber: false },
+                        { key: "presionAceite", label: "Presión de Aceite", isAmber: false },
+                        { key: "temperatura", label: "Temperatura / Agua", isAmber: false },
+                        { key: "bateria", label: "Batería / Carga", isAmber: false },
+                        { key: "frenoManoDesgaste", label: "Pastillas Desgastadas", isAmber: true },
+                        { key: "direccionAsistida", label: "Dirección Asistida (EPS)", isAmber: true },
+                      ].map(({ key, label, isAmber }) => {
                         const isChecked = peritaje.lucesTestigo[key as keyof LucesTestigoTablero];
                         return (
                           <button
                             key={key}
                             type="button"
                             onClick={() => handleToggleTestigo(key as keyof LucesTestigoTablero)}
-                            className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                            className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer group ${
                               isChecked
-                                ? `${color} ring-2 ring-rose-500 font-bold shadow-sm`
-                                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                ? isAmber
+                                  ? "bg-amber-50/90 border-amber-400 ring-2 ring-amber-400/50 shadow-md shadow-amber-500/10"
+                                  : "bg-rose-50/90 border-rose-400 ring-2 ring-rose-500/50 shadow-md shadow-rose-500/10"
+                                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                             }`}
                           >
-                            <span className="text-[11px] block">{label}</span>
-                            <span className={`text-[10px] mt-2 font-mono font-bold ${isChecked ? "text-rose-700" : "text-slate-400"}`}>
-                              {isChecked ? "🔴 ENCENDIDO" : "⚪ Apagado"}
-                            </span>
+                            {/* Ícono de Testigo automotor grande y destacado */}
+                            <div
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                isChecked
+                                  ? isAmber
+                                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/40 ring-2 ring-amber-300"
+                                    : "bg-rose-600 text-white shadow-md shadow-rose-600/40 ring-2 ring-rose-300"
+                                  : "bg-slate-100 text-slate-500 border border-slate-200 group-hover:bg-slate-200 group-hover:text-slate-800"
+                              }`}
+                            >
+                              <TestigoIcon tipo={key} className="w-7 h-7" />
+                            </div>
+
+                            {/* Textos del testigo */}
+                            <div className="min-w-0 flex-1">
+                              <span
+                                className={`text-xs leading-tight block ${
+                                  isChecked ? "font-extrabold text-slate-900" : "font-bold text-slate-700"
+                                }`}
+                              >
+                                {label}
+                              </span>
+                              <span
+                                className={`text-[10px] mt-1 font-mono font-bold flex items-center gap-1.5 ${
+                                  isChecked
+                                    ? isAmber
+                                      ? "text-amber-700"
+                                      : "text-rose-700"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                {isChecked ? (
+                                  <>
+                                    <span
+                                      className={`w-2 h-2 rounded-full ${
+                                        isAmber ? "bg-amber-500" : "bg-rose-600"
+                                      } animate-pulse`}
+                                    ></span>
+                                    <span>ENCENDIDO</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                    <span>Apagado</span>
+                                  </>
+                                )}
+                              </span>
+                            </div>
                           </button>
                         );
                       })}
