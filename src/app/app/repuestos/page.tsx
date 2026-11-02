@@ -31,7 +31,6 @@ import {
   Ban,
   MessageSquare,
   ChevronRight,
-  ShieldCheck,
   Send,
 } from "lucide-react";
 import { SparePartRequest, SparePartItem, SparePartPhoto } from "@/types";
@@ -1380,38 +1379,6 @@ export default function RepuestosPage() {
                       </span>
                       <span>{selectedRequest.notasRecepcion || "Conforme"}</span>
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 7. Registro de Auditoría (Exclusivo Administrador - Sección 9) */}
-              {userRole === "ADMIN" && (
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-                      <span>Log de Auditoría Inalterable del Pedido (Admin)</span>
-                    </span>
-                    <Link
-                      href={`/app/admin/auditoria?search=${selectedRequest.id}`}
-                      className="text-[11px] font-bold text-purple-700 hover:text-purple-900 underline flex items-center gap-1"
-                    >
-                      <span>Ver historial completo</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  </div>
-                  <div className="p-3 bg-slate-900 text-slate-200 rounded-2xl font-mono text-[11px] space-y-1">
-                    <div>• ID Pedido: {selectedRequest.id}</div>
-                    <div>• Creado: {selectedRequest.createdAt}</div>
-                    <div>• Estado actual: {selectedRequest.estado}</div>
-                    {selectedRequest.posposiciones && (
-                      <div>
-                        • Posposiciones ('Todavía no'):{" "}
-                        {typeof selectedRequest.posposiciones === "string"
-                          ? selectedRequest.posposiciones
-                          : JSON.stringify(selectedRequest.posposiciones)}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
