@@ -14,6 +14,7 @@ import {
   Shield,
   UserCheck,
   Settings,
+  Package,
 } from "lucide-react";
 import { UserSession } from "@/types";
 import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
@@ -134,6 +135,13 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       icon: Wrench,
       roles: ["ADMIN", "MECHANIC"],
       mobileBadge: "Taller",
+    },
+    {
+      href: "/app/repuestos",
+      label: "Repuestos",
+      icon: Package,
+      roles: ["ADMIN", "RECEPTION"],
+      mobileBadge: "Repuestos",
     },
     {
       href: "/app/admin/personal",

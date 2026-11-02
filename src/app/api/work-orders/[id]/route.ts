@@ -46,6 +46,17 @@ export async function GET(
         multimedia: {
           orderBy: { fechaCarga: "desc" },
         },
+        sparePartRequests: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            mechanic: {
+              select: { id: true, nombre: true, apellido: true },
+            },
+            admin: {
+              select: { id: true, nombre: true, apellido: true },
+            },
+          },
+        },
       },
     });
 

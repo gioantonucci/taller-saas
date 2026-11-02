@@ -46,6 +46,8 @@ model User {
   workOrdersAdmin    WorkOrder[] @relation("AdminOrders")
   workLogs           WorkLog[]
   auditLogs          AuditLog[]
+  sparePartRequestsMechanic SparePartRequest[] @relation("MechanicPartRequests")
+  sparePartRequestsAdmin    SparePartRequest[] @relation("AdminPartRequests")
 }
 
 model Client {
@@ -118,6 +120,7 @@ model WorkOrder {
   workLogs         WorkLog[]
   parts            Part[]
   transactions     Transaction[]
+  sparePartRequests SparePartRequest[]
 }
 
 model WorkOrderMultimedia {
@@ -207,4 +210,39 @@ model Transaction {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
+
+model SparePartRequest {
+  id              String         @id @default(cuid())
+  workOrderId     String
+  workOrder       WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  mechanicId      String?
+  mechanic        User?          @relation("MechanicPartRequests", fields: [mechanicId], references: [id], onDelete: SetNull)
+  adminId         String?
+  admin           User?          @relation("AdminPartRequests", fields: [adminId], references: [id], onDelete: SetNull)
+
+  // Datos cargados por el mecánico al pausar
+  fallaReparar    String         @db.Text
+  repuestosLista  String         @db.Text
+  fotoUrl         String?
+
+  // Estado del flujo de repuestos:
+  // "PENDIENTE_ADMIN", "PROCESADO_ADMIN", "RECIBIDO_PARCIAL", "RECIBIDO_TOTAL", "CANCELADO"
+  estado          String         @default("PENDIENTE_ADMIN")
+
+  // Datos procesados por el Administrador para Recepción
+  itemsProcesados String?        @db.Text
+  proveedor       String?
+  notasAdmin      String?        @db.Text
+  fechaProcesado  DateTime?
+
+  // Datos de recepción al recibir el paquete/repuestos
+  fechaRecepcion  DateTime?
+  recibidoPor     String?
+  remitoNro       String?
+  notasRecepcion  String?        @db.Text
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
 

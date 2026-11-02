@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
+import PausaRepuestoModal from "@/components/PausaRepuestoModal";
 import { matchesSearchMulti } from "@/lib/search-utils";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
@@ -95,6 +96,8 @@ export default function HojaRutaMecanicoPage() {
   const [peritajeModalOpen, setPeritajeModalOpen] = useState(false);
   const [finalizarModalOpen, setFinalizarModalOpen] = useState(false);
   const [orderToFinalize, setOrderToFinalize] = useState<any | null>(null);
+  const [pausaRepuestoModalOpen, setPausaRepuestoModalOpen] = useState(false);
+  const [orderToPause, setOrderToPause] = useState<any | null>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [mechanics, setMechanics] = useState<any[]>([]);
   const [mechanicFilter, setMechanicFilter] = useState<string>("TODOS");
@@ -1240,9 +1243,12 @@ export default function HojaRutaMecanicoPage() {
                   <button
                     type="button"
                     disabled={savingStatus}
-                    onClick={() => handleUpdateStatus(selectedOrder.id, "ESPERANDO_REPUESTOS")}
+                    onClick={() => {
+                      setOrderToPause(selectedOrder);
+                      setPausaRepuestoModalOpen(true);
+                    }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 active:scale-[0.99] font-bold text-xs shadow-xs transition-all cursor-pointer"
-                    title="Pausar trabajo mientras llegan repuestos"
+                    title="Pausar trabajo indicando falla y repuestos necesarios"
                   >
                     <PauseCircle className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Pausar por Repuestos</span>
@@ -1634,6 +1640,21 @@ export default function HojaRutaMecanicoPage() {
         order={orderToFinalize}
         onSuccess={handleFinalizarSuccess}
       />
+
+      {/* Modal de Pausa por Repuestos (Carga de falla, repuestos y foto) */}
+      {pausaRepuestoModalOpen && orderToPause && (
+        <PausaRepuestoModal
+          isOpen={pausaRepuestoModalOpen}
+          order={orderToPause}
+          onClose={() => {
+            setPausaRepuestoModalOpen(false);
+            setOrderToPause(null);
+          }}
+          onSuccess={() => {
+            fetchOrders();
+          }}
+        />
+      )}
 
     </div>
   );

@@ -125,3 +125,49 @@ export interface StaffMember {
   };
 }
 
+export interface SparePartItem {
+  id: string;
+  nombre: string;
+  codigo?: string;
+  cantidad: number;
+  proveedor?: string;
+  notas?: string;
+  costoEstimado?: number;
+  recibido?: boolean;
+  fechaRecibido?: string;
+}
+
+export interface SparePartRequest {
+  id: string;
+  workOrderId: string;
+  workOrder?: any;
+  mechanicId?: string | null;
+  mechanic?: {
+    id: string;
+    nombre: string;
+    apellido?: string | null;
+    email?: string;
+  } | null;
+  adminId?: string | null;
+  admin?: {
+    id: string;
+    nombre: string;
+    apellido?: string | null;
+  } | null;
+  fallaReparar: string;
+  repuestosLista: string;
+  fotoUrl?: string | null;
+  estado: "PENDIENTE_ADMIN" | "PROCESADO_ADMIN" | "RECIBIDO_PARCIAL" | "RECIBIDO_TOTAL" | "CANCELADO";
+  itemsProcesados?: string | null;
+  proveedor?: string | null;
+  notasAdmin?: string | null;
+  fechaProcesado?: string | null;
+  fechaRecepcion?: string | null;
+  recibidoPor?: string | null;
+  remitoNro?: string | null;
+  notasRecepcion?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
