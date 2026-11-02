@@ -1484,18 +1484,19 @@ export default function OrdenesPage() {
                   const isFinished = orden.estado === "FINALIZADO" || orden.estado === "TERMINADO" || orden.estado === "REPARADO";
 
                   return (
-                    <tr key={orden.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr
+                      key={orden.id}
+                      onClick={() => router.push(`/app/ordenes/${orden.id}`)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    >
                       {/* 1. Vehículo */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2.5">
                           <ArgentinePlateBadge patente={orden.vehicle.patente} />
                           <div>
-                            <Link
-                              href={`/app/ordenes/${orden.id}`}
-                              className="font-extrabold text-slate-900 hover:text-sky-600 block text-xs"
-                            >
+                            <span className="font-extrabold text-slate-900 group-hover:text-sky-600 transition-colors block text-xs">
                               {orden.vehicle.marca} {orden.vehicle.modelo}
-                            </Link>
+                            </span>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-[10px] text-slate-400 font-mono">
                                 Orden #{orden.numeroOrden}
@@ -1555,13 +1556,16 @@ export default function OrdenesPage() {
                       </td>
 
                       {/* 6. Acciones */}
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           {isFinished && (
                             <>
                               <button
                                 type="button"
-                                onClick={() => handleNotifyClient(orden)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotifyClient(orden);
+                                }}
                                 className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
                                 title={notifiedOrders[orden.id] ? "Aviso enviado por WhatsApp ✓" : "Avisar al cliente por WhatsApp"}
                               >
@@ -1570,7 +1574,10 @@ export default function OrdenesPage() {
                               <button
                                 type="button"
                                 disabled={deliveringOrderId === orden.id}
-                                onClick={() => handleMarkAsDelivered(orden)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsDelivered(orden);
+                                }}
                                 className="p-2 rounded-xl text-white transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105 disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                                 title="Marcar vehículo como entregado al cliente y archivar orden"
                               >
@@ -1580,7 +1587,10 @@ export default function OrdenesPage() {
                           )}
                           <button
                             type="button"
-                            onClick={() => handlePrintResguardoFromOrder(orden)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrintResguardoFromOrder(orden);
+                            }}
                             className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
                             title="Imprimir Resguardo de Depósito (A4)"
                           >
@@ -1588,7 +1598,8 @@ export default function OrdenesPage() {
                           </button>
                           <Link
                             href={`/app/ordenes/${orden.id}`}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center hover:scale-105 group-hover:bg-sky-50 group-hover:text-sky-700"
                             title="Ver Ficha de la Orden"
                           >
                             <ChevronRight className="w-4 h-4" />

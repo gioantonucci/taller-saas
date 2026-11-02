@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -56,6 +56,7 @@ function getVehicleStatus(v: any) {
 }
 
 function VehiculosContent() {
+  const router = useRouter();
   const { alert, confirm } = useAppDialog();
   const searchParams = useSearchParams();
   const initialOpen = searchParams.get("nuevo") === "1";
@@ -404,23 +405,21 @@ function VehiculosContent() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {vehicles.map((v) => (
-                    <tr key={v.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr
+                      key={v.id}
+                      onClick={() => router.push(`/app/vehiculos/${v.patente}`)}
+                      className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
+                    >
                       <td className="p-3.5">
-                        <Link
-                          href={`/app/vehiculos/${v.patente}`}
-                          className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-900 hover:bg-sky-100 hover:text-sky-800 transition-colors inline-block"
-                        >
+                        <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-md bg-slate-100 border border-slate-300 text-slate-900 group-hover:bg-sky-100 group-hover:text-sky-800 transition-colors inline-block">
                           {v.patente}
-                        </Link>
+                        </span>
                       </td>
 
                       <td className="p-3.5">
-                        <Link
-                          href={`/app/vehiculos/${v.patente}`}
-                          className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
-                        >
+                        <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors block text-sm">
                           {v.marca} {v.modelo}
-                        </Link>
+                        </span>
                         <span className="text-[11px] text-slate-400">
                           Color: {v.color || "No especificado"}
                         </span>
@@ -430,7 +429,7 @@ function VehiculosContent() {
                         {v.anio}
                       </td>
 
-                      <td className="p-3.5">
+                      <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
                         <Link
                           href={`/app/clientes/${v.client.id}`}
                           className="font-bold text-slate-800 hover:text-sky-600 transition-colors block"
@@ -442,7 +441,7 @@ function VehiculosContent() {
                         </span>
                       </td>
 
-                      <td className="p-3.5 whitespace-nowrap">
+                      <td className="p-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {(() => {
                           const st = getVehicleStatus(v);
                           return st.orderId ? (
@@ -462,11 +461,11 @@ function VehiculosContent() {
                         })()}
                       </td>
 
-                      <td className="p-3.5 text-right">
+                      <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             href={`/app/vehiculos/${v.patente}`}
-                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 transition-colors flex items-center justify-center"
+                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 transition-colors flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white"
                             title="Ver Ficha"
                           >
                             <ChevronRight className="w-4 h-4" />

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Car,
   Clock,
@@ -35,6 +36,7 @@ interface MetricsData {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [graficoAutos, setGraficoAutos] = useState<any[]>([]);
   const [monitorMecanicos, setMonitorMecanicos] = useState<any[]>([]);
@@ -399,26 +401,25 @@ export default function DashboardPage() {
                 const statusInfo = getStatusInfo(orden.estado);
 
                 return (
-                  <tr key={orden.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-900">
-                      <Link href={`/app/ordenes/${orden.id}`} className="hover:text-sky-600">
-                        #{orden.numeroOrden}
-                      </Link>
+                  <tr
+                    key={orden.id}
+                    onClick={() => router.push(`/app/ordenes/${orden.id}`)}
+                    className="hover:bg-slate-50/60 transition-colors cursor-pointer group"
+                  >
+                    <td className="py-3 px-4 font-bold text-slate-900 group-hover:text-sky-600 transition-colors">
+                      #{orden.numeroOrden}
                     </td>
 
                     <td className="py-3 px-4">
-                      <Link
-                        href={`/app/vehiculos/${orden.vehicle.patente}`}
-                        className="font-semibold text-slate-800 hover:text-sky-600 block"
-                      >
+                      <span className="font-semibold text-slate-800 group-hover:text-sky-600 transition-colors block">
                         {orden.vehicle.marca} {orden.vehicle.modelo}
-                      </Link>
+                      </span>
                       <span className="inline-block mt-0.5 font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-bold text-slate-700">
                         {orden.vehicle.patente}
                       </span>
                     </td>
 
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
                       <Link
                         href={`/app/clientes/${orden.vehicle.client.id}`}
                         className="hover:text-sky-600"
@@ -449,10 +450,10 @@ export default function DashboardPage() {
                       </span>
                     </td>
 
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <Link
                         href={`/app/ordenes/${orden.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors group-hover:bg-sky-600 group-hover:text-white"
                       >
                         <span>Detalle</span>
                         <ChevronRight className="w-3.5 h-3.5" />
