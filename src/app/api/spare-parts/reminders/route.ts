@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const role = normalizeRole(session.role);
 
-    // Consultamos los pedidos relevantes activos
+    // Consultamos solo los campos necesarios con select optimizado (evita joins pesados)
     const activeRequests = await prisma.sparePartRequest.findMany({
       where: {
         estado: {
@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
             "DEVUELTO",
             "ENCARGO_REALIZADO",
             "RECIBIDO",
-            // Retrocompatibilidad
             "PENDIENTE_ADMIN",
             "PROCESADO_ADMIN",
             "RECIBIDO_PARCIAL",
@@ -48,14 +47,33 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "asc" },
-      include: {
+      select: {
+        id: true,
+        workOrderId: true,
+        estado: true,
+        fallaReparar: true,
+        itemsAEncargar: true,
+        itemsSolicitados: true,
+        fechaRevision: true,
+        updatedAt: true,
+        createdAt: true,
+        fechaEstimadaLlegada: true,
+        proveedor: true,
+        motivoDevolucion: true,
+        mechanicId: true,
         workOrder: {
-          include: {
-            vehicle: true,
-            mechanic: true,
+          select: {
+            numeroOrden: true,
+            mechanicId: true,
+            vehicle: {
+              select: {
+                patente: true,
+                marca: true,
+                modelo: true,
+              },
+            },
           },
         },
-        mechanic: true,
       },
     });
 

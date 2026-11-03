@@ -25,82 +25,82 @@ export interface SparePartStatusInfo {
 
 export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
   SOLICITADO: {
-    label: "Solicitado",
-    badgeClass: "bg-cyan-50 text-cyan-800 border-cyan-300 ring-1 ring-cyan-500/20",
+    label: "Pendiente Admin",
+    badgeClass: "bg-cyan-50 text-cyan-900 border-cyan-300 ring-1 ring-cyan-500/20",
     borderClass: "border-cyan-300",
     dotClass: "bg-cyan-500",
-    description: "Pedido creado por el mecánico, pendiente de toma por el Administrador",
+    description: "El mecánico solicitó repuestos. El Administrador debe revisar o editar la lista y pasarla a Recepción",
   },
   EN_REVISION: {
-    label: "En revisión",
-    badgeClass: "bg-purple-50 text-purple-800 border-purple-300 ring-1 ring-purple-500/20",
+    label: "En Revisión (Admin)",
+    badgeClass: "bg-purple-50 text-purple-900 border-purple-300 ring-1 ring-purple-500/20",
     borderClass: "border-purple-300",
     dotClass: "bg-purple-500",
-    description: "Tomado por el Administrador para definir la lista definitiva a encargar",
+    description: "El Administrador está revisando y editando la lista de repuestos",
   },
   PARA_ENCARGAR: {
-    label: "Para encargar",
-    badgeClass: "bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-500/20",
+    label: "Para Encargar (Recepción)",
+    badgeClass: "bg-amber-50 text-amber-950 border-amber-300 ring-1 ring-amber-500/20",
     borderClass: "border-amber-300",
     dotClass: "bg-amber-500",
-    description: "Lista aprobada por el Administrador, esperando que Recepción realice el encargo",
+    description: "Lista aprobada por el Administrador. Recepción debe realizar el encargo al proveedor",
   },
   DEVUELTO: {
-    label: "Devuelto",
-    badgeClass: "bg-rose-50 text-rose-800 border-rose-300 ring-1 ring-rose-500/20",
+    label: "Devuelto al Mecánico",
+    badgeClass: "bg-rose-50 text-rose-900 border-rose-300 ring-1 ring-rose-500/20",
     borderClass: "border-rose-300",
     dotClass: "bg-rose-500",
     description: "Devuelto al mecánico con observaciones para su corrección y reenvío",
   },
   ENCARGO_REALIZADO: {
-    label: "Encargo realizado",
-    badgeClass: "bg-blue-50 text-blue-800 border-blue-300 ring-1 ring-blue-500/20",
+    label: "Encargado (En Tránsito)",
+    badgeClass: "bg-blue-50 text-blue-900 border-blue-300 ring-1 ring-blue-500/20",
     borderClass: "border-blue-300",
     dotClass: "bg-blue-500",
-    description: "Encargo efectuado por Recepción al proveedor, esperando llegada de piezas",
+    description: "Recepción ya realizó el encargo al proveedor. En espera de entrega en taller",
   },
   RECIBIDO: {
-    label: "Recibido",
-    badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500/20",
+    label: "Recibido en Taller",
+    badgeClass: "bg-emerald-50 text-emerald-950 border-emerald-300 ring-1 ring-emerald-500/20",
     borderClass: "border-emerald-300",
     dotClass: "bg-emerald-500",
-    description: "Repuestos recibidos en el taller, listo para reanudar la reparación",
+    description: "Repuestos recibidos y verificados en el taller. La reparación técnica puede reanudarse",
   },
   CANCELADO: {
     label: "Cancelado",
     badgeClass: "bg-slate-100 text-slate-700 border-slate-300 ring-1 ring-slate-400/20",
     borderClass: "border-slate-300",
     dotClass: "bg-slate-500",
-    description: "Pedido cancelado con motivo registrado",
+    description: "Pedido de repuestos cancelado con motivo justificado",
   },
-  // Retrocompatibilidad con estados previos si existieran registros antiguos
+  // Retrocompatibilidad con estados previos
   PENDIENTE_ADMIN: {
-    label: "Solicitado",
-    badgeClass: "bg-cyan-50 text-cyan-800 border-cyan-300 ring-1 ring-cyan-500/20",
+    label: "Pendiente Admin",
+    badgeClass: "bg-cyan-50 text-cyan-900 border-cyan-300 ring-1 ring-cyan-500/20",
     borderClass: "border-cyan-300",
     dotClass: "bg-cyan-500",
-    description: "Pendiente de revisión",
+    description: "Pendiente de revisión del Administrador",
   },
   PROCESADO_ADMIN: {
-    label: "Para encargar",
-    badgeClass: "bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-500/20",
+    label: "Para Encargar (Recepción)",
+    badgeClass: "bg-amber-50 text-amber-950 border-amber-300 ring-1 ring-amber-500/20",
     borderClass: "border-amber-300",
     dotClass: "bg-amber-500",
-    description: "Para encargar",
+    description: "Para encargar en Recepción",
   },
   RECIBIDO_PARCIAL: {
-    label: "Encargo realizado",
-    badgeClass: "bg-blue-50 text-blue-800 border-blue-300 ring-1 ring-blue-500/20",
+    label: "Encargado (En Tránsito)",
+    badgeClass: "bg-blue-50 text-blue-900 border-blue-300 ring-1 ring-blue-500/20",
     borderClass: "border-blue-300",
     dotClass: "bg-blue-500",
     description: "En espera de repuestos",
   },
   RECIBIDO_TOTAL: {
-    label: "Recibido",
-    badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-500/20",
+    label: "Recibido en Taller",
+    badgeClass: "bg-emerald-50 text-emerald-950 border-emerald-300 ring-1 ring-emerald-500/20",
     borderClass: "border-emerald-300",
     dotClass: "bg-emerald-500",
-    description: "Recibido",
+    description: "Recibido en taller",
   },
 };
 
@@ -113,6 +113,15 @@ export function normalizeSparePartStatus(status: string): SparePartStatus {
   if (status === "RECIBIDO_PARCIAL") return "ENCARGO_REALIZADO";
   if (status === "RECIBIDO_TOTAL") return "RECIBIDO";
   return (status as SparePartStatus) || "SOLICITADO";
+}
+
+export function getSparePartStatusInfo(status: string): SparePartStatusInfo {
+  const norm = normalizeSparePartStatus(status);
+  return (
+    SPARE_PART_STATUS_MAP[status] ||
+    SPARE_PART_STATUS_MAP[norm] ||
+    SPARE_PART_STATUS_MAP.SOLICITADO
+  );
 }
 
 /**

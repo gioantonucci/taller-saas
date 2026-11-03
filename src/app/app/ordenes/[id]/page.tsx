@@ -47,6 +47,7 @@ import {
 } from "@/lib/pdf-generator";
 import { useAppDialog } from "@/components/AppDialog";
 import TestigoIcon from "@/components/TestigoIcon";
+import { getSparePartStatusInfo } from "@/lib/spare-parts-config";
 
 export default function OrdenDetallePage() {
   const { alert, confirm } = useAppDialog();
@@ -1290,25 +1291,16 @@ export default function OrdenDetallePage() {
                       <span className="font-mono font-black text-xs text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                         Pedido #{sp.id.slice(-4)}
                       </span>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          sp.estado === "SOLICITADO" || sp.estado === "PENDIENTE_ADMIN"
-                            ? "bg-cyan-100 text-cyan-900 border border-cyan-300"
-                            : sp.estado === "EN_REVISION"
-                            ? "bg-purple-100 text-purple-900 border border-purple-300"
-                            : sp.estado === "PARA_ENCARGAR" || sp.estado === "PROCESADO_ADMIN"
-                            ? "bg-amber-100 text-amber-950 border border-amber-300"
-                            : sp.estado === "DEVUELTO"
-                            ? "bg-rose-100 text-rose-900 border border-rose-300"
-                            : sp.estado === "ENCARGO_REALIZADO" || sp.estado === "RECIBIDO_PARCIAL"
-                            ? "bg-blue-100 text-blue-900 border border-blue-300"
-                            : sp.estado === "RECIBIDO" || sp.estado === "RECIBIDO_TOTAL"
-                            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                            : "bg-slate-200 text-slate-800"
-                        }`}
-                      >
-                        {sp.estado}
-                      </span>
+                      {(() => {
+                        const stInfo = getSparePartStatusInfo(sp.estado);
+                        return (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${stInfo.badgeClass}`}
+                          >
+                            {stInfo.label}
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     <div className="text-[11px] text-slate-500 font-medium">

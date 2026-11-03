@@ -62,12 +62,19 @@ export async function GET(request: NextRequest) {
 
     const requests = await prisma.sparePartRequest.findMany({
       where,
-      orderBy: { createdAt: "asc" }, // Se ordenará con rojos/escalados primero en memoria
+      orderBy: { createdAt: "asc" },
       include: {
         workOrder: {
-          include: {
+          select: {
+            id: true,
+            numeroOrden: true,
+            estado: true,
             vehicle: {
-              include: {
+              select: {
+                id: true,
+                patente: true,
+                marca: true,
+                modelo: true,
                 client: {
                   select: {
                     id: true,

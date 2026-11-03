@@ -62,54 +62,7 @@ export async function GET(
       }
     }
 
-    // Regla de especificación: "En revisión: Administrador abre el pedido. El Administrador toma el pedido al abrirlo."
-    // Si un Admin consulta un pedido en 'SOLICITADO', se asigna y avanza a 'EN_REVISION'
-    const queryAutoTake = new URL(request.url).searchParams.get("autoTake") !== "false";
-    if (role === "ADMIN" && req.estado === "SOLICITADO" && queryAutoTake) {
-      const initialItemsToOrder = req.itemsAEncargar || req.itemsSolicitados || req.itemsProcesados;
-      const updatedReq = await prisma.sparePartRequest.update({
-        where: { id },
-        data: {
-          estado: "EN_REVISION",
-          adminId: session.id,
-          fechaRevision: new Date(),
-          itemsAEncargar: initialItemsToOrder,
-        },
-        include: {
-          workOrder: {
-            include: {
-              vehicle: {
-                include: { client: true },
-              },
-              mechanic: true,
-              admin: true,
-            },
-          },
-          mechanic: true,
-          admin: true,
-        },
-      });
-
-      await recordAuditLog({
-        user: session,
-        accion: "TAKE_SPARE_PART_REVIEW",
-        entidad: "SparePartRequest",
-        entidadAfectada: "WorkOrders",
-        entidadId: id,
-        valores: {
-          pedidoId: id,
-          ordenNumero: req.workOrder?.numeroOrden,
-          patente: req.workOrder?.vehicle?.patente,
-          estadoAnterior: "SOLICITADO",
-          estadoNuevo: "EN_REVISION",
-          administrador: `${session.nombre} ${session.apellido || ""}`.trim(),
-          descripcion: `Administrador tomó el pedido #${id.slice(-4)} para revisión`,
-        },
-      });
-
-      req = updatedReq;
-    }
-
+    // Devolver el detalle directamente sin mutaciones de estado ni bloqueos
     return NextResponse.json(req);
   } catch (error: any) {
     console.error("Error al consultar pedido de repuestos:", error);
@@ -271,6 +224,48 @@ export async function PATCH(
       auditDetails.estadoNuevo = "CANCELADO";
       auditDetails.motivo = motivo;
       auditDetails.descripcion = `Pedido #${id.slice(-4)} cancelado por ${session.nombre}. Motivo: ${motivo}`;
+    }
+
+    // =========================================================================
+    // ACCIÓN 2.5: GUARDAR / EDITAR ÍTEMS SIN CAMBIAR ESTADO (Admin)
+    // =========================================================================
+    else if (action === "EDITAR_ITEMS" || action === "GUARDAR_ITEMS") {
+      if (role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Permiso denegado: solo el Administrador puede editar los repuestos" },
+          { status: 403 }
+        );
+      }
+
+      const itemsAEncargar = body.itemsAEncargar || body.itemsProcesados;
+      let parsedItems: any[] = [];
+      if (Array.isArray(itemsAEncargar)) {
+        parsedItems = itemsAEncargar
+          .filter((it: any) => it && (it.descripcion || it.nombre))
+          .map((it: any, idx: number) => ({
+            id: it.id || `item-encargar-${Date.now()}-${idx}`,
+            descripcion: (it.descripcion || it.nombre || "").trim(),
+            cantidad: Math.max(1, Number(it.cantidad) || 1),
+          }));
+      }
+
+      if (parsedItems.length === 0) {
+        return NextResponse.json(
+          { error: "Debe ingresar al menos un repuesto con descripción" },
+          { status: 400 }
+        );
+      }
+
+      updateData.itemsAEncargar = JSON.stringify(parsedItems);
+      updateData.itemsProcesados = JSON.stringify(parsedItems);
+      if (body.notasAdmin !== undefined) {
+        updateData.notasAdmin = body.notasAdmin?.trim() || null;
+      }
+      updateData.adminId = session.id;
+      updateData.fechaRevision = new Date();
+
+      auditDetails.itemsAEncargarDefinitivos = parsedItems;
+      auditDetails.descripcion = `Administrador ${session.nombre} editó la lista de repuestos del pedido #${id.slice(-4)}`;
     }
 
     // =========================================================================
