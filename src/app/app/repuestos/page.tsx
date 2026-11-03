@@ -493,7 +493,11 @@ export default function RepuestosPage() {
           <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
             Por Revisar (Admin)
           </span>
-          <span className="text-xl font-black mt-1 block text-purple-600 dark:text-purple-300">
+          <span
+            className={`text-xl font-black mt-1 block ${
+              statusFilter === "POR_REVISAR" ? "text-white" : "text-purple-600 dark:text-purple-300"
+            }`}
+          >
             {metrics.solicitados}
           </span>
         </button>
@@ -517,7 +521,11 @@ export default function RepuestosPage() {
               </span>
             )}
           </div>
-          <span className="text-xl font-black mt-1 block text-amber-600">
+          <span
+            className={`text-xl font-black mt-1 block ${
+              statusFilter === "PARA_ENCARGAR" ? "text-white" : "text-amber-600"
+            }`}
+          >
             {metrics.paraEncargar}
           </span>
         </button>
@@ -534,7 +542,13 @@ export default function RepuestosPage() {
           <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
             Encargados / En Tránsito
           </span>
-          <span className="text-xl font-black mt-1 block text-blue-600">{metrics.encargados}</span>
+          <span
+            className={`text-xl font-black mt-1 block ${
+              statusFilter === "ENCARGO_REALIZADO" ? "text-white" : "text-blue-600"
+            }`}
+          >
+            {metrics.encargados}
+          </span>
         </button>
 
         <button
@@ -549,7 +563,13 @@ export default function RepuestosPage() {
           <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
             Recibidos en Taller
           </span>
-          <span className="text-xl font-black mt-1 block text-emerald-600">{metrics.recibidos}</span>
+          <span
+            className={`text-xl font-black mt-1 block ${
+              statusFilter === "RECIBIDO" ? "text-white" : "text-emerald-600"
+            }`}
+          >
+            {metrics.recibidos}
+          </span>
         </button>
       </div>
 
