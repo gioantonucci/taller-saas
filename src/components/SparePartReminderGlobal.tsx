@@ -594,14 +594,18 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-              <span>El recordatorio se pospone por 30 minutos al pulsar "Todavía no".</span>
+            <div className="px-5 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3 text-xs">
+              <span className="text-slate-400 text-xs font-medium flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Se pospone 30 min al pulsar "Todavía no"</span>
+              </span>
               <Link
                 href="/app/repuestos"
                 onClick={() => setShowPeriodicModal(false)}
-                className="font-bold text-amber-600 hover:text-amber-800 underline"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-200 font-bold text-xs shadow-2xs transition-all shrink-0"
               >
-                Abrir módulo Repuestos
+                <span>Abrir Repuestos</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
               </Link>
             </div>
           </div>
