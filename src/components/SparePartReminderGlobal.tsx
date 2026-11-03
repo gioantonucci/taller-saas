@@ -196,7 +196,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/30">
-                <Package className="w-5 h-5 text-white animate-bounce" />
+                <Package className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -204,7 +204,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
                     Recepción • Recordatorio Activo
                   </span>
                   {reception.oldestParaEncargar?.isEscalated && (
-                    <span className="px-2 py-0.5 rounded-md bg-rose-950 text-rose-200 text-[11px] font-black uppercase tracking-wider animate-pulse border border-rose-400/40">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-950 text-rose-200 text-[11px] font-black uppercase tracking-wider border border-rose-400/40">
                       🚨 Escalado ({">"} {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
                     </span>
                   )}
@@ -397,7 +397,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
                               {pedido.patente}
                             </span>
                             {pedido.isEscalated && (
-                              <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded uppercase animate-pulse">
+                              <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded uppercase shadow-xs">
                                 Escalado
                               </span>
                             )}

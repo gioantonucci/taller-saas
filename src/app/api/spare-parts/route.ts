@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, normalizeRole } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
-import { isSparePartEscalated } from "@/lib/spare-parts-config";
+import { isSparePartEscalated, getFechaUltimoEstado } from "@/lib/spare-parts-config";
 
 export const dynamic = "force-dynamic";
 
@@ -114,15 +114,15 @@ export async function GET(request: NextRequest) {
     });
 
     // Ordenar por prioridad según especificación:
-    // Los pedidos escalados (en rojo) primero, luego por antigüedad
+    // Los pedidos escalados (en rojo) primero, luego los que llevan más tiempo esperando
     const sorted = [...requests].sort((a, b) => {
       const aEscalated = isSparePartEscalated(a);
       const bEscalated = isSparePartEscalated(b);
       if (aEscalated && !bEscalated) return -1;
       if (!aEscalated && bEscalated) return 1;
 
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      const dateA = getFechaUltimoEstado(a).getTime();
+      const dateB = getFechaUltimoEstado(b).getTime();
       return dateA - dateB;
     });
 

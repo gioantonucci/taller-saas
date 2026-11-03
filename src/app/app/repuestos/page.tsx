@@ -101,9 +101,9 @@ export default function RepuestosPage() {
   }, [initialEstado]);
 
   // Cargar pedidos desde la API
-  const fetchRequests = useCallback(async () => {
+  const fetchRequests = useCallback(async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch("/api/spare-parts", { cache: "no-store" });
       if (!res.ok) throw new Error("Error al consultar pedidos de repuestos");
       const data = await res.json();
@@ -119,14 +119,14 @@ export default function RepuestosPage() {
     } catch (err: any) {
       console.error("Error al cargar pedidos:", err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [initialPedidoId]);
 
   useEffect(() => {
     fetchRequests();
-    // Refresco cada 60s
-    const interval = setInterval(fetchRequests, SPARE_PARTS_CONFIG.POLLING_INTERVAL_MS);
+    // Refresco silencioso cada 60s sin parpadear la pantalla ni recargar spinner
+    const interval = setInterval(() => fetchRequests(true), SPARE_PARTS_CONFIG.POLLING_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchRequests]);
 
@@ -228,7 +228,7 @@ export default function RepuestosPage() {
         variant: "success",
       });
     } catch (err: any) {
-      fetchRequests();
+      fetchRequests(true);
       await alert({
         title: "Error",
         message: err.message || "No se pudo aprobar el pedido.",
@@ -289,7 +289,7 @@ export default function RepuestosPage() {
       setProveedorInput("");
       setFechaEstimadaInput("");
       setDetailModalOpen(false);
-      fetchRequests();
+      fetchRequests(true);
     } catch (err: any) {
       await alert({
         title: "Error",
@@ -332,7 +332,7 @@ export default function RepuestosPage() {
       setRemitoNroInput("");
       setNotasRecepcionInput("");
       setDetailModalOpen(false);
-      fetchRequests();
+      fetchRequests(true);
     } catch (err: any) {
       await alert({
         title: "Error",
@@ -366,12 +366,10 @@ export default function RepuestosPage() {
     requests.forEach((r) => {
       const st = normalizeSparePartStatus(r.estado);
       if (st === "SOLICITADO") solicitados++;
-      if (st === "PARA_ENCARGAR") {
-        paraEncargar++;
-        if (isSparePartEscalated(r)) escalados++;
-      }
+      if (st === "PARA_ENCARGAR") paraEncargar++;
       if (st === "ENCARGO_REALIZADO") encargados++;
       if (st === "RECIBIDO") recibidos++;
+      if (isSparePartEscalated(r)) escalados++;
     });
 
     return {
@@ -426,6 +424,15 @@ export default function RepuestosPage() {
       }
 
       return true;
+    }).sort((a, b) => {
+      const aEsc = isSparePartEscalated(a);
+      const bEsc = isSparePartEscalated(b);
+      if (aEsc && !bEsc) return -1;
+      if (!aEsc && bEsc) return 1;
+
+      const dateA = getFechaUltimoEstado(a).getTime();
+      const dateB = getFechaUltimoEstado(b).getTime();
+      return dateA - dateB;
     });
   }, [requests, statusFilter, mechanicFilter, searchQuery]);
 
@@ -453,7 +460,7 @@ export default function RepuestosPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={fetchRequests}
+            onClick={() => fetchRequests(false)}
             disabled={loading}
             className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-all cursor-pointer shadow-xs"
             title="Refrescar datos"
@@ -517,7 +524,7 @@ export default function RepuestosPage() {
               Para Encargar
             </span>
             {metrics.escalados > 0 && (
-              <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm animate-pulse">
+              <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs">
                 {metrics.escalados} en rojo
               </span>
             )}
@@ -692,12 +699,16 @@ export default function RepuestosPage() {
                         </span>
 
                         {isEscalated && (
-                          <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
+                          <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
-                            Escalado ({">"} {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
+                            {st === "PARA_ENCARGAR"
+                              ? `Escalado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
+                              : st === "ENCARGO_REALIZADO"
+                              ? "Escalado (> 24h)"
+                              : "Escalado"}
                           </span>
                         )}
-                        {isVencida && (
+                        {!isEscalated && isVencida && (
                           <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-rose-200">
                             Llegada Vencida
                           </span>
@@ -784,8 +795,13 @@ export default function RepuestosPage() {
                     Orden #{selectedRequest.workOrder?.numeroOrden}
                   </span>
                   {isSparePartEscalated(selectedRequest) && (
-                    <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider animate-pulse">
-                      🚨 Escalado ({">"} {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
+                    <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
+                      🚨{" "}
+                      {normalizeSparePartStatus(selectedRequest.estado) === "PARA_ENCARGAR"
+                        ? `Escalado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
+                        : normalizeSparePartStatus(selectedRequest.estado) === "ENCARGO_REALIZADO"
+                        ? "Escalado (> 24h)"
+                        : "Escalado"}
                     </span>
                   )}
                 </div>
