@@ -25,7 +25,13 @@ import {
   MessageCircle,
   Minus,
   AlertCircle,
+  Upload,
+  X,
+  Maximize2,
+  Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
+import { compressImageClient } from "@/lib/client-compress";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
 import PausaRepuestoModal from "@/components/PausaRepuestoModal";
@@ -103,11 +109,64 @@ export default function HojaRutaMecanicoPage() {
   const [mechanicFilter, setMechanicFilter] = useState<string>("TODOS");
   const [updatingMechanic, setUpdatingMechanic] = useState(false);
 
-  // Estados para Registro de Horas (WorkLog)
+  // Estados para Registro de Tareas Técnicas (WorkLog) y Fotos de Arreglos
   const [horasInput, setHorasInput] = useState("1.0");
   const [tareaInput, setTareaInput] = useState("");
+  const [workLogFotos, setWorkLogFotos] = useState<string[]>([]);
+  const [uploadingWorkLogPhoto, setUploadingWorkLogPhoto] = useState(false);
+  const [activePreviewImg, setActivePreviewImg] = useState<string | null>(null);
   const [savingWorkLog, setSavingWorkLog] = useState(false);
   const [workLogSuccess, setWorkLogSuccess] = useState(false);
+
+  const handleUploadWorkLogPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingWorkLogPhoto(true);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        let fileToUpload: File = file;
+        try {
+          const comp = await compressImageClient(file, 1920, 1920, 0.8);
+          fileToUpload = comp.file;
+        } catch (compErr) {
+          console.warn("Compresión no disponible:", compErr);
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+        formData.append("folder", "arreglos");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const url = data.url || data.file?.url;
+          if (url) {
+            setWorkLogFotos((prev) => [...prev, url]);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error al subir foto del arreglo:", err);
+      await alert({
+        title: "Error de subida",
+        message: "Ocurrió un error al subir la foto del arreglo. Intentá nuevamente.",
+        variant: "danger",
+      });
+    } finally {
+      setUploadingWorkLogPhoto(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleRemoveWorkLogPhoto = (index: number) => {
+    setWorkLogFotos((prev) => prev.filter((_, idx) => idx !== index));
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -449,6 +508,7 @@ export default function HojaRutaMecanicoPage() {
         body: JSON.stringify({
           horasInvertidas: horasInput,
           descripcionTarea: tareaInput.trim(),
+          fotos: workLogFotos,
         }),
       });
 
@@ -464,6 +524,7 @@ export default function HojaRutaMecanicoPage() {
 
       setTareaInput("");
       setHorasInput("1.0");
+      setWorkLogFotos([]);
       setWorkLogSuccess(true);
       setTimeout(() => setWorkLogSuccess(false), 3000);
 
@@ -1565,6 +1626,99 @@ export default function HojaRutaMecanicoPage() {
                   </div>
                 </div>
 
+                {/* Fotos del Arreglo Mecánico */}
+                <div className="space-y-2.5 p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100/80">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-indigo-600" />
+                      <span>Fotos del Arreglo / Evidencia Técnica:</span>
+                    </label>
+                    <span className="text-[10px] text-indigo-600 font-bold">
+                      {workLogFotos.length} foto{workLogFotos.length === 1 ? "" : "s"} agregada{workLogFotos.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+
+                  {/* Botones de Carga */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Botón Tomar Foto con Cámara */}
+                    <label
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                        uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <Camera className="w-4 h-4 text-indigo-600" />
+                      <span>Tomar Foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleUploadWorkLogPhoto}
+                        disabled={uploadingWorkLogPhoto}
+                        className="sr-only"
+                      />
+                    </label>
+
+                    {/* Botón Subir de Galería / Archivos */}
+                    <label
+                      className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                        uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
+                      }`}
+                    >
+                      <Upload className="w-4 h-4 text-slate-500" />
+                      <span>Galería</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleUploadWorkLogPhoto}
+                        disabled={uploadingWorkLogPhoto}
+                        className="sr-only"
+                      />
+                    </label>
+
+                    {uploadingWorkLogPhoto && (
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-bold animate-pulse px-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                        <span>Subiendo foto...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Previsualización de Fotos Cargadas */}
+                  {workLogFotos.length > 0 && (
+                    <div className="pt-2 flex flex-wrap gap-2.5">
+                      {workLogFotos.map((url, fIdx) => (
+                        <div
+                          key={fIdx}
+                          className="relative group w-20 h-20 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white shrink-0"
+                        >
+                          <img
+                            src={url}
+                            alt={`Foto arreglo ${fIdx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWorkLogPhoto(fIdx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
+                            title="Eliminar foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setActivePreviewImg(url)}
+                            className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md hover:bg-black transition-colors cursor-pointer"
+                            title="Ver en grande"
+                          >
+                            <Maximize2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
                   <button
                     type="submit"
@@ -1608,25 +1762,68 @@ export default function HojaRutaMecanicoPage() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {selectedOrder.workLogs.map((log: any) => (
-                    <div
-                      key={log.id}
-                      className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs flex items-center justify-between shadow-2xs hover:bg-slate-100/70 transition-colors"
-                    >
-                      <div className="truncate pr-3">
-                        <p className="font-extrabold text-slate-900 text-xs truncate">
-                          {log.descripcionTarea}
-                        </p>
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"} •{" "}
-                          {new Date(log.fechaRegistro).toLocaleString("es-AR")}
-                        </span>
+                  {selectedOrder.workLogs.map((log: any) => {
+                    let fotosList: any[] = [];
+                    try {
+                      if (log.fotos) {
+                        fotosList = typeof log.fotos === "string" ? JSON.parse(log.fotos) : log.fotos;
+                      }
+                    } catch {}
+
+                    return (
+                      <div
+                        key={log.id}
+                        className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs shadow-2xs hover:bg-slate-100/70 transition-colors space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="truncate pr-3">
+                            <p className="font-extrabold text-slate-900 text-xs truncate">
+                              {log.descripcionTarea}
+                            </p>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"} •{" "}
+                              {new Date(log.fechaRegistro).toLocaleString("es-AR")}
+                            </span>
+                          </div>
+                          <span className="px-3 py-1.5 rounded-xl bg-indigo-100 text-indigo-900 font-black text-xs shrink-0 shadow-2xs">
+                            {log.horasInvertidas} hs
+                          </span>
+                        </div>
+
+                        {Array.isArray(fotosList) && fotosList.length > 0 && (
+                          <div className="pt-2 border-t border-slate-200/60 flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                              <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>{fotosList.length} foto{fotosList.length > 1 ? "s" : ""}:</span>
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {fotosList.map((f: any, fIdx: number) => {
+                                const imgUrl = typeof f === "string" ? f : f?.url;
+                                if (!imgUrl) return null;
+                                return (
+                                  <button
+                                    key={fIdx}
+                                    type="button"
+                                    onClick={() => setActivePreviewImg(imgUrl)}
+                                    className="w-11 h-11 rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs transition-all active:scale-95 cursor-pointer relative group bg-white"
+                                  >
+                                    <img
+                                      src={imgUrl}
+                                      alt={`Foto ${fIdx + 1}`}
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                    />
+                                    <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                      <Maximize2 className="w-3 h-3" />
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className="px-3 py-1.5 rounded-xl bg-indigo-100 text-indigo-900 font-black text-xs shrink-0 shadow-2xs">
-                        {log.horasInvertidas} hs
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1673,6 +1870,40 @@ export default function HojaRutaMecanicoPage() {
             fetchOrders();
           }}
         />
+      )}
+
+      {/* Modal Lightbox de Foto de Arreglo */}
+      {activePreviewImg && (
+        <div
+          onClick={() => setActivePreviewImg(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col items-center"
+          >
+            <div className="w-full p-3.5 bg-slate-950 flex items-center justify-between text-white text-xs px-5 border-b border-slate-800">
+              <span className="font-bold flex items-center gap-2">
+                <Camera className="w-4 h-4 text-indigo-400" />
+                <span>Foto de Evidencia del Arreglo</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setActivePreviewImg(null)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-2 sm:p-4 flex items-center justify-center max-h-[80vh] overflow-hidden">
+              <img
+                src={activePreviewImg}
+                alt="Foto del arreglo ampliada"
+                className="max-h-[75vh] w-auto max-w-full object-contain rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

@@ -142,6 +142,7 @@ model WorkLog {
   mechanic         User      @relation(fields: [mechanicId], references: [id])
   horasInvertidas  Float
   descripcionTarea String
+  fotos            String?   @db.Text
   fechaRegistro    DateTime  @default(now())
 }
 

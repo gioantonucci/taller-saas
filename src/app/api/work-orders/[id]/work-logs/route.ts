@@ -70,7 +70,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { horasInvertidas, descripcionTarea, mechanicId } = body;
+    const { horasInvertidas, descripcionTarea, mechanicId, fotos } = body;
 
     const parsedHours = horasInvertidas !== undefined && horasInvertidas !== "" ? parseFloat(horasInvertidas) : 0;
     if (isNaN(parsedHours) || parsedHours < 0) {
@@ -87,6 +87,15 @@ export async function POST(
       );
     }
 
+    let fotosSerialized: string | null = null;
+    if (fotos) {
+      if (typeof fotos === "string") {
+        fotosSerialized = fotos;
+      } else if (Array.isArray(fotos) && fotos.length > 0) {
+        fotosSerialized = JSON.stringify(fotos);
+      }
+    }
+
     const isMechanic = session.role === "MECANICO" || session.role === "MECHANIC";
     const effectiveMechanicId = isMechanic ? session.id : (mechanicId || session.id);
 
@@ -96,6 +105,7 @@ export async function POST(
         mechanicId: effectiveMechanicId,
         horasInvertidas: parsedHours,
         descripcionTarea: descripcionTarea.trim(),
+        fotos: fotosSerialized,
       },
       include: {
         mechanic: {
@@ -115,6 +125,7 @@ export async function POST(
           horas: parsedHours,
           tarea: descripcionTarea,
           ordenId: id,
+          fotos: fotosSerialized ? "Con fotos adjuntas" : "Sin fotos",
         },
         descripcion: `Registro de ${parsedHours} hs de trabajo por ${log.mechanic.nombre} ${log.mechanic.apellido}`,
       },

@@ -34,7 +34,12 @@ import {
   ExternalLink,
   Plus,
   ArrowRight,
+  Upload,
+  Maximize2,
+  Loader2,
+  Check,
 } from "lucide-react";
+import { compressImageClient } from "@/lib/client-compress";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
@@ -75,6 +80,103 @@ export default function OrdenDetallePage() {
   const [mechanics, setMechanics] = useState<any[]>([]);
   const [notified, setNotified] = useState(false);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
+
+  // Estados para Registro de Arreglos en Bitácora con Fotos
+  const [showAddWorkLog, setShowAddWorkLog] = useState(false);
+  const [newWorkLogTarea, setNewWorkLogTarea] = useState("");
+  const [newWorkLogHoras, setNewWorkLogHoras] = useState("1.0");
+  const [newWorkLogFotos, setNewWorkLogFotos] = useState<string[]>([]);
+  const [uploadingWorkLogPhoto, setUploadingWorkLogPhoto] = useState(false);
+  const [savingWorkLog, setSavingWorkLog] = useState(false);
+
+  const handleUploadWorkLogPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingWorkLogPhoto(true);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        let fileToUpload: File = file;
+        try {
+          const comp = await compressImageClient(file, 1920, 1920, 0.8);
+          fileToUpload = comp.file;
+        } catch (compErr) {
+          console.warn("Compresión no disponible:", compErr);
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileToUpload);
+        formData.append("folder", "arreglos");
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const url = data.url || data.file?.url;
+          if (url) {
+            setNewWorkLogFotos((prev) => [...prev, url]);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error al subir foto de arreglo:", err);
+      await alert({
+        title: "Error al subir fotografía",
+        message: "No se pudo subir la foto del arreglo. Reintentá nuevamente.",
+        variant: "danger",
+      });
+    } finally {
+      setUploadingWorkLogPhoto(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleSaveWorkLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkLogTarea.trim() || !order) return;
+
+    setSavingWorkLog(true);
+    try {
+      const res = await fetch(`/api/work-orders/${order.id}/work-logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          horasInvertidas: newWorkLogHoras,
+          descripcionTarea: newWorkLogTarea.trim(),
+          fotos: newWorkLogFotos,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        await alert({
+          title: "Error al registrar tarea",
+          message: data.error || "No se pudo registrar la tarea en la orden.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      setNewWorkLogTarea("");
+      setNewWorkLogHoras("1.0");
+      setNewWorkLogFotos([]);
+      setShowAddWorkLog(false);
+      await fetchOrder();
+    } catch (err) {
+      console.error("Error registrando tarea:", err);
+      await alert({
+        title: "Error",
+        message: "Ocurrió un error al registrar el trabajo.",
+        variant: "danger",
+      });
+    } finally {
+      setSavingWorkLog(false);
+    }
+  };
 
   const fetchCurrentUser = async () => {
     try {
@@ -1796,57 +1898,241 @@ export default function OrdenDetallePage() {
                 Bitácora y Notas Diarias del Proceso de Arreglo
               </h2>
               <p className="text-xs text-slate-500">
-                Registro cronológico asentado por los mecánicos durante la resolución del motivo de consulta.
+                Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full self-start sm:self-auto">
-            {order.workLogs.length} {order.workLogs.length === 1 ? "nota registrada" : "notas registradas"}
-          </span>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+              {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
+            </span>
+            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
+              <button
+                type="button"
+                onClick={() => setShowAddWorkLog((prev) => !prev)}
+                className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{showAddWorkLog ? "Cancelar" : "Cargar Arreglo"}</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Formulario desplegable para registrar nuevo arreglo con fotos */}
+        {showAddWorkLog && (
+          <form
+            onSubmit={handleSaveWorkLog}
+            className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3.5 animate-in fade-in"
+          >
+            <span className="text-xs font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+              <Wrench className="w-4 h-4 text-indigo-600" />
+              <span>Nuevo Arreglo Técnico</span>
+            </span>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">
+                Descripción del Arreglo Realizado:
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={newWorkLogTarea}
+                onChange={(e) => setNewWorkLogTarea(e.target.value)}
+                placeholder="Detallá el arreglo realizado (ej: Cambio de manguera de retorno, purga de circuito y test de presión)..."
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-slate-700">Tiempo dedicado:</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0.1"
+                  value={newWorkLogHoras}
+                  onChange={(e) => setNewWorkLogHoras(e.target.value)}
+                  className="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-mono font-bold text-center"
+                />
+                <span className="text-xs text-slate-500">hs</span>
+              </div>
+
+              {/* Botones de fotos */}
+              <div className="flex items-center gap-2">
+                <label
+                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                    uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Foto</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleUploadWorkLogPhoto}
+                    disabled={uploadingWorkLogPhoto}
+                    className="sr-only"
+                  />
+                </label>
+
+                <label
+                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                    uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Galería</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleUploadWorkLogPhoto}
+                    disabled={uploadingWorkLogPhoto}
+                    className="sr-only"
+                  />
+                </label>
+
+                {uploadingWorkLogPhoto && (
+                  <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Subiendo...
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Previsualización de fotos cargadas */}
+            {newWorkLogFotos.length > 0 && (
+              <div className="pt-2 flex flex-wrap gap-2">
+                {newWorkLogFotos.map((url, fIdx) => (
+                  <div
+                    key={fIdx}
+                    className="relative group w-16 h-16 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white shrink-0"
+                  >
+                    <img
+                      src={url}
+                      alt={`Foto arreglo ${fIdx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNewWorkLogFotos((prev) => prev.filter((_, idx) => idx !== fIdx))
+                      }
+                      className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddWorkLog(false)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={savingWorkLog || uploadingWorkLogPhoto}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-md shadow-indigo-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>{savingWorkLog ? "Guardando..." : "Guardar en Bitácora"}</span>
+              </button>
+            </div>
+          </form>
+        )}
 
         {order.workLogs.length === 0 ? (
           <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-500">
             <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="font-semibold text-slate-600">Aún no se han asentado notas diarias de trabajo</p>
             <p className="text-[11px] text-slate-400 mt-1">
-              El mecánico asignado registrará aquí los avances diarios en la reparación del vehículo.
+              Los arreglos técnicos y las fotografías del trabajo se visualizarán aquí.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {order.workLogs.map((log: any, idx: number) => (
-              <div
-                key={log.id}
-                className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-1.5"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
-                      #{order.workLogs.length - idx}
-                    </span>
-                    <span className="font-extrabold text-slate-800">
-                      🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
+            {order.workLogs.map((log: any, idx: number) => {
+              let fotosList: any[] = [];
+              try {
+                if (log.fotos) {
+                  fotosList = typeof log.fotos === "string" ? JSON.parse(log.fotos) : log.fotos;
+                }
+              } catch {}
+
+              return (
+                <div
+                  key={log.id}
+                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-2"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
+                        #{order.workLogs.length - idx}
+                      </span>
+                      <span className="font-extrabold text-slate-800">
+                        🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-mono pl-8 sm:pl-0">
+                      {new Date(log.fechaRegistro).toLocaleString("es-AR")}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-400 font-mono pl-8 sm:pl-0">
-                    {new Date(log.fechaRegistro).toLocaleString("es-AR")}
-                  </span>
+
+                  <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">
+                    {log.descripcionTarea}
+                  </p>
+
+                  {/* Fotos del Arreglo */}
+                  {Array.isArray(fotosList) && fotosList.length > 0 && (
+                    <div className="pl-8 pt-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
+                        <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Fotos del arreglo ({fotosList.length}):</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {fotosList.map((f: any, fIdx: number) => {
+                          const imgUrl = typeof f === "string" ? f : f?.url;
+                          if (!imgUrl) return null;
+                          return (
+                            <button
+                              key={fIdx}
+                              type="button"
+                              onClick={() => setActiveModalImg(imgUrl)}
+                              className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-white"
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Foto de arreglo ${fIdx + 1}`}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <Maximize2 className="w-4 h-4" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {log.horasInvertidas > 0 && (
+                    <div className="pl-8 pt-1 flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">
+                        ⏱️ {log.horasInvertidas} hs computadas
+                      </span>
+                    </div>
+                  )}
                 </div>
-
-                <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">
-                  {log.descripcionTarea}
-                </p>
-
-                {log.horasInvertidas > 0 && (
-                  <div className="pl-8 pt-1 flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">
-                      ⏱️ {log.horasInvertidas} hs computadas
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

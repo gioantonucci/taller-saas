@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       file: uploadResult,
+      url: uploadResult.url,
     });
   } catch (error: any) {
     console.error("Error al procesar subida a Object Storage:", error);
