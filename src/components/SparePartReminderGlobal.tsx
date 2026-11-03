@@ -235,22 +235,12 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
             </div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setModalType(reception.paraEncargarCount > 0 ? "ENCARGO" : "LLEGADA");
-                  setShowPeriodicModal(true);
-                }}
+              <Link
+                href="/app/repuestos"
                 className="px-3.5 py-2 rounded-xl bg-white text-amber-900 font-extrabold text-xs shadow-md hover:bg-amber-50 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Revisar Ahora</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <Link
-                href="/app/repuestos"
-                className="px-3.5 py-2 rounded-xl bg-amber-950/40 text-white font-bold text-xs hover:bg-amber-950/60 transition-all border border-white/20"
-              >
-                Ir a Repuestos
               </Link>
             </div>
           </div>
