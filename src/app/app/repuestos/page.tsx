@@ -1642,57 +1642,35 @@ export default function RepuestosPage() {
                 {/* ACCIONES DE RECEPCIÓN */}
                 {(userRole === "RECEPTION" || userRole === "ADMIN") &&
                   selectedRequest.estado === "PARA_ENCARGAR" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleTodaviaNoClick}
-                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
-                      >
-                        Todavía no (Posponer 30m)
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProveedorInput("");
-                          setFechaEstimadaInput("");
-                          setEncargoModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Truck className="w-3.5 h-3.5" />
-                        <span>Encargo Realizado</span>
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProveedorInput("");
+                        setFechaEstimadaInput("");
+                        setEncargoModalOpen(true);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Encargo Realizado</span>
+                    </button>
                   )}
 
                 {/* Confirmar Llegada / Recibido */}
                 {(userRole === "RECEPTION" || userRole === "ADMIN") &&
                   selectedRequest.estado === "ENCARGO_REALIZADO" && (
-                    <>
-                      {isLlegadaVencida(selectedRequest) && (
-                        <button
-                          type="button"
-                          onClick={handleTodaviaNoClick}
-                          className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs cursor-pointer"
-                        >
-                          Todavía no llegó (Posponer)
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRemitoNroInput("");
-                          setNotasRecepcionInput("");
-                          setRecibidoModalOpen(true);
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Confirmar Recepción de Repuestos</span>
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRemitoNroInput("");
+                        setNotasRecepcionInput("");
+                        setRecibidoModalOpen(true);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Confirmar Recepción de Repuestos</span>
+                    </button>
                   )}
 
                 {/* ACCIONES DEL MECÁNICO (Reenviar si fue Devuelto) */}
