@@ -609,7 +609,7 @@ export default function RepuestosPage() {
               <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
               <option value="RECIBIDO">4. Recibidos en Taller</option>
               <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
-              <option value="ESCALADOS">🚨 Escalados en Rojo</option>
+              <option value="ESCALADOS">🚨 Demorados en Rojo</option>
             </select>
           </div>
 
@@ -702,10 +702,10 @@ export default function RepuestosPage() {
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
                             {st === "PARA_ENCARGAR"
-                              ? `Escalado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
+                              ? `Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
                               : st === "ENCARGO_REALIZADO"
-                              ? "Escalado (> 24h)"
-                              : "Escalado"}
+                              ? "Demorado (> 24h)"
+                              : "Demorado"}
                           </span>
                         )}
                         {!isEscalated && isVencida && (
@@ -798,10 +798,10 @@ export default function RepuestosPage() {
                     <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
                       🚨{" "}
                       {normalizeSparePartStatus(selectedRequest.estado) === "PARA_ENCARGAR"
-                        ? `Escalado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
+                        ? `Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
                         : normalizeSparePartStatus(selectedRequest.estado) === "ENCARGO_REALIZADO"
-                        ? "Escalado (> 24h)"
-                        : "Escalado"}
+                        ? "Demorado (> 24h)"
+                        : "Demorado"}
                     </span>
                   )}
                 </div>

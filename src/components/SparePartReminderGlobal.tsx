@@ -199,7 +199,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
         labelText: "Recepción • Urgente",
         badgeClass: "bg-rose-950 text-rose-200 border-rose-400/50",
         badgeText: isEscalated
-          ? `🚨 Escalado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
+          ? `🚨 Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
           : "🚨 Llegada Vencida",
         descClass: "text-rose-100",
         strongClass: "text-white font-black",
@@ -217,7 +217,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
         labelClass: "bg-white/25 text-white",
         labelText: "Recepción • Recordatorio",
         badgeClass: "bg-orange-950/70 text-orange-200 border-orange-300/40",
-        badgeText: "Próximo a escalar",
+        badgeText: "Próximo a demorarse",
         descClass: "text-amber-50",
         strongClass: "text-white font-extrabold",
         btnClass:
@@ -348,7 +348,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-600 text-white">
-                    Alerta de Escalamiento
+                    Alerta de Demora
                   </span>
                   <span className="text-xs font-bold text-rose-800">
                     {admin.escalatedCount} pedido{admin.escalatedCount > 1 ? "s" : ""} sin encargar
@@ -364,7 +364,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
               href="/app/repuestos?estado=PARA_ENCARGAR"
               className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 flex items-center justify-center gap-1.5 transition-all self-end sm:self-auto"
             >
-              <span>Ver Pedidos Escalados</span>
+              <span>Ver Pedidos Demorados</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -490,7 +490,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
                             </span>
                             {pedido.isEscalated ? (
                               <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded uppercase shadow-xs">
-                                Escalado
+                                Demorado
                               </span>
                             ) : (pedido.elapsedMinutes || 0) >= 180 ? (
                               <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-black rounded uppercase shadow-xs">
