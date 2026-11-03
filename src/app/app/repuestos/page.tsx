@@ -88,7 +88,7 @@ export default function RepuestosPage() {
           // Mecánico: ve sus propios pedidos
           if (!initialEstado) {
             if (r === "ADMIN") {
-              setStatusFilter("POR_REVISAR");
+              setStatusFilter("SOLICITADO");
             } else if (r === "RECEPTION") {
               setStatusFilter("PENDIENTES_RECEPCION");
             } else if (r === "MECHANIC") {
@@ -390,9 +390,8 @@ export default function RepuestosPage() {
       const st = normalizeSparePartStatus(r.estado);
 
       // Filtro por Estado
-      if (statusFilter === "POR_REVISAR") {
-        const isEscalated = isSparePartEscalated(r);
-        if (st !== "SOLICITADO" && !isEscalated) return false;
+      if (statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR") {
+        if (st !== "SOLICITADO") return false;
       } else if (statusFilter === "PENDIENTES_RECEPCION") {
         if (st !== "PARA_ENCARGAR" && st !== "ENCARGO_REALIZADO") return false;
       } else if (statusFilter === "ESCALADOS") {
@@ -483,9 +482,9 @@ export default function RepuestosPage() {
 
         <button
           type="button"
-          onClick={() => setStatusFilter("POR_REVISAR")}
+          onClick={() => setStatusFilter("SOLICITADO")}
           className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "POR_REVISAR"
+            statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
               ? "bg-purple-900 text-white border-purple-900 shadow-md"
               : "bg-white border-purple-200 text-purple-950 hover:bg-purple-50/50"
           }`}
@@ -495,7 +494,9 @@ export default function RepuestosPage() {
           </span>
           <span
             className={`text-xl font-black mt-1 block ${
-              statusFilter === "POR_REVISAR" ? "text-white" : "text-purple-600 dark:text-purple-300"
+              statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
+                ? "text-white"
+                : "text-purple-600 dark:text-purple-300"
             }`}
           >
             {metrics.solicitados}
@@ -591,20 +592,17 @@ export default function RepuestosPage() {
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-bold text-slate-400">Estado:</span>
             <select
-              value={statusFilter}
+              value={statusFilter === "POR_REVISAR" ? "SOLICITADO" : statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             >
               <option value="TODOS">Todos los estados</option>
-              <option value="POR_REVISAR">Por revisar Admin</option>
+              <option value="SOLICITADO">1. Solicitados (Por revisar Admin)</option>
+              <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
+              <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
+              <option value="RECIBIDO">4. Recibidos en Taller</option>
               <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
               <option value="ESCALADOS">🚨 Escalados en Rojo</option>
-              <option value="SOLICITADO">1. Pendiente Admin</option>
-              <option value="PARA_ENCARGAR">2. Para encargar</option>
-              <option value="DEVUELTO">3. Devuelto al Mecánico</option>
-              <option value="ENCARGO_REALIZADO">4. Encargado</option>
-              <option value="RECIBIDO">5. Recibido en Taller</option>
-              <option value="CANCELADO">6. Cancelado</option>
             </select>
           </div>
 
