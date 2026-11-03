@@ -31,13 +31,6 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
     dotClass: "bg-cyan-500",
     description: "El mecánico solicitó repuestos. El Administrador debe revisar o editar la lista y pasarla a Recepción",
   },
-  EN_REVISION: {
-    label: "En Revisión (Admin)",
-    badgeClass: "bg-purple-50 text-purple-900 border-purple-300 ring-1 ring-purple-500/20",
-    borderClass: "border-purple-300",
-    dotClass: "bg-purple-500",
-    description: "El Administrador está revisando y editando la lista de repuestos",
-  },
   PARA_ENCARGAR: {
     label: "Para Encargar (Recepción)",
     badgeClass: "bg-amber-50 text-amber-950 border-amber-300 ring-1 ring-amber-500/20",
@@ -73,7 +66,14 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
     dotClass: "bg-slate-500",
     description: "Pedido de repuestos cancelado con motivo justificado",
   },
-  // Retrocompatibilidad con estados previos
+  // Retrocompatibilidad con estados previos (mapean a Pendiente Admin)
+  EN_REVISION: {
+    label: "Pendiente Admin",
+    badgeClass: "bg-cyan-50 text-cyan-900 border-cyan-300 ring-1 ring-cyan-500/20",
+    borderClass: "border-cyan-300",
+    dotClass: "bg-cyan-500",
+    description: "El mecánico solicitó repuestos. El Administrador debe revisar o editar la lista y pasarla a Recepción",
+  },
   PENDIENTE_ADMIN: {
     label: "Pendiente Admin",
     badgeClass: "bg-cyan-50 text-cyan-900 border-cyan-300 ring-1 ring-cyan-500/20",
@@ -108,7 +108,7 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
  * Normaliza el estado para asegurar compatibilidad
  */
 export function normalizeSparePartStatus(status: string): SparePartStatus {
-  if (status === "PENDIENTE_ADMIN") return "SOLICITADO";
+  if (status === "PENDIENTE_ADMIN" || status === "EN_REVISION") return "SOLICITADO";
   if (status === "PROCESADO_ADMIN") return "PARA_ENCARGAR";
   if (status === "RECIBIDO_PARCIAL") return "ENCARGO_REALIZADO";
   if (status === "RECIBIDO_TOTAL") return "RECIBIDO";

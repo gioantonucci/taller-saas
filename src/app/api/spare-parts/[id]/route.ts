@@ -8,8 +8,6 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/spare-parts/[id]
  * Consulta el detalle completo de un pedido de repuestos.
- * Si el usuario es Administrador y el pedido está en 'SOLICITADO',
- * la especificación establece que el Administrador toma el pedido al abrirlo (pasa a 'EN_REVISION').
  */
 export async function GET(
   request: NextRequest,

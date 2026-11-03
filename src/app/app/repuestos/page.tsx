@@ -639,7 +639,7 @@ export default function RepuestosPage() {
 
     requests.forEach((r) => {
       const st = normalizeSparePartStatus(r.estado);
-      if (st === "SOLICITADO" || st === "EN_REVISION") solicitados++;
+      if (st === "SOLICITADO") solicitados++;
       if (st === "PARA_ENCARGAR") {
         paraEncargar++;
         if (isSparePartEscalated(r)) escalados++;
@@ -666,7 +666,7 @@ export default function RepuestosPage() {
       // Filtro por Estado
       if (statusFilter === "POR_REVISAR") {
         const isEscalated = isSparePartEscalated(r);
-        if (st !== "SOLICITADO" && st !== "EN_REVISION" && !isEscalated) return false;
+        if (st !== "SOLICITADO" && !isEscalated) return false;
       } else if (statusFilter === "PENDIENTES_RECEPCION") {
         if (st !== "PARA_ENCARGAR" && st !== "ENCARGO_REALIZADO") return false;
       } else if (statusFilter === "ESCALADOS") {
@@ -853,13 +853,12 @@ export default function RepuestosPage() {
               <option value="POR_REVISAR">Por revisar (Admin)</option>
               <option value="PENDIENTES_RECEPCION">Pendientes (Recepción)</option>
               <option value="ESCALADOS">🚨 Escalados en Rojo ({">"} 4h)</option>
-              <option value="SOLICITADO">1. Solicitado</option>
-              <option value="EN_REVISION">2. En revisión</option>
-              <option value="PARA_ENCARGAR">3. Para encargar</option>
-              <option value="DEVUELTO">4. Devuelto</option>
-              <option value="ENCARGO_REALIZADO">5. Encargo realizado</option>
-              <option value="RECIBIDO">6. Recibido</option>
-              <option value="CANCELADO">7. Cancelado</option>
+              <option value="SOLICITADO">1. Pendiente Admin</option>
+              <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
+              <option value="DEVUELTO">3. Devuelto al Mecánico</option>
+              <option value="ENCARGO_REALIZADO">4. Encargado (En Tránsito)</option>
+              <option value="RECIBIDO">5. Recibido en Taller</option>
+              <option value="CANCELADO">6. Cancelado</option>
             </select>
           </div>
 
@@ -1175,9 +1174,8 @@ export default function RepuestosPage() {
 
               {/* 3. Ítems Solicitados vs Ítems a Encargar */}
               {userRole === "ADMIN" &&
-              (selectedRequest.estado === "SOLICITADO" ||
-                selectedRequest.estado === "EN_REVISION" ||
-                selectedRequest.estado === "PARA_ENCARGAR") ? (
+              (normalizeSparePartStatus(selectedRequest.estado) === "SOLICITADO" ||
+                normalizeSparePartStatus(selectedRequest.estado) === "PARA_ENCARGAR") ? (
                 /* VISTA ADMIN: EDITOR COMPLETO Y DESTACADO */
                 <div className="space-y-4">
                   {/* Referencia: Solicitado por el mecánico */}
@@ -1626,8 +1624,7 @@ export default function RepuestosPage() {
                 
                 {/* ACCIONES DEL ADMINISTRADOR */}
                 {userRole === "ADMIN" &&
-                  (selectedRequest.estado === "SOLICITADO" ||
-                    selectedRequest.estado === "EN_REVISION") && (
+                  normalizeSparePartStatus(selectedRequest.estado) === "SOLICITADO" && (
                     <>
                       <button
                         type="button"
