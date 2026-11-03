@@ -32,7 +32,7 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
     description: "El mecánico solicitó repuestos. El Administrador debe revisar o editar la lista y pasarla a Recepción",
   },
   PARA_ENCARGAR: {
-    label: "Para Encargar (Recepción)",
+    label: "Para Encargar",
     badgeClass: "bg-amber-50 text-amber-950 border-amber-300 ring-1 ring-amber-500/20",
     borderClass: "border-amber-300",
     dotClass: "bg-amber-500",
@@ -46,7 +46,7 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
     description: "Devuelto al mecánico con observaciones para su corrección y reenvío",
   },
   ENCARGO_REALIZADO: {
-    label: "Encargado (En Tránsito)",
+    label: "Encargado",
     badgeClass: "bg-blue-50 text-blue-900 border-blue-300 ring-1 ring-blue-500/20",
     borderClass: "border-blue-300",
     dotClass: "bg-blue-500",
@@ -82,14 +82,14 @@ export const SPARE_PART_STATUS_MAP: Record<string, SparePartStatusInfo> = {
     description: "Pendiente de revisión del Administrador",
   },
   PROCESADO_ADMIN: {
-    label: "Para Encargar (Recepción)",
+    label: "Para Encargar",
     badgeClass: "bg-amber-50 text-amber-950 border-amber-300 ring-1 ring-amber-500/20",
     borderClass: "border-amber-300",
     dotClass: "bg-amber-500",
     description: "Para encargar en Recepción",
   },
   RECIBIDO_PARCIAL: {
-    label: "Encargado (En Tránsito)",
+    label: "Encargado",
     badgeClass: "bg-blue-50 text-blue-900 border-blue-300 ring-1 ring-blue-500/20",
     borderClass: "border-blue-300",
     dotClass: "bg-blue-500",

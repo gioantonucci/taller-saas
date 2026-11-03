@@ -851,13 +851,13 @@ export default function RepuestosPage() {
               className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             >
               <option value="TODOS">Todos los estados</option>
-              <option value="POR_REVISAR">Por revisar (Admin)</option>
-              <option value="PENDIENTES_RECEPCION">Pendientes (Recepción)</option>
-              <option value="ESCALADOS">🚨 Escalados en Rojo ({">"} 4h)</option>
+              <option value="POR_REVISAR">Por revisar Admin</option>
+              <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
+              <option value="ESCALADOS">🚨 Escalados en Rojo</option>
               <option value="SOLICITADO">1. Pendiente Admin</option>
-              <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
+              <option value="PARA_ENCARGAR">2. Para encargar</option>
               <option value="DEVUELTO">3. Devuelto al Mecánico</option>
-              <option value="ENCARGO_REALIZADO">4. Encargado (En Tránsito)</option>
+              <option value="ENCARGO_REALIZADO">4. Encargado</option>
               <option value="RECIBIDO">5. Recibido en Taller</option>
               <option value="CANCELADO">6. Cancelado</option>
             </select>
