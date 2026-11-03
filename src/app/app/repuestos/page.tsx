@@ -737,11 +737,7 @@ export default function RepuestosPage() {
                         {!isMechanic && isEscalated && (
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
-                            {st === "PARA_ENCARGAR"
-                              ? `Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
-                              : st === "ENCARGO_REALIZADO"
-                              ? "Demorado (> 24h)"
-                              : "Demorado"}
+                            {`Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`}
                           </span>
                         )}
                         {!isMechanic && !isEscalated && isVencida && (
@@ -847,12 +843,7 @@ export default function RepuestosPage() {
                   </span>
                   {!isMechanic && isSparePartEscalated(selectedRequest) && (
                     <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
-                      🚨{" "}
-                      {normalizeSparePartStatus(selectedRequest.estado) === "PARA_ENCARGAR"
-                        ? `Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
-                        : normalizeSparePartStatus(selectedRequest.estado) === "ENCARGO_REALIZADO"
-                        ? "Demorado (> 24h)"
-                        : "Demorado"}
+                      🚨 Demorado (&gt; {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
                     </span>
                   )}
                 </div>

@@ -125,10 +125,9 @@ export function getSparePartStatusInfo(status: string): SparePartStatusInfo {
 }
 
 /**
- * Determina si un pedido está escalado por tiempo excesivo de espera:
- * - 'PARA_ENCARGAR': más de 4 horas esperando encargo con proveedor.
- * - 'ENCARGO_REALIZADO': más de 24 horas esperando recepción en taller, o con fecha de llegada vencida.
- * - 'SOLICITADO': más de 24 horas esperando revisión del administrador.
+ * Determina si un pedido está demorado por tiempo excesivo de espera:
+ * Regla: Solo está demorado si recepción no lo encargó ('PARA_ENCARGAR' por más de 4 horas).
+ * Una vez encargado por recepción, ya no se considera demorado.
  */
 export function isSparePartEscalated(req: {
   estado: string;
@@ -140,57 +139,20 @@ export function isSparePartEscalated(req: {
 }): boolean {
   const estado = normalizeSparePartStatus(req.estado);
 
-  // Pedidos ya concluidos o cancelados no se escalan
-  if (estado === "RECIBIDO" || estado === "CANCELADO") return false;
+  // Solo está demorado si recepción no lo encargó (estado PARA_ENCARGAR)
+  if (estado !== "PARA_ENCARGAR") return false;
 
-  // Si tiene fecha estimada de llegada y ya pasó -> escalado
-  if (req.fechaEstimadaLlegada) {
-    const estimada = new Date(req.fechaEstimadaLlegada).getTime();
-    if (!isNaN(estimada) && estimada < Date.now()) {
-      return true;
-    }
-  }
+  const baseDate = req.fechaRevision
+    ? new Date(req.fechaRevision)
+    : req.updatedAt
+    ? new Date(req.updatedAt)
+    : req.createdAt
+    ? new Date(req.createdAt)
+    : new Date();
 
-  // 1. En espera de encargo (Recepción): supera el límite de horas configurado (> 4h)
-  if (estado === "PARA_ENCARGAR") {
-    const baseDate = req.fechaRevision
-      ? new Date(req.fechaRevision)
-      : req.updatedAt
-      ? new Date(req.updatedAt)
-      : req.createdAt
-      ? new Date(req.createdAt)
-      : new Date();
-
-    const elapsedMs = Date.now() - baseDate.getTime();
-    const limitMs = SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS * 60 * 60 * 1000;
-    return elapsedMs > limitMs;
-  }
-
-  // 2. Encargado (en espera de llegada de repuestos):
-  // Si lleva más de 24 horas esperando entrega sin recibirse en taller
-  if (estado === "ENCARGO_REALIZADO") {
-    const baseDate = req.fechaEncargo
-      ? new Date(req.fechaEncargo)
-      : req.updatedAt
-      ? new Date(req.updatedAt)
-      : req.createdAt
-      ? new Date(req.createdAt)
-      : new Date();
-
-    const elapsedMs = Date.now() - baseDate.getTime();
-    const limitMs = 24 * 60 * 60 * 1000;
-    return elapsedMs > limitMs;
-  }
-
-  // 3. Solicitado (pendiente de revisión de Administrador):
-  // Si lleva más de 24 horas esperando revisión
-  if (estado === "SOLICITADO") {
-    const baseDate = req.createdAt ? new Date(req.createdAt) : new Date();
-    const elapsedMs = Date.now() - baseDate.getTime();
-    return elapsedMs > 24 * 60 * 60 * 1000;
-  }
-
-  return false;
+  const elapsedMs = Date.now() - baseDate.getTime();
+  const limitMs = SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS * 60 * 60 * 1000;
+  return elapsedMs > limitMs;
 }
 
 /**
