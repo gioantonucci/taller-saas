@@ -1623,25 +1623,8 @@ export default function RepuestosPage() {
                     </button>
                   )}
 
-                {/* Si está en PARA_ENCARGAR, Admin puede guardar modificaciones de la lista */}
-                {userRole === "ADMIN" && selectedRequest.estado === "PARA_ENCARGAR" && (
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    onClick={handleAdminGuardarSolo}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                  >
-                    {actionLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5" />
-                    )}
-                    <span>Guardar Cambios en Repuestos</span>
-                  </button>
-                )}
-
-                {/* ACCIONES DE RECEPCIÓN */}
-                {(userRole === "RECEPTION" || userRole === "ADMIN") &&
+                {/* ACCIONES DE RECEPCIÓN (Únicamente rol Recepción) */}
+                {userRole === "RECEPTION" &&
                   selectedRequest.estado === "PARA_ENCARGAR" && (
                     <button
                       type="button"
@@ -1657,8 +1640,8 @@ export default function RepuestosPage() {
                     </button>
                   )}
 
-                {/* Confirmar Llegada / Recibido */}
-                {(userRole === "RECEPTION" || userRole === "ADMIN") &&
+                {/* Confirmar Llegada / Recibido (Únicamente rol Recepción) */}
+                {userRole === "RECEPTION" &&
                   selectedRequest.estado === "ENCARGO_REALIZADO" && (
                     <button
                       type="button"
