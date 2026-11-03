@@ -45,9 +45,9 @@ export default function AuthLoadingOverlay({
           </p>
         )}
 
-        {/* Barra de progreso pulsante mínima */}
-        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-4">
-          <div className="bg-gradient-to-r from-[#e5242b] to-sky-500 h-full rounded-full animate-pulse w-3/4 mx-auto" />
+        {/* Barra de progreso con animación continua de carga */}
+        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-4 relative">
+          <div className="bg-gradient-to-r from-[#e5242b] via-amber-400 to-sky-500 h-full rounded-full animate-loading-bar shadow-[0_0_12px_rgba(229,36,43,0.6)]" />
         </div>
       </div>
     </div>

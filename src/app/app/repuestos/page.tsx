@@ -635,6 +635,9 @@ export default function RepuestosPage() {
           <div className="p-12 text-center space-y-3">
             <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
             <p className="text-xs font-bold text-slate-500">Cargando pedidos de repuestos...</p>
+            <div className="w-48 max-w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mx-auto relative">
+              <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 h-full rounded-full animate-loading-bar" />
+            </div>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="p-12 text-center space-y-2">

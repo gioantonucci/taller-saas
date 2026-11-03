@@ -80,3 +80,23 @@ body {
   animation: dropdownUnfoldUp 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Animación fluida continua para barras de carga */
+@keyframes loadingBarSlide {
+  0% {
+    transform: translateX(-100%);
+    width: 35%;
+  }
+  50% {
+    width: 60%;
+  }
+  100% {
+    transform: translateX(300%);
+    width: 35%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loadingBarSlide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, width;
+}
+
