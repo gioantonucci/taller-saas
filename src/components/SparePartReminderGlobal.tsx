@@ -177,23 +177,17 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
     }
   };
 
-  if (!reminderData) return null;
-
-  const { reception, admin, mechanic } = reminderData;
-  const isReception = role === "RECEPTION";
-  const isAdmin = role === "ADMIN";
-  const isMechanic = role === "MECHANIC";
-
   // Intensidad visual progresiva para el banner fijo de Recepción:
   // - Nivel 1 (< 1h): Súper tranquilo (gris/azul neutro sutil, cero estrés).
   // - Nivel 2 (1h a 3h): Tono cálido ámbar suave, atención moderada.
   // - Nivel 3 (3h a 4h): Naranja vivo, alerta previa al escalamiento.
   // - Nivel 4 (> 4h o escalado/vencido): Rojo carmesí intenso, máxima urgencia.
   const bannerUrgency = useMemo(() => {
-    if (!reception?.hasPendingTasks) return null;
-    const isEscalated = Boolean(reception.oldestParaEncargar?.isEscalated);
-    const hasLlegadaVencida = (reception.llegadaVencidaCount || 0) > 0;
-    const elapsedMinutes = reception.oldestParaEncargar?.elapsedMinutes || 0;
+    const rec = reminderData?.reception;
+    if (!rec?.hasPendingTasks) return null;
+    const isEscalated = Boolean(rec.oldestParaEncargar?.isEscalated);
+    const hasLlegadaVencida = (rec.llegadaVencidaCount || 0) > 0;
+    const elapsedMinutes = rec.oldestParaEncargar?.elapsedMinutes || 0;
 
     if (isEscalated || hasLlegadaVencida || elapsedMinutes >= 240) {
       return {
@@ -263,7 +257,14 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       btnClass:
         "bg-slate-800 text-white hover:bg-slate-900 font-bold shadow-xs border-transparent",
     };
-  }, [reception]);
+  }, [reminderData]);
+
+  if (!reminderData) return null;
+
+  const { reception, admin, mechanic } = reminderData;
+  const isReception = role === "RECEPTION";
+  const isAdmin = role === "ADMIN";
+  const isMechanic = role === "MECHANIC";
 
   return (
     <>
