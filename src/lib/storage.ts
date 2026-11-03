@@ -173,7 +173,7 @@ export async function deleteVehiclePhoto(filePath: string): Promise<boolean> {
 export async function saveStorageFile(
   fileBuffer: Buffer,
   originalFilename: string,
-  folder: "multimedia" | "remitos" = "multimedia",
+  folder: string = "multimedia",
   mimeType?: string
 ): Promise<UploadResult> {
   const result = await uploadVehiclePhoto(fileBuffer, originalFilename, mimeType, folder);

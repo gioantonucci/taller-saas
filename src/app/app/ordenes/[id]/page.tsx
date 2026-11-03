@@ -96,7 +96,11 @@ export default function OrdenDetallePage() {
     setUploadingWorkLogPhoto(true);
     try {
       for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
+        const isImage =
+          file.type.startsWith("image/") ||
+          /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file.name);
+        if (!isImage) continue;
+
         let fileToUpload: File = file;
         try {
           const comp = await compressImageClient(file, 1920, 1920, 0.8);
@@ -114,19 +118,22 @@ export default function OrdenDetallePage() {
           body: formData,
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const url = data.url || data.file?.url;
-          if (url) {
-            setNewWorkLogFotos((prev) => [...prev, url]);
-          }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Error ${res.status} al subir la fotografía`);
+        }
+
+        const data = await res.json();
+        const url = data.url || data.file?.url;
+        if (url) {
+          setNewWorkLogFotos((prev) => [...prev, url]);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error al subir foto de arreglo:", err);
       await alert({
         title: "Error al subir fotografía",
-        message: "No se pudo subir la foto del arreglo. Reintentá nuevamente.",
+        message: err.message || "No se pudo subir la foto del arreglo. Reintentá nuevamente.",
         variant: "danger",
       });
     } finally {
@@ -2002,30 +2009,51 @@ export default function OrdenDetallePage() {
               </div>
             </div>
 
-            {/* Previsualización de fotos cargadas */}
-            {newWorkLogFotos.length > 0 && (
-              <div className="pt-2 flex flex-wrap gap-2">
-                {newWorkLogFotos.map((url, fIdx) => (
-                  <div
-                    key={fIdx}
-                    className="relative group w-16 h-16 rounded-xl overflow-hidden border border-indigo-200 shadow-2xs bg-white shrink-0"
-                  >
-                    <img
-                      src={url}
-                      alt={`Foto arreglo ${fIdx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setNewWorkLogFotos((prev) => prev.filter((_, idx) => idx !== fIdx))
-                      }
-                      className="absolute top-1 right-1 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
+            {/* Previsualización de fotos cargadas o en proceso */}
+            {(newWorkLogFotos.length > 0 || uploadingWorkLogPhoto) && (
+              <div className="pt-2 p-3 bg-white/90 rounded-2xl border border-indigo-200/80 space-y-2">
+                <span className="text-[11px] font-bold text-indigo-950 block">
+                  Fotos adjuntas al arreglo ({newWorkLogFotos.length}):
+                </span>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {newWorkLogFotos.map((url, fIdx) => (
+                    <div
+                      key={fIdx}
+                      className="relative group w-20 h-20 rounded-xl overflow-hidden border border-indigo-300 shadow-sm bg-slate-900 shrink-0"
                     >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </div>
-                ))}
+                      <img
+                        src={url}
+                        alt={`Foto arreglo ${fIdx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewWorkLogFotos((prev) => prev.filter((_, idx) => idx !== fIdx))
+                        }
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
+                        title="Eliminar foto"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveModalImg(url)}
+                        className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md hover:bg-black transition-colors cursor-pointer"
+                        title="Ver en grande"
+                      >
+                        <Maximize2 className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {uploadingWorkLogPhoto && (
+                    <div className="w-20 h-20 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 flex flex-col items-center justify-center text-indigo-600 shrink-0 animate-pulse">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-[10px] font-extrabold mt-1">Subiendo...</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

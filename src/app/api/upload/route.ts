@@ -12,11 +12,17 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const folder = (formData.get("folder") as string) || "multimedia";
-
-    if (folder !== "multimedia" && folder !== "remitos") {
-      return NextResponse.json({ error: "Carpeta inválida" }, { status: 400 });
-    }
+    const rawFolder = (formData.get("folder") as string) || "multimedia";
+    const allowedFolders = [
+      "multimedia",
+      "remitos",
+      "arreglos",
+      "repuestos",
+      "evidencias",
+      "vehiculos",
+      "peritajes",
+    ];
+    const folder = allowedFolders.includes(rawFolder) ? rawFolder : "multimedia";
 
     if (!file) {
       return NextResponse.json({ error: "No se proporcionó ningún archivo" }, { status: 400 });

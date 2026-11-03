@@ -125,7 +125,11 @@ export default function HojaRutaMecanicoPage() {
     setUploadingWorkLogPhoto(true);
     try {
       for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
+        const isImage =
+          file.type.startsWith("image/") ||
+          /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file.name);
+        if (!isImage) continue;
+
         let fileToUpload: File = file;
         try {
           const comp = await compressImageClient(file, 1920, 1920, 0.8);
@@ -143,19 +147,22 @@ export default function HojaRutaMecanicoPage() {
           body: formData,
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const url = data.url || data.file?.url;
-          if (url) {
-            setWorkLogFotos((prev) => [...prev, url]);
-          }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Error ${res.status} al subir la fotografía`);
+        }
+
+        const data = await res.json();
+        const url = data.url || data.file?.url;
+        if (url) {
+          setWorkLogFotos((prev) => [...prev, url]);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error al subir foto del arreglo:", err);
       await alert({
         title: "Error de subida",
-        message: "Ocurrió un error al subir la foto del arreglo. Intentá nuevamente.",
+        message: err.message || "Ocurrió un error al subir la foto del arreglo. Intentá nuevamente.",
         variant: "danger",
       });
     } finally {
@@ -1684,8 +1691,8 @@ export default function HojaRutaMecanicoPage() {
                     )}
                   </div>
 
-                  {/* Previsualización de Fotos Cargadas */}
-                  {workLogFotos.length > 0 && (
+                  {/* Previsualización de Fotos Cargadas o en proceso */}
+                  {(workLogFotos.length > 0 || uploadingWorkLogPhoto) && (
                     <div className="pt-2 flex flex-wrap gap-2.5">
                       {workLogFotos.map((url, fIdx) => (
                         <div
@@ -1715,6 +1722,13 @@ export default function HojaRutaMecanicoPage() {
                           </button>
                         </div>
                       ))}
+
+                      {uploadingWorkLogPhoto && (
+                        <div className="w-20 h-20 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 flex flex-col items-center justify-center text-indigo-600 shrink-0 animate-pulse">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="text-[10px] font-extrabold mt-1">Subiendo...</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
