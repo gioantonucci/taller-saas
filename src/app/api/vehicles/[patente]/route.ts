@@ -28,6 +28,7 @@ export async function GET(
             parts: true,
             multimedia: true,
             workLogs: true,
+            sparePartRequests: true,
           },
           orderBy: { fechaIngreso: "desc" },
         },

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -16,6 +16,14 @@ import {
   X,
   AlertCircle,
   Phone,
+  Camera,
+  Image as ImageIcon,
+  Maximize2,
+  Download,
+  ExternalLink,
+  Filter,
+  Play,
+  Calendar,
 } from "lucide-react";
 import { useAppDialog } from "@/components/AppDialog";
 
@@ -27,6 +35,12 @@ export default function VehiculoHistorialClinicoPage() {
   const [clinicalStats, setClinicalStats] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  // Estados de Pestañas y Galería
+  const [activeTab, setActiveTab] = useState<"ordenes" | "galeria">("ordenes");
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string>("TODAS");
+  const [filterOrder, setFilterOrder] = useState<string>("TODAS");
 
   const fetchVehicle = async () => {
     try {
@@ -89,6 +103,191 @@ export default function VehiculoHistorialClinicoPage() {
     const vehicleId = vehicle.id || "";
     router.push(`/app/ordenes?newOrder=1&clientId=${clientId}&vehicleId=${vehicleId}`);
   };
+
+  // Recopilar exhaustivamente todas las fotos vinculadas al vehículo
+  const allVehiclePhotos = useMemo(() => {
+    if (!vehicle?.workOrders) return [];
+    const list: any[] = [];
+    const seenUrls = new Set<string>();
+
+    vehicle.workOrders.forEach((order: any) => {
+      // 1. Fotos de WorkLogs (Arreglos mecánicos y notas diarias)
+      if (order.workLogs && Array.isArray(order.workLogs)) {
+        order.workLogs.forEach((log: any) => {
+          let fotos: any[] = [];
+          try {
+            if (log.fotos) {
+              fotos = typeof log.fotos === "string" ? JSON.parse(log.fotos) : log.fotos;
+            }
+          } catch {}
+
+          if (Array.isArray(fotos)) {
+            fotos.forEach((f: any, fIdx: number) => {
+              const url = typeof f === "string" ? f : f?.url;
+              if (url && !seenUrls.has(url)) {
+                seenUrls.add(url);
+                list.push({
+                  id: `worklog-${log.id}-${fIdx}`,
+                  url,
+                  tipo: "FOTO",
+                  categoria: "ARREGLO",
+                  categoriaLabel: "Arreglo / Bitácora",
+                  titulo: log.descripcionTarea || "Arreglo técnico",
+                  descripcion: log.mechanic
+                    ? `Mecánico: ${log.mechanic.nombre} ${log.mechanic.apellido || ""}`
+                    : undefined,
+                  fecha: log.fechaRegistro || order.fechaIngreso,
+                  orderId: order.id,
+                  numeroOrden: order.numeroOrden,
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // 2. Fotos y Videos de Multimedia (Peritajes, Ingreso, Evidencia general)
+      if (order.multimedia && Array.isArray(order.multimedia)) {
+        order.multimedia.forEach((m: any) => {
+          const url = m.urlStorage || m.url;
+          if (url && !seenUrls.has(url)) {
+            seenUrls.add(url);
+            const isVid =
+              m.tipo === "VIDEO" ||
+              /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(url);
+            const isPeritaje =
+              m.etiqueta === "INGRESO" ||
+              m.etiqueta === "PERITAJE" ||
+              (m.descripcion && m.descripcion.toLowerCase().includes("peritaje"));
+
+            list.push({
+              id: `media-${m.id}`,
+              url,
+              tipo: isVid ? "VIDEO" : "FOTO",
+              categoria: isPeritaje ? "PERITAJE" : "GENERAL",
+              categoriaLabel: isPeritaje ? "Peritaje e Ingreso" : (m.etiqueta || "Evidencia"),
+              titulo: m.descripcion || `Evidencia Orden #${order.numeroOrden}`,
+              descripcion: m.etiqueta ? `Etiqueta: ${m.etiqueta}` : undefined,
+              fecha: m.fechaCarga || order.fechaIngreso,
+              orderId: order.id,
+              numeroOrden: order.numeroOrden,
+            });
+          }
+        });
+      }
+
+      // 3. Fotos en checklistDanio
+      if (order.checklistDanio) {
+        try {
+          const p =
+            typeof order.checklistDanio === "string"
+              ? JSON.parse(order.checklistDanio)
+              : order.checklistDanio;
+          const danioFotos = p?.fotosDanio || p?.evidencias || p?.fotos || [];
+          if (Array.isArray(danioFotos)) {
+            danioFotos.forEach((f: any, fIdx: number) => {
+              const url = typeof f === "string" ? f : f?.url || f?.urlStorage;
+              if (url && !seenUrls.has(url)) {
+                seenUrls.add(url);
+                list.push({
+                  id: `danio-${order.id}-${fIdx}`,
+                  url,
+                  tipo: "FOTO",
+                  categoria: "PERITAJE",
+                  categoriaLabel: "Peritaje de Daños",
+                  titulo: f?.nota || f?.descripcion || `Daño detectado en ingreso`,
+                  fecha: order.fechaIngreso,
+                  orderId: order.id,
+                  numeroOrden: order.numeroOrden,
+                });
+              }
+            });
+          }
+        } catch {}
+      }
+
+      // 4. Fotos en pedidos de repuestos
+      if (order.sparePartRequests && Array.isArray(order.sparePartRequests)) {
+        order.sparePartRequests.forEach((req: any) => {
+          if (req.fotoUrl && !seenUrls.has(req.fotoUrl)) {
+            seenUrls.add(req.fotoUrl);
+            list.push({
+              id: `sp-${req.id}`,
+              url: req.fotoUrl,
+              tipo: "FOTO",
+              categoria: "REPUESTO",
+              categoriaLabel: "Repuesto Solicitado",
+              titulo: req.fallaReparar ? `Repuesto: ${req.fallaReparar}` : "Repuesto requerido",
+              descripcion: req.repuestosLista ? `Lista: ${req.repuestosLista}` : undefined,
+              fecha: req.createdAt || order.fechaIngreso,
+              orderId: order.id,
+              numeroOrden: order.workOrder?.numeroOrden || order.numeroOrden,
+            });
+          }
+
+          if (req.fotos) {
+            try {
+              const parsed = typeof req.fotos === "string" ? JSON.parse(req.fotos) : req.fotos;
+              if (Array.isArray(parsed)) {
+                parsed.forEach((pf: any, pfIdx: number) => {
+                  const url = typeof pf === "string" ? pf : pf?.url;
+                  if (url && !seenUrls.has(url)) {
+                    seenUrls.add(url);
+                    list.push({
+                      id: `sp-list-${req.id}-${pfIdx}`,
+                      url,
+                      tipo: "FOTO",
+                      categoria: "REPUESTO",
+                      categoriaLabel: "Repuesto Solicitado",
+                      titulo: pf?.nota || req.fallaReparar || "Repuesto",
+                      fecha: req.createdAt || order.fechaIngreso,
+                      orderId: order.id,
+                      numeroOrden: order.workOrder?.numeroOrden || order.numeroOrden,
+                    });
+                  }
+                });
+              }
+            } catch {}
+          }
+        });
+      }
+    });
+
+    return list.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+  }, [vehicle]);
+
+  // Filtrado de fotos por categoría y orden
+  const filteredPhotos = useMemo(() => {
+    return allVehiclePhotos.filter((p) => {
+      if (filterCategory !== "TODAS" && p.categoria !== filterCategory) {
+        return false;
+      }
+      if (filterOrder !== "TODAS" && p.orderId !== filterOrder) {
+        return false;
+      }
+      return true;
+    });
+  }, [allVehiclePhotos, filterCategory, filterOrder]);
+
+  // Navegación por teclado en el Lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedPhotoIndex === null) return;
+      if (e.key === "Escape") {
+        setSelectedPhotoIndex(null);
+      } else if (e.key === "ArrowLeft") {
+        setSelectedPhotoIndex((prev) =>
+          prev !== null && prev > 0 ? prev - 1 : filteredPhotos.length - 1
+        );
+      } else if (e.key === "ArrowRight") {
+        setSelectedPhotoIndex((prev) =>
+          prev !== null && prev < filteredPhotos.length - 1 ? prev + 1 : 0
+        );
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPhotoIndex, filteredPhotos.length]);
 
 
   if (loading) {
@@ -231,13 +430,23 @@ export default function VehiculoHistorialClinicoPage() {
         </div>
 
         {/* Estadísticas de Taller */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Historial de Reparaciones
           </span>
-          <p className="text-2xl font-black text-slate-900">
-            {clinicalStats?.totalServicios || 0} {clinicalStats?.totalServicios === 1 ? "ingreso" : "ingresos"}
-          </p>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-2xl font-black text-slate-900">
+              {clinicalStats?.totalServicios || 0} {clinicalStats?.totalServicios === 1 ? "ingreso" : "ingresos"}
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab("galeria")}
+              className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-xl transition-colors cursor-pointer"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>{allVehiclePhotos.length} fotos</span>
+            </button>
+          </div>
           <span className="text-[11px] text-slate-500 block">
             {vehicle.workOrders && vehicle.workOrders.length > 0
               ? `Último ingreso: ${new Date(vehicle.workOrders[0].fechaIngreso).toLocaleDateString("es-AR")}`
@@ -246,117 +455,475 @@ export default function VehiculoHistorialClinicoPage() {
         </div>
       </div>
 
-      {/* Historial Clínico de Órdenes de Trabajo */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Historial de Órdenes de Trabajo ({vehicle.workOrders?.length || 0})
-            </h2>
-            <p className="text-xs text-slate-500">
-              Línea de tiempo de servicios realizados, piezas reemplazadas y peritajes.
-            </p>
-          </div>
-          <button
-            onClick={openNewOrderModal}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-3.5 py-2.5 rounded-xl border border-sky-200 cursor-pointer shrink-0 transition-colors"
+      {/* Selector de Pestañas: Órdenes y Galería */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("ordenes")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
+            activeTab === "ordenes"
+              ? "bg-sky-600 text-white shadow-md shadow-sky-600/25"
+              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+          }`}
+        >
+          <History className="w-4 h-4" />
+          <span>Historial de Órdenes</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeTab === "ordenes"
+                ? "bg-white/25 text-white"
+                : "bg-slate-100 text-slate-700"
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            <span>Abrir Nueva Orden</span>
-          </button>
-        </div>
+            {vehicle.workOrders?.length || 0}
+          </span>
+        </button>
 
-        {vehicle.workOrders?.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 space-y-2">
-            <History className="w-8 h-8 mx-auto text-slate-300" />
-            <p className="text-xs font-semibold text-slate-700">No hay órdenes de trabajo previas para este vehículo</p>
-            <p className="text-[11px]">Hacé clic en &quot;Abrir Nueva Orden&quot; para registrar el primer ingreso.</p>
+        <button
+          type="button"
+          onClick={() => setActiveTab("galeria")}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
+            activeTab === "galeria"
+              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
+              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+          }`}
+        >
+          <Camera className="w-4 h-4" />
+          <span>Galería</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeTab === "galeria"
+                ? "bg-white/25 text-white"
+                : "bg-slate-100 text-slate-700"
+            }`}
+          >
+            {allVehiclePhotos.length}
+          </span>
+        </button>
+      </div>
+
+      {/* PESTAÑA 1: HISTORIAL DE ÓRDENES */}
+      {activeTab === "ordenes" && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">
+                Historial de Órdenes de Trabajo ({vehicle.workOrders?.length || 0})
+              </h2>
+              <p className="text-xs text-slate-500">
+                Línea de tiempo de servicios realizados, piezas reemplazadas y peritajes.
+              </p>
+            </div>
+            <button
+              onClick={openNewOrderModal}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 px-3.5 py-2.5 rounded-xl border border-sky-200 cursor-pointer shrink-0 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Abrir Nueva Orden</span>
+            </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {vehicle.workOrders.map((order: any) => {
-              let hasSig = false;
-              if (order.checklistDanio) {
-                try {
-                  const parsed =
-                    typeof order.checklistDanio === "string"
-                      ? JSON.parse(order.checklistDanio)
-                      : order.checklistDanio;
-                  hasSig = Boolean(parsed?.firmaCliente);
-                } catch {}
-              }
 
-              return (
-                <div
-                  key={order.id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3.5"
+          {vehicle.workOrders?.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 space-y-2">
+              <History className="w-8 h-8 mx-auto text-slate-300" />
+              <p className="text-xs font-semibold text-slate-700">No hay órdenes de trabajo previas para este vehículo</p>
+              <p className="text-[11px]">Hacé clic en &quot;Abrir Nueva Orden&quot; para registrar el primer ingreso.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {vehicle.workOrders.map((order: any) => {
+                let hasSig = false;
+                if (order.checklistDanio) {
+                  try {
+                    const parsed =
+                      typeof order.checklistDanio === "string"
+                        ? JSON.parse(order.checklistDanio)
+                        : order.checklistDanio;
+                    hasSig = Boolean(parsed?.firmaCliente);
+                  } catch {}
+                }
+
+                return (
+                  <div
+                    key={order.id}
+                    className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-slate-100/60 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3.5"
+                  >
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-900">
+                          Orden #{order.numeroOrden}
+                        </span>
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
+                            order.estado === "FINALIZADO" || order.estado === "ENTREGADO"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : order.estado === "EN_CURSO" || order.estado === "EN_REPARACION"
+                              ? "bg-sky-50 text-sky-700 border-sky-200"
+                              : "bg-amber-50 text-amber-700 border-amber-200"
+                          }`}
+                        >
+                          {order.estado.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-[11px] text-slate-400 sm:ml-auto">
+                          {new Date(order.fechaIngreso).toLocaleDateString("es-ES")}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-700 font-medium leading-relaxed break-words">
+                        {order.detallesIngreso}
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[11px] text-slate-500 pt-0.5">
+                        {order.kilometraje && (
+                          <span className="flex items-center gap-1 font-mono">
+                            <Gauge className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{order.kilometraje.toLocaleString("es-ES")} km</span>
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>Combustible: {order.nivelNafta}</span>
+                        </span>
+                        {order.mechanic && (
+                          <span className="flex items-center gap-1">
+                            <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>Mecánico: {order.mechanic.nombre} {order.mechanic.apellido || ""}</span>
+                          </span>
+                        )}
+                        {hasSig && (
+                          <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                            <span>Firma cliente</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/80 flex sm:flex-col justify-end shrink-0">
+                      <Link
+                        href={`/app/ordenes/${order.id}`}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-200/70 text-slate-800 border border-slate-300 text-xs font-bold shadow-2xs transition-colors"
+                      >
+                        <span>Ver orden</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PESTAÑA 2: GALERÍA DE FOTOS */}
+      {activeTab === "galeria" && (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-5 animate-in fade-in">
+          {/* Header de la Galería */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Camera className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold text-slate-900">
+                  Galería Integral del Vehículo ({allVehiclePhotos.length})
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Todas las fotografías de peritajes de ingreso, arreglos mecánicos y repuestos asociados a la patente {vehicle.patente}.
+                </p>
+              </div>
+            </div>
+
+            {/* Contador filtrado */}
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full self-start sm:self-auto">
+              Mostrando {filteredPhotos.length} de {allVehiclePhotos.length}
+            </span>
+          </div>
+
+          {/* Barra de Filtros */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200/80">
+            {/* Filtro por Categoría */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: "TODAS", label: "Todas las fotos" },
+                { id: "ARREGLO", label: "🔧 Arreglos y Bitácora" },
+                { id: "PERITAJE", label: "📋 Peritajes e Ingreso" },
+                { id: "REPUESTO", label: "📦 Repuestos" },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setFilterCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    filterCategory === cat.id
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-white hover:bg-slate-200/70 text-slate-700 border border-slate-200"
+                  }`}
                 >
-                  <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-900">
-                        Orden #{order.numeroOrden}
-                      </span>
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtro por Orden de Trabajo */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <select
+                value={filterOrder}
+                onChange={(e) => setFilterOrder(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                <option value="TODAS">Todas las Órdenes</option>
+                {vehicle.workOrders?.map((o: any) => (
+                  <option key={o.id} value={o.id}>
+                    Orden #{o.numeroOrden} ({new Date(o.fechaIngreso).toLocaleDateString("es-AR")})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Grid de Fotografías */}
+          {filteredPhotos.length === 0 ? (
+            <div className="p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+              <Camera className="w-10 h-10 mx-auto text-slate-300" />
+              <p className="text-xs font-bold text-slate-700">
+                {allVehiclePhotos.length === 0
+                  ? "Aún no se han cargado fotografías para este vehículo"
+                  : "No hay fotografías que coincidan con los filtros seleccionados"}
+              </p>
+              <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                {allVehiclePhotos.length === 0
+                  ? "Las fotos tomadas durante el peritaje de ingreso, los arreglos técnicos en la bitácora de trabajo o solicitudes de repuestos aparecerán aquí automáticamente."
+                  : "Probá cambiando la categoría o la orden seleccionada para visualizar otras fotos del auto."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {filteredPhotos.map((photo, pIdx) => {
+                const isVideo = photo.tipo === "VIDEO";
+
+                return (
+                  <div
+                    key={photo.id || pIdx}
+                    onClick={() => setSelectedPhotoIndex(pIdx)}
+                    className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-2xs hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col aspect-square"
+                  >
+                    {/* Imagen o Video */}
+                    {isVideo ? (
+                      <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                        <video
+                          src={photo.url}
+                          preload="metadata"
+                          className="w-full h-full object-cover opacity-80"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={photo.url}
+                        alt={photo.titulo || "Foto de vehículo"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-95 group-hover:opacity-100"
+                        loading="lazy"
+                      />
+                    )}
+
+                    {/* Badge Superior: Categoría y Orden */}
+                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-1 pointer-events-none">
                       <span
-                        className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
-                          order.estado === "FINALIZADO" || order.estado === "ENTREGADO"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : order.estado === "EN_CURSO" || order.estado === "EN_REPARACION"
-                            ? "bg-sky-50 text-sky-700 border-sky-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
+                        className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-xs backdrop-blur-md ${
+                          photo.categoria === "ARREGLO"
+                            ? "bg-indigo-600 text-white"
+                            : photo.categoria === "PERITAJE"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-amber-500 text-white"
                         }`}
                       >
-                        {order.estado.replace(/_/g, " ")}
+                        {photo.categoriaLabel}
                       </span>
-                      <span className="text-[11px] text-slate-400 sm:ml-auto">
-                        {new Date(order.fechaIngreso).toLocaleDateString("es-ES")}
-                      </span>
+                      {photo.numeroOrden && (
+                        <span className="font-mono text-[9px] font-black px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
+                          #{photo.numeroOrden}
+                        </span>
+                      )}
                     </div>
 
-                    <p className="text-xs text-slate-700 font-medium leading-relaxed break-words">
-                      {order.detallesIngreso}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-[11px] text-slate-500 pt-0.5">
-                      {order.kilometraje && (
-                        <span className="flex items-center gap-1 font-mono">
-                          <Gauge className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{order.kilometraje.toLocaleString("es-ES")} km</span>
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Fuel className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>Combustible: {order.nivelNafta}</span>
-                      </span>
-                      {order.mechanic && (
+                    {/* Overlay Inferior con Descripción y Fecha */}
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent text-white pointer-events-none">
+                      <p className="text-[11px] font-bold line-clamp-1 text-slate-100">
+                        {photo.titulo}
+                      </p>
+                      <div className="flex items-center justify-between text-[10px] text-slate-300 mt-0.5">
                         <span className="flex items-center gap-1">
-                          <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>Mecánico: {order.mechanic.nombre} {order.mechanic.apellido || ""}</span>
+                          <Calendar className="w-2.5 h-2.5" />
+                          {new Date(photo.fecha).toLocaleDateString("es-AR")}
                         </span>
-                      )}
-                      {hasSig && (
-                        <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                          <span>Firma cliente</span>
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity font-bold text-amber-300 flex items-center gap-0.5">
+                          <Maximize2 className="w-2.5 h-2.5" />
+                          <span>Ver</span>
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                  <div className="pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/80 flex sm:flex-col justify-end shrink-0">
-                    <Link
-                      href={`/app/ordenes/${order.id}`}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-200/70 text-slate-800 border border-slate-300 text-xs font-bold shadow-2xs transition-colors"
+      {/* MODAL LIGHTBOX / VISOR EN PANTALLA COMPLETA */}
+      {selectedPhotoIndex !== null && filteredPhotos[selectedPhotoIndex] && (
+        <div
+          onClick={() => setSelectedPhotoIndex(null)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 animate-in fade-in select-none"
+        >
+          {(() => {
+            const current = filteredPhotos[selectedPhotoIndex];
+            const isVideo = current.tipo === "VIDEO";
+
+            return (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="relative max-w-5xl w-full max-h-[95vh] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col"
+              >
+                {/* Header del Lightbox */}
+                <div className="p-3.5 sm:p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3 text-white text-xs px-4 sm:px-6">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <span
+                      className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                        current.categoria === "ARREGLO"
+                          ? "bg-indigo-600 text-white"
+                          : current.categoria === "PERITAJE"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-amber-500 text-white"
+                      }`}
                     >
-                      <span>Ver orden</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </Link>
+                      {current.categoriaLabel}
+                    </span>
+                    {current.numeroOrden && (
+                      <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-white/10 text-amber-300">
+                        Orden #{current.numeroOrden}
+                      </span>
+                    )}
+                    <span className="text-slate-400 text-xs hidden sm:inline">
+                      • Foto {selectedPhotoIndex + 1} de {filteredPhotos.length}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={current.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                      title="Abrir imagen original en nueva pestaña"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhotoIndex(null)}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white transition-colors cursor-pointer"
+                      title="Cerrar visor"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
+                {/* Contenedor Principal de la Imagen con Flechas de Navegación */}
+                <div className="relative flex-1 flex items-center justify-center p-2 sm:p-4 bg-slate-950 min-h-[300px] max-h-[70vh] overflow-hidden">
+                  {/* Flecha Izquierda (Anterior) */}
+                  {filteredPhotos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedPhotoIndex(
+                          selectedPhotoIndex > 0
+                            ? selectedPhotoIndex - 1
+                            : filteredPhotos.length - 1
+                        )
+                      }
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-white flex items-center justify-center shadow-xl backdrop-blur-xs transition-all cursor-pointer z-10 active:scale-95"
+                      title="Foto anterior (Flecha Izquierda)"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {/* Imagen o Video */}
+                  {isVideo ? (
+                    <video
+                      src={current.url}
+                      controls
+                      autoPlay
+                      className="max-h-[68vh] w-auto max-w-full rounded-2xl shadow-2xl"
+                    />
+                  ) : (
+                    <img
+                      src={current.url}
+                      alt={current.titulo || "Foto de vehículo"}
+                      className="max-h-[68vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl"
+                    />
+                  )}
+
+                  {/* Flecha Derecha (Siguiente) */}
+                  {filteredPhotos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedPhotoIndex(
+                          selectedPhotoIndex < filteredPhotos.length - 1
+                            ? selectedPhotoIndex + 1
+                            : 0
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-white flex items-center justify-center shadow-xl backdrop-blur-xs transition-all cursor-pointer z-10 active:scale-95"
+                      title="Foto siguiente (Flecha Derecha)"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Footer Informativo del Lightbox */}
+                <div className="p-4 bg-slate-900 border-t border-slate-800 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs px-6">
+                  <div>
+                    <p className="font-extrabold text-sm text-slate-100">
+                      {current.titulo}
+                    </p>
+                    {current.descripcion && (
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {current.descripcion}
+                      </p>
+                    )}
+                    <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                      Registrado el {new Date(current.fecha).toLocaleString("es-AR")}
+                    </span>
+                  </div>
+
+                  {current.orderId && (
+                    <Link
+                      href={`/app/ordenes/${current.orderId}`}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md transition-colors shrink-0"
+                    >
+                      <span>Ver Orden #{current.numeroOrden}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
     </div>
   );
 }
