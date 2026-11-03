@@ -13,7 +13,6 @@ import {
   X,
   Send,
   Loader2,
-  BellRing,
 } from "lucide-react";
 import { UserSession } from "@/types";
 import { normalizeRole } from "@/lib/roles";
@@ -263,58 +262,38 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       )}
 
       {/* ========================================================================= */}
-      {/* 2. AVISO PARA EL ADMINISTRADOR (Escalamiento > 4h o Pedidos por revisar)  */}
+      {/* 2. AVISO PARA EL ADMINISTRADOR (Escalamiento > 4h sin encargar)           */}
       {/* ========================================================================= */}
-      {isAdmin && admin && (admin.escalatedCount > 0 || admin.solicitadosCount > 0) && (
+      {isAdmin && admin && admin.escalatedCount > 0 && (
         <div className="mb-4 space-y-2">
-          {admin.escalatedCount > 0 && (
-            <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-600/30">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-600 text-white">
-                      Alerta de Escalamiento
-                    </span>
-                    <span className="text-xs font-bold text-rose-800">
-                      {admin.escalatedCount} pedido{admin.escalatedCount > 1 ? "s" : ""} sin encargar
-                      hace más de {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS} horas
-                    </span>
-                  </div>
-                  <p className="text-xs text-rose-700 mt-1">
-                    Recepción no ha realizado los encargos correspondientes dentro del plazo límite.
-                  </p>
-                </div>
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-600/30">
+                <AlertTriangle className="w-5 h-5" />
               </div>
-              <Link
-                href="/app/repuestos?estado=PARA_ENCARGAR"
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 flex items-center justify-center gap-1.5 transition-all self-end sm:self-auto"
-              >
-                <span>Ver Pedidos Escalados</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          )}
-
-          {admin.solicitadosCount > 0 && admin.escalatedCount === 0 && (
-            <div className="bg-purple-50 border border-purple-200 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <BellRing className="w-4 h-4 text-purple-700 shrink-0" />
-                <span className="text-xs font-bold text-purple-900">
-                  Hay {admin.solicitadosCount} pedido{admin.solicitadosCount > 1 ? "s" : ""} de
-                  repuestos pendientes de tu revisión y aprobación.
-                </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-600 text-white">
+                    Alerta de Escalamiento
+                  </span>
+                  <span className="text-xs font-bold text-rose-800">
+                    {admin.escalatedCount} pedido{admin.escalatedCount > 1 ? "s" : ""} sin encargar
+                    hace más de {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS} horas
+                  </span>
+                </div>
+                <p className="text-xs text-rose-700 mt-1">
+                  Recepción no ha realizado los encargos correspondientes dentro del plazo límite.
+                </p>
               </div>
-              <Link
-                href="/app/repuestos?estado=SOLICITADO"
-                className="text-xs font-extrabold text-purple-700 hover:text-purple-900 underline shrink-0"
-              >
-                Revisar
-              </Link>
             </div>
-          )}
+            <Link
+              href="/app/repuestos?estado=PARA_ENCARGAR"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 flex items-center justify-center gap-1.5 transition-all self-end sm:self-auto"
+            >
+              <span>Ver Pedidos Escalados</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       )}
 
