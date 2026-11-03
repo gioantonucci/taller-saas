@@ -91,29 +91,25 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
     return () => clearInterval(interval);
   }, [fetchReminders]);
 
-  // Manejador "Todavía no" (pospone modal 30 min y registra en auditoría)
-  const handleTodaviaNo = async (pedidoId: string, tipo: "ENCARGO" | "LLEGADA") => {
-    setSubmittingAction(true);
-    try {
-      await fetch(`/api/spare-parts/${pedidoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "TODAVIA_NO",
-          tipo,
-        }),
-      });
-      // Pospone el modal para la próxima vuelta (30 min)
-      lastPromptTimeRef.current = Date.now();
-      setShowPeriodicModal(false);
-      setActiveEncargoId(null);
-      setActiveRecibidoId(null);
-      fetchReminders();
-    } catch (err) {
-      console.error("Error al posponer recordatorio:", err);
-    } finally {
-      setSubmittingAction(false);
-    }
+  // Manejador "Todavía no" (cierra instantáneamente en 0ms y registra en segundo plano)
+  const handleTodaviaNo = (pedidoId: string, tipo: "ENCARGO" | "LLEGADA") => {
+    // 1. Cierre inmediato sin esperar la red ni bloquear la pantalla
+    lastPromptTimeRef.current = Date.now();
+    setShowPeriodicModal(false);
+    setActiveEncargoId(null);
+    setActiveRecibidoId(null);
+
+    // 2. Registro asíncrono en segundo plano
+    fetch(`/api/spare-parts/${pedidoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "TODAVIA_NO",
+        tipo,
+      }),
+    })
+      .then(() => fetchReminders())
+      .catch((err) => console.error("Error al posponer recordatorio en segundo plano:", err));
   };
 
   // Manejador "Encargo realizado"
