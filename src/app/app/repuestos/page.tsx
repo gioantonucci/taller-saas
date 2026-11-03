@@ -1600,68 +1600,26 @@ export default function RepuestosPage() {
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                   <span>Ver Orden Completa</span>
                 </Link>
-
-                {/* Cancelar pedido: Admin (en cualquier estado < RECIBIDO), Mecánico (solo en SOLICITADO) */}
-                {selectedRequest.estado !== "RECIBIDO" &&
-                  selectedRequest.estado !== "CANCELADO" &&
-                  (userRole === "ADMIN" ||
-                    (userRole === "MECHANIC" && selectedRequest.estado === "SOLICITADO")) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMotivoCancelacionInput("");
-                        setCancelarModalOpen(true);
-                      }}
-                      className="px-3.5 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Ban className="w-3.5 h-3.5" />
-                      <span>Cancelar Pedido</span>
-                    </button>
-                  )}
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
                 
-                {/* ACCIONES DEL ADMINISTRADOR */}
+                {/* ACCIONES DEL ADMINISTRADOR: Solo Aprobar y Pasar a Recepción */}
                 {userRole === "ADMIN" &&
                   normalizeSparePartStatus(selectedRequest.estado) === "SOLICITADO" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMotivoDevolucionInput("");
-                          setDevolverModalOpen(true);
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Devolver al Mecánico</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={handleAdminGuardarSolo}
-                        className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Guardar Borrador</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={actionLoading}
-                        onClick={handleAdminAprobar}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
-                      >
-                        {actionLoading ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                        <span>Aprobar y Pasar a Recepción</span>
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={handleAdminAprobar}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Aprobar y Pasar a Recepción</span>
+                    </button>
                   )}
 
                 {/* Si está en PARA_ENCARGAR, Admin puede guardar modificaciones de la lista */}
