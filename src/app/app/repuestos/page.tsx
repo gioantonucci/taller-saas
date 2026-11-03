@@ -44,6 +44,7 @@ import {
   isSparePartEscalated,
   isLlegadaVencida,
   formatTiempoTranscurrido,
+  getFechaUltimoEstado,
 } from "@/lib/spare-parts-config";
 import PausaRepuestoModal from "@/components/PausaRepuestoModal";
 
@@ -995,7 +996,7 @@ export default function RepuestosPage() {
 
                       <div className="text-[11px] text-slate-500 font-medium flex items-center lg:justify-end gap-1">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span>Hace {formatTiempoTranscurrido(req.createdAt)}</span>
+                        <span>Hace {formatTiempoTranscurrido(getFechaUltimoEstado(req))}</span>
                         {req.fechaEstimadaLlegada && (
                           <span className="ml-1 text-slate-700 font-bold">
                             • Llega: {new Date(req.fechaEstimadaLlegada).toLocaleDateString()}

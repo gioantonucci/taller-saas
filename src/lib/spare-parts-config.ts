@@ -166,6 +166,44 @@ export function isLlegadaVencida(req: {
 }
 
 /**
+ * Obtiene la fecha del último cambio de estado del pedido de repuestos
+ */
+export function getFechaUltimoEstado(req: {
+  estado: string;
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  fechaRevision?: string | Date | null;
+  fechaEncargo?: string | Date | null;
+  fechaRecepcion?: string | Date | null;
+  fechaCancelacion?: string | Date | null;
+}): Date {
+  const norm = normalizeSparePartStatus(req.estado);
+
+  if (norm === "CANCELADO" && req.fechaCancelacion) {
+    return new Date(req.fechaCancelacion);
+  }
+  if (norm === "RECIBIDO" && req.fechaRecepcion) {
+    return new Date(req.fechaRecepcion);
+  }
+  if (norm === "ENCARGO_REALIZADO" && req.fechaEncargo) {
+    return new Date(req.fechaEncargo);
+  }
+  if (norm === "PARA_ENCARGAR" && req.fechaRevision) {
+    return new Date(req.fechaRevision);
+  }
+  if (norm === "DEVUELTO" && req.fechaRevision) {
+    return new Date(req.fechaRevision);
+  }
+
+  // Si no está en SOLICITADO y tiene updatedAt, usar updatedAt
+  if (norm !== "SOLICITADO" && req.updatedAt) {
+    return new Date(req.updatedAt);
+  }
+
+  return req.createdAt ? new Date(req.createdAt) : new Date();
+}
+
+/**
  * Calcula el tiempo transcurrido en formato amigable
  */
 export function formatTiempoTranscurrido(dateInput: string | Date | undefined | null): string {
