@@ -1291,7 +1291,7 @@ export default function OrdenDetallePage() {
                       <span className="font-mono font-black text-xs text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                         Pedido #{sp.id.slice(-4)}
                       </span>
-                      {(() => {
+                      {!isMechanic && (() => {
                         const stInfo = getSparePartStatusInfo(sp.estado);
                         return (
                           <span
@@ -1356,7 +1356,7 @@ export default function OrdenDetallePage() {
                       href={`/app/repuestos?pedidoId=${sp.id}`}
                       className="text-xs font-extrabold text-amber-700 hover:text-amber-900 flex items-center gap-1 underline"
                     >
-                      <span>Abrir Detalle y Acciones</span>
+                      <span>{isMechanic ? "Ver mi Pedido" : "Abrir Detalle y Acciones"}</span>
                       <ArrowRight className="w-3 h-3" />
                     </Link>
 

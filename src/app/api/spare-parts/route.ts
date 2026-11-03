@@ -28,12 +28,9 @@ export async function GET(request: NextRequest) {
     const where: any = {};
 
     // 1. Filtrado por rol:
-    // El mecánico solo puede ver los pedidos de sus propias órdenes o creados por él
+    // El mecánico solo debe poder ver los pedidos que él ha realizado
     if (role === "MECHANIC") {
-      where.OR = [
-        { mechanicId: session.id },
-        { workOrder: { mechanicId: session.id } },
-      ];
+      where.mechanicId = session.id;
     } else if (mechanicId && mechanicId !== "TODOS") {
       where.mechanicId = mechanicId;
     }

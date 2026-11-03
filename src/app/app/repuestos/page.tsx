@@ -131,6 +131,7 @@ export default function RepuestosPage() {
   }, [fetchRequests]);
 
   const userRole = currentUser ? normalizeRole(currentUser.role) : "RECEPTION";
+  const isMechanic = userRole === "MECHANIC";
 
   // Abrir detalle del pedido de forma instantánea (0ms de retraso)
   const openDetail = (req: SparePartRequest) => {
@@ -382,59 +383,72 @@ export default function RepuestosPage() {
     };
   }, [requests]);
 
-  // Filtrado y ordenamiento con ESCALADOS PRIMERO (rojos arriba)
+  // Filtrado y ordenamiento de pedidos
   const filteredRequests = useMemo(() => {
-    return requests.filter((r) => {
-      const st = normalizeSparePartStatus(r.estado);
-
-      // Filtro por Estado
-      if (statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR") {
-        if (st !== "SOLICITADO") return false;
-      } else if (statusFilter === "PENDIENTES_RECEPCION") {
-        if (st !== "PARA_ENCARGAR" && st !== "ENCARGO_REALIZADO") return false;
-      } else if (statusFilter === "ESCALADOS") {
-        if (!isSparePartEscalated(r)) return false;
-      } else if (statusFilter !== "TODOS" && st !== statusFilter) {
-        return false;
-      }
-
-      // Filtro por Mecánico
-      if (mechanicFilter !== "TODOS") {
-        if (r.mechanicId !== mechanicFilter && r.workOrder?.mechanicId !== mechanicFilter) {
-          return false;
+    return requests
+      .filter((r) => {
+        // Regla: El mecánico solo puede ver los pedidos que él ha realizado
+        if (isMechanic && currentUser?.id) {
+          if (r.mechanicId !== currentUser.id) return false;
         }
-      }
 
-      // Filtro por búsqueda (patente, orden, falla o cliente)
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const patente = r.workOrder?.vehicle?.patente?.toLowerCase() || "";
-        const nroOrden = String(r.workOrder?.numeroOrden || "");
-        const falla = r.fallaReparar?.toLowerCase() || "";
-        const cliente = `${r.workOrder?.vehicle?.client?.nombre || ""} ${r.workOrder?.vehicle?.client?.apellido || ""}`.toLowerCase();
-        const modelo = `${r.workOrder?.vehicle?.marca || ""} ${r.workOrder?.vehicle?.modelo || ""}`.toLowerCase();
+        const st = normalizeSparePartStatus(r.estado);
 
-        return (
-          patente.includes(q) ||
-          nroOrden.includes(q) ||
-          falla.includes(q) ||
-          cliente.includes(q) ||
-          modelo.includes(q)
-        );
-      }
+        // Filtro por Estado y Mecánico (solo aplica a Admin y Recepción)
+        if (!isMechanic) {
+          if (statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR") {
+            if (st !== "SOLICITADO") return false;
+          } else if (statusFilter === "PENDIENTES_RECEPCION") {
+            if (st !== "PARA_ENCARGAR" && st !== "ENCARGO_REALIZADO") return false;
+          } else if (statusFilter === "ESCALADOS") {
+            if (!isSparePartEscalated(r)) return false;
+          } else if (statusFilter !== "TODOS" && st !== statusFilter) {
+            return false;
+          }
 
-      return true;
-    }).sort((a, b) => {
-      const aEsc = isSparePartEscalated(a);
-      const bEsc = isSparePartEscalated(b);
-      if (aEsc && !bEsc) return -1;
-      if (!aEsc && bEsc) return 1;
+          if (mechanicFilter !== "TODOS") {
+            if (r.mechanicId !== mechanicFilter && r.workOrder?.mechanicId !== mechanicFilter) {
+              return false;
+            }
+          }
+        }
 
-      const dateA = getFechaUltimoEstado(a).getTime();
-      const dateB = getFechaUltimoEstado(b).getTime();
-      return dateA - dateB;
-    });
-  }, [requests, statusFilter, mechanicFilter, searchQuery]);
+        // Filtro por búsqueda (patente, orden, falla o cliente)
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const patente = r.workOrder?.vehicle?.patente?.toLowerCase() || "";
+          const nroOrden = String(r.workOrder?.numeroOrden || "");
+          const falla = r.fallaReparar?.toLowerCase() || "";
+          const cliente = `${r.workOrder?.vehicle?.client?.nombre || ""} ${r.workOrder?.vehicle?.client?.apellido || ""}`.toLowerCase();
+          const modelo = `${r.workOrder?.vehicle?.marca || ""} ${r.workOrder?.vehicle?.modelo || ""}`.toLowerCase();
+
+          return (
+            patente.includes(q) ||
+            nroOrden.includes(q) ||
+            falla.includes(q) ||
+            cliente.includes(q) ||
+            modelo.includes(q)
+          );
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        // Para el mecánico: orden cronológico descendente (los más recientes arriba)
+        if (isMechanic) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
+        const aEsc = isSparePartEscalated(a);
+        const bEsc = isSparePartEscalated(b);
+        if (aEsc && !bEsc) return -1;
+        if (!aEsc && bEsc) return 1;
+
+        const dateA = getFechaUltimoEstado(a).getTime();
+        const dateB = getFechaUltimoEstado(b).getTime();
+        return dateA - dateB;
+      });
+  }, [requests, statusFilter, mechanicFilter, searchQuery, isMechanic, currentUser]);
 
   return (
     <div className="space-y-6">
@@ -448,10 +462,12 @@ export default function RepuestosPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Pedido y Seguimiento de Repuestos
+                {isMechanic ? "Mis Pedidos de Repuestos" : "Pedido y Seguimiento de Repuestos"}
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                Gestión integral de pausas mecánicas, revisión de ítems, encargos y recepción
+                {isMechanic
+                  ? "Historial de repuestos que has solicitado para tus órdenes de trabajo"
+                  : "Gestión integral de pausas mecánicas, revisión de ítems, encargos y recepción"}
               </p>
             </div>
           </div>
@@ -470,116 +486,134 @@ export default function RepuestosPage() {
         </div>
       </div>
 
-      {/* TARJETAS DE MÉTRICAS RÁPIDAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <button
-          type="button"
-          onClick={() => setStatusFilter("TODOS")}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "TODOS"
-              ? "bg-slate-900 text-white border-slate-900 shadow-md"
-              : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-          }`}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-            Total Pedidos
-          </span>
-          <span className="text-xl font-black mt-1 block">{metrics.total}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("SOLICITADO")}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
-              ? "bg-purple-900 text-white border-purple-900 shadow-md"
-              : "bg-white border-purple-200 text-purple-950 hover:bg-purple-50/50"
-          }`}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-            Por Revisar (Admin)
-          </span>
-          <span
-            className={`text-xl font-black mt-1 block ${
-              statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
-                ? "text-white"
-                : "text-purple-600 dark:text-purple-300"
+      {/* TARJETAS DE MÉTRICAS */}
+      {!isMechanic ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("TODOS")}
+            className={`p-3.5 rounded-2xl border text-left transition-all ${
+              statusFilter === "TODOS"
+                ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
             }`}
           >
-            {metrics.solicitados}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("PARA_ENCARGAR")}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "PARA_ENCARGAR"
-              ? "bg-amber-600 text-white border-amber-600 shadow-md"
-              : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-              Para Encargar
+              Total Pedidos
             </span>
-            {metrics.escalados > 0 && (
-              <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs">
-                {metrics.escalados} en rojo
+            <span className="text-xl font-black mt-1 block">{metrics.total}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("SOLICITADO")}
+            className={`p-3.5 rounded-2xl border text-left transition-all ${
+              statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
+                ? "bg-purple-900 text-white border-purple-900 shadow-md"
+                : "bg-white border-purple-200 text-purple-950 hover:bg-purple-50/50"
+            }`}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+              Por Revisar (Admin)
+            </span>
+            <span
+              className={`text-xl font-black mt-1 block ${
+                statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
+                  ? "text-white"
+                  : "text-purple-600 dark:text-purple-300"
+              }`}
+            >
+              {metrics.solicitados}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("PARA_ENCARGAR")}
+            className={`p-3.5 rounded-2xl border text-left transition-all ${
+              statusFilter === "PARA_ENCARGAR"
+                ? "bg-amber-600 text-white border-amber-600 shadow-md"
+                : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                Para Encargar
               </span>
-            )}
+              {metrics.escalados > 0 && (
+                <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs">
+                  {metrics.escalados} en rojo
+                </span>
+              )}
+            </div>
+            <span
+              className={`text-xl font-black mt-1 block ${
+                statusFilter === "PARA_ENCARGAR" ? "text-white" : "text-amber-600"
+              }`}
+            >
+              {metrics.paraEncargar}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("ENCARGO_REALIZADO")}
+            className={`p-3.5 rounded-2xl border text-left transition-all ${
+              statusFilter === "ENCARGO_REALIZADO"
+                ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                : "bg-white border-blue-200 text-blue-950 hover:bg-blue-50/50"
+            }`}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+              Encargados / En Tránsito
+            </span>
+            <span
+              className={`text-xl font-black mt-1 block ${
+                statusFilter === "ENCARGO_REALIZADO" ? "text-white" : "text-blue-600"
+              }`}
+            >
+              {metrics.encargados}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("RECIBIDO")}
+            className={`p-3.5 rounded-2xl border text-left transition-all ${
+              statusFilter === "RECIBIDO"
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+                : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
+            }`}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+              Recibidos en Taller
+            </span>
+            <span
+              className={`text-xl font-black mt-1 block ${
+                statusFilter === "RECIBIDO" ? "text-white" : "text-emerald-600"
+              }`}
+            >
+              {metrics.recibidos}
+            </span>
+          </button>
+        </div>
+      ) : (
+        <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block">
+                Total de Pedidos Realizados
+              </span>
+              <p className="text-xl font-black text-slate-900">
+                {filteredRequests.length} pedido{filteredRequests.length === 1 ? "" : "s"}
+              </p>
+            </div>
           </div>
-          <span
-            className={`text-xl font-black mt-1 block ${
-              statusFilter === "PARA_ENCARGAR" ? "text-white" : "text-amber-600"
-            }`}
-          >
-            {metrics.paraEncargar}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("ENCARGO_REALIZADO")}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "ENCARGO_REALIZADO"
-              ? "bg-blue-600 text-white border-blue-600 shadow-md"
-              : "bg-white border-blue-200 text-blue-950 hover:bg-blue-50/50"
-          }`}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-            Encargados / En Tránsito
-          </span>
-          <span
-            className={`text-xl font-black mt-1 block ${
-              statusFilter === "ENCARGO_REALIZADO" ? "text-white" : "text-blue-600"
-            }`}
-          >
-            {metrics.encargados}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setStatusFilter("RECIBIDO")}
-          className={`p-3.5 rounded-2xl border text-left transition-all ${
-            statusFilter === "RECIBIDO"
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
-              : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
-          }`}
-        >
-          <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-            Recibidos en Taller
-          </span>
-          <span
-            className={`text-xl font-black mt-1 block ${
-              statusFilter === "RECIBIDO" ? "text-white" : "text-emerald-600"
-            }`}
-          >
-            {metrics.recibidos}
-          </span>
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* BARRA DE FILTROS Y BÚSQUEDA */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -594,44 +628,46 @@ export default function RepuestosPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Filtro por estado */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-400">Estado:</span>
-            <select
-              value={statusFilter === "POR_REVISAR" ? "SOLICITADO" : statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="TODOS">Todos los estados</option>
-              <option value="SOLICITADO">1. Solicitados (Por revisar Admin)</option>
-              <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
-              <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
-              <option value="RECIBIDO">4. Recibidos en Taller</option>
-              <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
-              <option value="ESCALADOS">🚨 Demorados en Rojo</option>
-            </select>
-          </div>
-
-          {/* Filtro por mecánico */}
-          {userRole !== "MECHANIC" && mechanicsList.length > 0 && (
+        {!isMechanic && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filtro por estado */}
             <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-bold text-slate-400">Mecánico:</span>
+              <span className="text-[11px] font-bold text-slate-400">Estado:</span>
               <select
-                value={mechanicFilter}
-                onChange={(e) => setMechanicFilter(e.target.value)}
+                value={statusFilter === "POR_REVISAR" ? "SOLICITADO" : statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
                 className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
               >
-                <option value="TODOS">Todos los mecánicos</option>
-                {mechanicsList.map(([id, name]) => (
-                  <option key={id} value={id}>
-                    {name}
-                  </option>
-                ))}
+                <option value="TODOS">Todos los estados</option>
+                <option value="SOLICITADO">1. Solicitados (Por revisar Admin)</option>
+                <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
+                <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
+                <option value="RECIBIDO">4. Recibidos en Taller</option>
+                <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
+                <option value="ESCALADOS">🚨 Demorados en Rojo</option>
               </select>
             </div>
-          )}
-        </div>
+
+            {/* Filtro por mecánico */}
+            {mechanicsList.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-400">Mecánico:</span>
+                <select
+                  value={mechanicFilter}
+                  onChange={(e) => setMechanicFilter(e.target.value)}
+                  className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="TODOS">Todos los mecánicos</option>
+                  {mechanicsList.map(([id, name]) => (
+                    <option key={id} value={id}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* LISTADO DE PEDIDOS (TABLA / CARDS) */}
@@ -669,7 +705,7 @@ export default function RepuestosPage() {
                   key={req.id}
                   onClick={() => openDetail(req)}
                   className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all cursor-pointer hover:bg-slate-50/80 ${
-                    isEscalated
+                    !isMechanic && isEscalated
                       ? "bg-rose-50/70 border-l-4 border-l-rose-600 hover:bg-rose-50"
                       : "border-l-4 border-l-transparent"
                   }`}
@@ -678,7 +714,7 @@ export default function RepuestosPage() {
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <div
                       className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
-                        isEscalated
+                        !isMechanic && isEscalated
                           ? "bg-rose-600 text-white shadow-rose-600/30"
                           : "bg-slate-100 text-slate-700"
                       }`}
@@ -698,7 +734,7 @@ export default function RepuestosPage() {
                           {req.workOrder?.vehicle?.marca} {req.workOrder?.vehicle?.modelo}
                         </span>
 
-                        {isEscalated && (
+                        {!isMechanic && isEscalated && (
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
                             {st === "PARA_ENCARGAR"
@@ -708,7 +744,7 @@ export default function RepuestosPage() {
                               : "Demorado"}
                           </span>
                         )}
-                        {!isEscalated && isVencida && (
+                        {!isMechanic && !isEscalated && isVencida && (
                           <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-rose-200">
                             Llegada Vencida
                           </span>
@@ -720,14 +756,18 @@ export default function RepuestosPage() {
                       </p>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3 text-slate-400" />
-                          Mecánico:{" "}
-                          <strong className="text-slate-700">
-                            {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
-                          </strong>
-                        </span>
-                        <span>•</span>
+                        {!isMechanic && (
+                          <>
+                            <span className="flex items-center gap-1">
+                              <User className="w-3 h-3 text-slate-400" />
+                              Mecánico:{" "}
+                              <strong className="text-slate-700">
+                                {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
+                              </strong>
+                            </span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span>
                           Cliente: {req.workOrder?.vehicle?.client?.nombre}{" "}
                           {req.workOrder?.vehicle?.client?.apellido || ""}
@@ -741,17 +781,28 @@ export default function RepuestosPage() {
                   {/* Estado, Tiempos y Acceso */}
                   <div className="flex items-center justify-between lg:justify-end gap-4 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                     <div className="text-left lg:text-right space-y-1">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusInfo.badgeClass}`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
-                        <span>{statusInfo.label}</span>
-                      </span>
+                      {isMechanic ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200">
+                          <Package className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Pedido Realizado</span>
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${statusInfo.badgeClass}`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
+                          <span>{statusInfo.label}</span>
+                        </span>
+                      )}
 
                       <div className="text-[11px] text-slate-500 font-medium flex items-center lg:justify-end gap-1">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span>Hace {formatTiempoTranscurrido(getFechaUltimoEstado(req))}</span>
-                        {req.fechaEstimadaLlegada && (
+                        <span>
+                          {isMechanic
+                            ? `Solicitado el ${new Date(req.createdAt).toLocaleDateString()}`
+                            : `Hace ${formatTiempoTranscurrido(getFechaUltimoEstado(req))}`}
+                        </span>
+                        {!isMechanic && req.fechaEstimadaLlegada && (
                           <span className="ml-1 text-slate-700 font-bold">
                             • Llega: {new Date(req.fechaEstimadaLlegada).toLocaleDateString()}
                           </span>
@@ -794,7 +845,7 @@ export default function RepuestosPage() {
                   <span className="text-slate-300 text-xs font-medium">
                     Orden #{selectedRequest.workOrder?.numeroOrden}
                   </span>
-                  {isSparePartEscalated(selectedRequest) && (
+                  {!isMechanic && isSparePartEscalated(selectedRequest) && (
                     <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
                       🚨{" "}
                       {normalizeSparePartStatus(selectedRequest.estado) === "PARA_ENCARGAR"
@@ -834,57 +885,75 @@ export default function RepuestosPage() {
             <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
               
               {/* Barra de Estado Actual y Tiempos */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                    Estado Actual del Pedido:
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                      SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.badgeClass
-                    }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.dotClass
-                      }`}
-                    />
-                    <span>{SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.label}</span>
-                  </span>
-                </div>
-
-                <div className="text-xs text-slate-600 space-y-0.5 sm:text-right font-medium">
+              {!isMechanic ? (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    Creado: {new Date(selectedRequest.createdAt).toLocaleString()} por{" "}
-                    <strong>
-                      {selectedRequest.mechanic?.nombre} {selectedRequest.mechanic?.apellido || ""}
-                    </strong>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                      Estado Actual del Pedido:
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                        SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.badgeClass
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.dotClass
+                        }`}
+                      />
+                      <span>{SPARE_PART_STATUS_MAP[normalizeSparePartStatus(selectedRequest.estado)]?.label}</span>
+                    </span>
                   </div>
-                  {selectedRequest.fechaRevision && (
-                    <div className="text-purple-800">
-                      Revisado por Admin: {new Date(selectedRequest.fechaRevision).toLocaleDateString()}
+
+                  <div className="text-xs text-slate-600 space-y-0.5 sm:text-right font-medium">
+                    <div>
+                      Creado: {new Date(selectedRequest.createdAt).toLocaleString()} por{" "}
+                      <strong>
+                        {selectedRequest.mechanic?.nombre} {selectedRequest.mechanic?.apellido || ""}
+                      </strong>
                     </div>
-                  )}
-                  {selectedRequest.encargadoPor && (
-                    <div className="text-blue-800">
-                      Encargo: {selectedRequest.encargadoPor} (
-                      {selectedRequest.fechaEncargo
-                        ? new Date(selectedRequest.fechaEncargo).toLocaleDateString()
-                        : "S/D"}
-                      )
-                    </div>
-                  )}
-                  {selectedRequest.recibidoPor && (
-                    <div className="text-emerald-800 font-bold">
-                      Recibido por: {selectedRequest.recibidoPor} (
-                      {selectedRequest.fechaRecepcion
-                        ? new Date(selectedRequest.fechaRecepcion).toLocaleDateString()
-                        : "S/D"}
-                      )
-                    </div>
-                  )}
+                    {selectedRequest.fechaRevision && (
+                      <div className="text-purple-800">
+                        Revisado por Admin: {new Date(selectedRequest.fechaRevision).toLocaleDateString()}
+                      </div>
+                    )}
+                    {selectedRequest.encargadoPor && (
+                      <div className="text-blue-800">
+                        Encargo: {selectedRequest.encargadoPor} (
+                        {selectedRequest.fechaEncargo
+                          ? new Date(selectedRequest.fechaEncargo).toLocaleDateString()
+                          : "S/D"}
+                        )
+                      </div>
+                    )}
+                    {selectedRequest.recibidoPor && (
+                      <div className="text-emerald-800 font-bold">
+                        Recibido por: {selectedRequest.recibidoPor} (
+                        {selectedRequest.fechaRecepcion
+                          ? new Date(selectedRequest.fechaRecepcion).toLocaleDateString()
+                          : "S/D"}
+                        )
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/80 flex items-center justify-center text-slate-700">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-slate-900 block">
+                        Pedido de repuestos registrado
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Solicitado el {new Date(selectedRequest.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Si está devuelto, mostrar el motivo */}
               {selectedRequest.motivoDevolucion && (
@@ -1114,8 +1183,49 @@ export default function RepuestosPage() {
                     </div>
                   </div>
                 </div>
+              ) : isMechanic ? (
+                /* VISTA MECÁNICO: Solo los repuestos que él solicitó */
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wide text-slate-700 flex items-center gap-1.5">
+                      <Wrench className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Repuestos solicitados</span>
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {(() => {
+                      const list = parseSparePartItems(
+                        selectedRequest.itemsSolicitados,
+                        selectedRequest.repuestosLista
+                      );
+
+                      if (list.length > 0) {
+                        return list.map((it, idx) => (
+                          <div
+                            key={it.id || idx}
+                            className="p-3 bg-white rounded-xl border border-slate-200 text-xs flex items-center justify-between shadow-2xs"
+                          >
+                            <span className="font-semibold text-slate-800">
+                              {it.descripcion}
+                            </span>
+                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 font-mono font-black text-slate-900">
+                              {it.cantidad}x
+                            </span>
+                          </div>
+                        ));
+                      }
+
+                      return (
+                        <p className="text-xs text-slate-700 font-mono whitespace-pre-line bg-white p-3 rounded-xl border border-slate-200">
+                          {selectedRequest.repuestosLista || "Sin repuestos especificados"}
+                        </p>
+                      );
+                    })()}
+                  </div>
+                </div>
               ) : (
-                /* VISTA GENERAL / SOLO LECTURA (Recepción, Mecánico o Estados Finalizados) */
+                /* VISTA GENERAL / SOLO LECTURA (Recepción o Admin) */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Columna Izquierda: Solicitados por el Mecánico */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
@@ -1254,8 +1364,8 @@ export default function RepuestosPage() {
                 );
               })()}
 
-              {/* 5. Datos de Encargo y Proveedor (Si ya se encargó) */}
-              {selectedRequest.encargadoPor && (
+              {/* 5. Datos de Encargo y Proveedor (Si ya se encargó, solo para Admin y Recepción) */}
+              {!isMechanic && selectedRequest.encargadoPor && (
                 <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-black uppercase text-blue-900">
                     <Truck className="w-4 h-4 text-blue-600" />
@@ -1290,8 +1400,8 @@ export default function RepuestosPage() {
                 </div>
               )}
 
-              {/* 6. Datos de Recepción en Taller (Si ya se recibió) */}
-              {selectedRequest.fechaRecepcion && (
+              {/* 6. Datos de Recepción en Taller (Si ya se recibió, solo para Admin y Recepción) */}
+              {!isMechanic && selectedRequest.fechaRecepcion && (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-black uppercase text-emerald-900">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
