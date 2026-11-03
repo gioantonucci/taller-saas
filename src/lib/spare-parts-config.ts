@@ -1,4 +1,4 @@
-import { SparePartStatus } from "@/types";
+import { SparePartStatus, SparePartItem, SparePartPhoto } from "@/types";
 
 /**
  * Parámetros configurables según la especificación del sistema de pedidos de repuestos.
@@ -220,4 +220,65 @@ export function formatTiempoTranscurrido(dateInput: string | Date | undefined | 
   }
   const days = Math.floor(hours / 24);
   return `${days}d ${hours % 24}h`;
+}
+
+/**
+ * Parsea de manera segura listas de repuestos (JSON string, array o texto plano)
+ */
+export function parseSparePartItems(raw: any, fallbackText?: string | null): SparePartItem[] {
+  if (Array.isArray(raw)) {
+    return raw.map((it, idx) => ({
+      id: it.id || `item-${idx}`,
+      descripcion: (it.descripcion || it.nombre || "").trim(),
+      cantidad: Math.max(1, Number(it.cantidad) || 1),
+    }));
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((it, idx) => ({
+          id: it.id || `item-${idx}`,
+          descripcion: (it.descripcion || it.nombre || "").trim(),
+          cantidad: Math.max(1, Number(it.cantidad) || 1),
+        }));
+      }
+    } catch {}
+  }
+  if (fallbackText && typeof fallbackText === "string" && fallbackText.trim()) {
+    return fallbackText
+      .split("\n")
+      .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
+      .filter(Boolean)
+      .map((l, idx) => ({
+        id: `item-${idx}`,
+        descripcion: l,
+        cantidad: 1,
+      }));
+  }
+  return [];
+}
+
+/**
+ * Parsea de manera segura fotografías con notas ancladas
+ */
+export function parseSparePartPhotos(raw: any, fallbackUrl?: string | null): SparePartPhoto[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  if (fallbackUrl) {
+    return [
+      {
+        id: "foto-0",
+        url: fallbackUrl,
+        nota: "Foto inicial de evidencia",
+        fecha: new Date().toISOString(),
+      },
+    ];
+  }
+  return [];
 }

@@ -9,32 +9,20 @@ import {
   CheckCircle2,
   AlertTriangle,
   Search,
-  Filter,
   Plus,
   Trash2,
-  Eye,
   Camera,
   Truck,
-  FileText,
-  ArrowRight,
   ExternalLink,
   User,
-  Car,
   Wrench,
   RefreshCw,
   X,
   Loader2,
-  Calendar,
-  Building2,
-  History,
-  RotateCcw,
-  Ban,
-  MessageSquare,
   ChevronRight,
-  Send,
-  Check,
+  Ban,
 } from "lucide-react";
-import { SparePartRequest, SparePartItem, SparePartPhoto } from "@/types";
+import { SparePartRequest, SparePartItem } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
 import { normalizeRole } from "@/lib/roles";
 import {
@@ -45,8 +33,9 @@ import {
   isLlegadaVencida,
   formatTiempoTranscurrido,
   getFechaUltimoEstado,
+  parseSparePartItems,
+  parseSparePartPhotos,
 } from "@/lib/spare-parts-config";
-import PausaRepuestoModal from "@/components/PausaRepuestoModal";
 
 export default function RepuestosPage() {
   const { alert, confirm } = useAppDialog();
@@ -69,11 +58,8 @@ export default function RepuestosPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // Estados para Acciones del Administrador en el modal
-  const [editItemsMode, setEditItemsMode] = useState(false);
   const [itemsAEncargarEditable, setItemsAEncargarEditable] = useState<SparePartItem[]>([]);
   const [notasAdminInput, setNotasAdminInput] = useState("");
-  const [devolverModalOpen, setDevolverModalOpen] = useState(false);
-  const [motivoDevolucionInput, setMotivoDevolucionInput] = useState("");
 
   // Estados para Acciones de Recepción
   const [encargoModalOpen, setEncargoModalOpen] = useState(false);
@@ -83,14 +69,6 @@ export default function RepuestosPage() {
   const [recibidoModalOpen, setRecibidoModalOpen] = useState(false);
   const [remitoNroInput, setRemitoNroInput] = useState("");
   const [notasRecepcionInput, setNotasRecepcionInput] = useState("");
-
-  // Estados para Cancelación
-  const [cancelarModalOpen, setCancelarModalOpen] = useState(false);
-  const [motivoCancelacionInput, setMotivoCancelacionInput] = useState("");
-
-  // Modal para que el mecánico reenvíe un pedido devuelto
-  const [reenviarModalOpen, setReenviarModalOpen] = useState(false);
-  const [reqToResend, setReqToResend] = useState<SparePartRequest | null>(null);
 
   // Modal de foto grande (lightbox)
   const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
@@ -174,56 +152,17 @@ export default function RepuestosPage() {
 
   const initAdminEditableItems = (req: SparePartRequest) => {
     // Al abrir la revisión se precarga con los solicitados para que el Administrador los edite
-    try {
-      if (req.itemsAEncargar) {
-        const parsed =
-          typeof req.itemsAEncargar === "string"
-            ? JSON.parse(req.itemsAEncargar)
-            : req.itemsAEncargar;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItemsAEncargarEditable(parsed);
-          setNotasAdminInput(req.notasAdmin || "");
-          return;
-        }
-      }
-      if (req.itemsSolicitados) {
-        const parsed =
-          typeof req.itemsSolicitados === "string"
-            ? JSON.parse(req.itemsSolicitados)
-            : req.itemsSolicitados;
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItemsAEncargarEditable(
-            parsed.map((it: any) => ({
-              id: it.id || `item-${Math.random()}`,
-              descripcion: it.descripcion || it.nombre || "",
-              cantidad: it.cantidad || 1,
-            }))
-          );
-          setNotasAdminInput(req.notasAdmin || "");
-          return;
-        }
-      }
-    } catch {}
+    const existingApproved = parseSparePartItems(req.itemsAEncargar);
+    const initialList =
+      existingApproved.length > 0
+        ? existingApproved
+        : parseSparePartItems(req.itemsSolicitados, req.repuestosLista);
 
-    // Fallback con texto libre
-    if (req.repuestosLista) {
-      const itemsFromText = req.repuestosLista
-        .split("\n")
-        .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
-        .filter(Boolean)
-        .map((l, idx) => ({
-          id: `item-${idx}`,
-          descripcion: l,
-          cantidad: 1,
-        }));
-      setItemsAEncargarEditable(
-        itemsFromText.length > 0
-          ? itemsFromText
-          : [{ id: "item-0", descripcion: "", cantidad: 1 }]
-      );
-    } else {
-      setItemsAEncargarEditable([{ id: "item-0", descripcion: "", cantidad: 1 }]);
-    }
+    setItemsAEncargarEditable(
+      initialList.length > 0
+        ? initialList
+        : [{ id: "item-0", descripcion: "", cantidad: 1 }]
+    );
     setNotasAdminInput(req.notasAdmin || "");
   };
 
@@ -300,143 +239,20 @@ export default function RepuestosPage() {
     }
   };
 
-  const handleAdminGuardarSolo = async () => {
-    if (!selectedRequest) return;
-
-    const validItems = itemsAEncargarEditable.filter(
-      (it) => it.descripcion && it.descripcion.trim().length > 0
-    );
-    if (validItems.length === 0) {
-      await alert({
-        title: "Lista requerida",
-        message: "Debe ingresar al menos un repuesto con su cantidad.",
-        variant: "warning",
-      });
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "EDITAR_ITEMS",
-          itemsAEncargar: validItems,
-          notasAdmin: notasAdminInput.trim() || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || "Error al guardar cambios");
-      }
-
-      const fresh = await res.json();
-      setRequests((prev) =>
-        prev.map((r) => (r.id === fresh.id ? fresh : r))
-      );
-      setSelectedRequest(fresh);
-
-      await alert({
-        title: "Cambios Guardados",
-        message: "Se guardó la lista editada de repuestos.",
-        variant: "success",
-      });
-    } catch (err: any) {
-      await alert({
-        title: "Error",
-        message: err.message || "No se pudo guardar la lista.",
-        variant: "danger",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleCopiarSolicitados = () => {
     if (!selectedRequest) return;
-    try {
-      let orig: any[] = [];
-      if (selectedRequest.itemsSolicitados) {
-        orig =
-          typeof selectedRequest.itemsSolicitados === "string"
-            ? JSON.parse(selectedRequest.itemsSolicitados)
-            : selectedRequest.itemsSolicitados;
-      }
-      if (Array.isArray(orig) && orig.length > 0) {
-        setItemsAEncargarEditable(
-          orig.map((it, idx) => ({
-            id: `item-copy-${Date.now()}-${idx}`,
-            descripcion: it.descripcion || it.nombre || "",
-            cantidad: Number(it.cantidad) || 1,
-          }))
-        );
-        return;
-      }
-    } catch {}
-
-    if (selectedRequest.repuestosLista) {
-      const parsed = selectedRequest.repuestosLista
-        .split("\n")
-        .map((l) => l.replace(/^[•\-\*]\s*/, "").trim())
-        .filter(Boolean)
-        .map((l, idx) => ({
+    const parsed = parseSparePartItems(
+      selectedRequest.itemsSolicitados,
+      selectedRequest.repuestosLista
+    );
+    if (parsed.length > 0) {
+      setItemsAEncargarEditable(
+        parsed.map((it, idx) => ({
           id: `item-copy-${Date.now()}-${idx}`,
-          descripcion: l,
-          cantidad: 1,
-        }));
-      if (parsed.length > 0) {
-        setItemsAEncargarEditable(parsed);
-      }
-    }
-  };
-
-  const handleAdminDevolver = async () => {
-    if (!selectedRequest) return;
-    if (!motivoDevolucionInput.trim()) {
-      await alert({
-        title: "Motivo obligatorio",
-        message: "Debe ingresar el motivo de la devolución para que el mecánico pueda corregirlo.",
-        variant: "warning",
-      });
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "DEVOLVER",
-          motivoDevolucion: motivoDevolucionInput.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || "Error al devolver pedido");
-      }
-
-      await alert({
-        title: "Pedido Devuelto",
-        message: "El pedido fue devuelto al mecánico con el motivo registrado.",
-        variant: "info",
-      });
-
-      setDevolverModalOpen(false);
-      setMotivoDevolucionInput("");
-      setDetailModalOpen(false);
-      fetchRequests();
-    } catch (err: any) {
-      await alert({
-        title: "Error",
-        message: err.message || "No se pudo devolver el pedido.",
-        variant: "danger",
-      });
-    } finally {
-      setActionLoading(false);
+          descripcion: it.descripcion,
+          cantidad: it.cantidad,
+        }))
+      );
     }
   };
 
@@ -521,97 +337,6 @@ export default function RepuestosPage() {
       await alert({
         title: "Error",
         message: err.message || "No se pudo marcar como recibido.",
-        variant: "danger",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleTodaviaNoClick = async () => {
-    if (!selectedRequest) return;
-
-    setActionLoading(true);
-    try {
-      const tipo =
-        selectedRequest.estado === "ENCARGO_REALIZADO" ? "LLEGADA" : "ENCARGO";
-      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "TODAVIA_NO",
-          tipo,
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || "Error al posponer recordatorio");
-      }
-
-      await alert({
-        title: "Recordatorio Pospuesto",
-        message: `Se registró 'Todavía no' en auditoría. El recordatorio se pospuso por ${SPARE_PARTS_CONFIG.RECORDATORIO_INTERVALO_MINUTOS} minutos.`,
-        variant: "info",
-      });
-
-      setDetailModalOpen(false);
-      fetchRequests();
-    } catch (err: any) {
-      await alert({
-        title: "Error",
-        message: err.message || "No se pudo posponer.",
-        variant: "danger",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // =========================================================================
-  // ACCIONES CANCELACIÓN (Admin o Mecánico en Solicitado)
-  // =========================================================================
-  const handleConfirmCancelar = async () => {
-    if (!selectedRequest) return;
-    if (!motivoCancelacionInput.trim()) {
-      await alert({
-        title: "Motivo obligatorio",
-        message: "Debe ingresar el motivo de la cancelación.",
-        variant: "warning",
-      });
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "CANCELAR",
-          motivoCancelacion: motivoCancelacionInput.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || "Error al cancelar pedido");
-      }
-
-      await alert({
-        title: "Pedido Cancelado",
-        message: "El pedido de repuestos fue cancelado con éxito.",
-        variant: "info",
-      });
-
-      setCancelarModalOpen(false);
-      setMotivoCancelacionInput("");
-      setDetailModalOpen(false);
-      fetchRequests();
-    } catch (err: any) {
-      await alert({
-        title: "Error",
-        message: err.message || "No se pudo cancelar el pedido.",
         variant: "danger",
       });
     } finally {
@@ -908,11 +633,8 @@ export default function RepuestosPage() {
               const isVencida = isLlegadaVencida(req);
 
               // Conteo de repuestos
-              let itemsCount = 1;
-              try {
-                if (req.itemsAEncargar) itemsCount = JSON.parse(req.itemsAEncargar as string).length;
-                else if (req.itemsSolicitados) itemsCount = JSON.parse(req.itemsSolicitados as string).length;
-              } catch {}
+              const itemsList = parseSparePartItems(req.itemsAEncargar || req.itemsSolicitados, req.repuestosLista);
+              const itemsCount = itemsList.length > 0 ? itemsList.length : 1;
 
               return (
                 <div
@@ -1196,23 +918,18 @@ export default function RepuestosPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {(() => {
-                        let list: any[] = [];
-                        try {
-                          if (selectedRequest.itemsSolicitados) {
-                            list =
-                              typeof selectedRequest.itemsSolicitados === "string"
-                                ? JSON.parse(selectedRequest.itemsSolicitados)
-                                : selectedRequest.itemsSolicitados;
-                          }
-                        } catch {}
+                        const list = parseSparePartItems(
+                          selectedRequest.itemsSolicitados,
+                          selectedRequest.repuestosLista
+                        );
 
                         if (list.length > 0) {
                           return list.map((it, idx) => (
                             <span
-                              key={idx}
+                              key={it.id || idx}
                               className="inline-flex items-center gap-1.5 px-3 py-1 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-800"
                             >
-                              <span>{it.descripcion || it.nombre}</span>
+                              <span>{it.descripcion}</span>
                               <span className="px-1.5 py-0.2 rounded bg-slate-100 font-mono font-bold text-slate-900">
                                 {it.cantidad}x
                               </span>
@@ -1222,7 +939,7 @@ export default function RepuestosPage() {
 
                         return (
                           <p className="text-xs text-slate-700 font-mono whitespace-pre-line bg-white p-2.5 rounded-xl border border-slate-200 w-full">
-                            {selectedRequest.repuestosLista}
+                            {selectedRequest.repuestosLista || "Sin repuestos especificados"}
                           </p>
                         );
                       })()}
@@ -1375,24 +1092,19 @@ export default function RepuestosPage() {
 
                     <div className="space-y-2">
                       {(() => {
-                        let list: any[] = [];
-                        try {
-                          if (selectedRequest.itemsSolicitados) {
-                            list =
-                              typeof selectedRequest.itemsSolicitados === "string"
-                                ? JSON.parse(selectedRequest.itemsSolicitados)
-                                : selectedRequest.itemsSolicitados;
-                          }
-                        } catch {}
+                        const list = parseSparePartItems(
+                          selectedRequest.itemsSolicitados,
+                          selectedRequest.repuestosLista
+                        );
 
                         if (list.length > 0) {
                           return list.map((it, idx) => (
                             <div
-                              key={idx}
+                              key={it.id || idx}
                               className="p-2.5 bg-white rounded-xl border border-slate-200 text-xs flex items-center justify-between"
                             >
                               <span className="font-semibold text-slate-800">
-                                {it.descripcion || it.nombre}
+                                {it.descripcion}
                               </span>
                               <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono font-black text-slate-900">
                                 {it.cantidad}x
@@ -1403,7 +1115,7 @@ export default function RepuestosPage() {
 
                         return (
                           <p className="text-xs text-slate-700 font-mono whitespace-pre-line bg-white p-3 rounded-xl border border-slate-200">
-                            {selectedRequest.repuestosLista}
+                            {selectedRequest.repuestosLista || "Sin repuestos especificados"}
                           </p>
                         );
                       })()}
@@ -1424,24 +1136,16 @@ export default function RepuestosPage() {
 
                     <div className="space-y-2">
                       {(() => {
-                        let list: any[] = [];
-                        try {
-                          if (selectedRequest.itemsAEncargar) {
-                            list =
-                              typeof selectedRequest.itemsAEncargar === "string"
-                                ? JSON.parse(selectedRequest.itemsAEncargar)
-                                : selectedRequest.itemsAEncargar;
-                          }
-                        } catch {}
+                        const list = parseSparePartItems(selectedRequest.itemsAEncargar);
 
                         if (list.length > 0) {
                           return list.map((it, idx) => (
                             <div
-                              key={idx}
+                              key={it.id || idx}
                               className="p-2.5 bg-white rounded-xl border border-amber-200 text-xs flex items-center justify-between"
                             >
                               <span className="font-bold text-slate-900">
-                                {it.descripcion || it.nombre}
+                                {it.descripcion}
                               </span>
                               <span className="px-2 py-0.5 rounded-md bg-amber-100 font-mono font-black text-amber-950">
                                 {it.cantidad}x
@@ -1469,19 +1173,10 @@ export default function RepuestosPage() {
 
               {/* 4. Galería de Fotos con Notas Ancladas */}
               {(() => {
-                let photoList: any[] = [];
-                try {
-                  if (selectedRequest.fotos) {
-                    photoList =
-                      typeof selectedRequest.fotos === "string"
-                        ? JSON.parse(selectedRequest.fotos)
-                        : selectedRequest.fotos;
-                  } else if (selectedRequest.fotoUrl) {
-                    photoList = [
-                      { id: "foto-0", url: selectedRequest.fotoUrl, nota: "Foto inicial de evidencia" },
-                    ];
-                  }
-                } catch {}
+                const photoList = parseSparePartPhotos(
+                  selectedRequest.fotos,
+                  selectedRequest.fotoUrl
+                );
 
                 if (photoList.length === 0) return null;
 
@@ -1493,7 +1188,7 @@ export default function RepuestosPage() {
                     </span>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {photoList.map((foto: any, idx: number) => (
+                      {photoList.map((foto, idx) => (
                         <div
                           key={foto.id || idx}
                           onClick={() => setActivePhotoUrl(foto.url)}
@@ -1656,64 +1351,7 @@ export default function RepuestosPage() {
                       <span>Confirmar Recepción de Repuestos</span>
                     </button>
                   )}
-
-                {/* ACCIONES DEL MECÁNICO (Reenviar si fue Devuelto) */}
-                {userRole === "MECHANIC" && selectedRequest.estado === "DEVUELTO" && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReqToResend(selectedRequest);
-                      setReenviarModalOpen(true);
-                    }}
-                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-md shadow-amber-600/30 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Corregir y Reenviar Pedido</span>
-                  </button>
-                )}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL DEVOLVER AL MECÁNICO CON MOTIVO OBLIGATORIO                         */}
-      {/* ========================================================================= */}
-      {devolverModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-rose-700 font-extrabold text-base">
-              <RotateCcw className="w-5 h-5" />
-              <span>Devolver Pedido al Mecánico</span>
-            </div>
-            <p className="text-xs text-slate-600">
-              Indica qué debe corregir o aclarar el mecánico para que pueda ajustar su pedido:
-            </p>
-            <textarea
-              required
-              rows={3}
-              value={motivoDevolucionInput}
-              onChange={(e) => setMotivoDevolucionInput(e.target.value)}
-              placeholder="Ej: Aclarar si el disco es ventilado o sólido y verificar número de chasis..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
-            />
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setDevolverModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={handleAdminDevolver}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md"
-              >
-                Confirmar Devolución
-              </button>
             </div>
           </div>
         </div>
@@ -1836,67 +1474,6 @@ export default function RepuestosPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL CANCELAR PEDIDO CON MOTIVO                                          */}
-      {/* ========================================================================= */}
-      {cancelarModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-rose-800 font-extrabold text-base">
-              <Ban className="w-5 h-5 text-rose-600" />
-              <span>Cancelar Pedido de Repuestos</span>
-            </div>
-            <p className="text-xs text-slate-600">
-              Ingresa el motivo obligatorio por el cual se cancela este pedido:
-            </p>
-            <textarea
-              required
-              rows={3}
-              value={motivoCancelacionInput}
-              onChange={(e) => setMotivoCancelacionInput(e.target.value)}
-              placeholder="Ej: Repuesto conseguido por el cliente / Desarme no requirió reemplazo..."
-              className="w-full text-xs p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
-            />
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setCancelarModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={handleConfirmCancelar}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md"
-              >
-                Confirmar Cancelación
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL REENVIAR PEDIDO CORREGIDO POR EL MECÁNICO                           */}
-      {/* ========================================================================= */}
-      {reenviarModalOpen && reqToResend && (
-        <PausaRepuestoModal
-          isOpen={reenviarModalOpen}
-          order={reqToResend.workOrder}
-          existingRequest={reqToResend}
-          onClose={() => {
-            setReenviarModalOpen(false);
-            setReqToResend(null);
-          }}
-          onSuccess={() => {
-            setDetailModalOpen(false);
-            fetchRequests();
-          }}
-        />
       )}
 
       {/* ========================================================================= */}
