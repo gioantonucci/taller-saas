@@ -32,6 +32,9 @@ import {
   FileText,
   PackageCheck,
   Ban,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
@@ -67,6 +70,17 @@ export default function OrdenesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("TODOS");
+  const [sortField, setSortField] = useState<"vehiculo" | "cliente" | "mecanico" | "estado" | "fecha">("fecha");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (field: "vehiculo" | "cliente" | "mecanico" | "estado" | "fecha") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection(field === "fecha" ? "desc" : "asc");
+    }
+  };
   const [mechanics, setMechanics] = useState<any[]>([]);
   const [notifiedOrders, setNotifiedOrders] = useState<Record<string, boolean>>({});
   const [deliveringOrderId, setDeliveringOrderId] = useState<string | null>(null);
@@ -1091,11 +1105,33 @@ export default function OrdenesPage() {
     });
 
     return [...list].sort((a, b) => {
-      const timeA = getLastStatusDate(a).getTime();
-      const timeB = getLastStatusDate(b).getTime();
-      return timeB - timeA;
+      let comparison = 0;
+
+      if (sortField === "vehiculo") {
+        const strA = `${a.vehicle?.marca || ""} ${a.vehicle?.modelo || ""} ${a.vehicle?.patente || ""} ${a.numeroOrden || 0}`.trim().toLowerCase();
+        const strB = `${b.vehicle?.marca || ""} ${b.vehicle?.modelo || ""} ${b.vehicle?.patente || ""} ${b.numeroOrden || 0}`.trim().toLowerCase();
+        comparison = strA.localeCompare(strB, "es", { numeric: true });
+      } else if (sortField === "cliente") {
+        const strA = `${a.vehicle?.client?.nombre || ""} ${a.vehicle?.client?.apellido || ""}`.trim().toLowerCase();
+        const strB = `${b.vehicle?.client?.nombre || ""} ${b.vehicle?.client?.apellido || ""}`.trim().toLowerCase();
+        comparison = strA.localeCompare(strB, "es");
+      } else if (sortField === "mecanico") {
+        const strA = `${a.mechanic?.nombre || ""} ${a.mechanic?.apellido || ""}`.trim().toLowerCase();
+        const strB = `${b.mechanic?.nombre || ""} ${b.mechanic?.apellido || ""}`.trim().toLowerCase();
+        comparison = strA.localeCompare(strB, "es");
+      } else if (sortField === "estado") {
+        const strA = (a.estado || "").toLowerCase();
+        const strB = (b.estado || "").toLowerCase();
+        comparison = strA.localeCompare(strB, "es");
+      } else if (sortField === "fecha") {
+        const timeA = getLastStatusDate(a).getTime();
+        const timeB = getLastStatusDate(b).getTime();
+        comparison = timeA - timeB;
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [orders, estadoFilter, search]);
+  }, [orders, estadoFilter, search, sortField, sortDirection]);
 
   return (
     <div className="space-y-5 pb-16">
@@ -1469,12 +1505,102 @@ export default function OrdenesPage() {
           <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs min-w-[750px]">
               <thead>
-                <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="py-3 px-4">Vehículo y Patente</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Mecánico Asignado</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Estado</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Fecha</th>
+                <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 select-none">
+                  <th
+                    onClick={() => handleSort("vehiculo")}
+                    className={`py-3 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "vehiculo" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Vehículo y Patente</span>
+                      {sortField === "vehiculo" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort("cliente")}
+                    className={`py-3 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "cliente" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Cliente</span>
+                      {sortField === "cliente" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort("mecanico")}
+                    className={`py-3 px-4 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "mecanico" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Mecánico Asignado</span>
+                      {sortField === "mecanico" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort("estado")}
+                    className={`py-3 px-4 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "estado" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Estado</span>
+                      {sortField === "estado" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort("fecha")}
+                    className={`py-3 px-4 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "fecha" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Fecha</span>
+                      {sortField === "fecha" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
                   <th className="py-3 px-4 text-right w-24">Acción</th>
                 </tr>
               </thead>
