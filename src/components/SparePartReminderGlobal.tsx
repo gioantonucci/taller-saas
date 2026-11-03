@@ -54,8 +54,8 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       const data = await res.json();
       setReminderData(data);
 
-      // Evaluar si corresponde disparar la pregunta periódica a Recepción
-      if (role === "RECEPTION" || role === "ADMIN") {
+      // Evaluar si corresponde disparar la pregunta periódica ÚNICAMENTE a Recepción
+      if (role === "RECEPTION") {
         const now = Date.now();
         const intervalMs =
           (data.config?.recordatorioIntervaloMinutos || SPARE_PARTS_CONFIG.RECORDATORIO_INTERVALO_MINUTOS) *
@@ -370,7 +370,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       {/* 4. MODAL PERIÓDICO DE RECEPCIÓN ("¿Ya encargaste los repuestos...?")       */}
       {/* Aparece al iniciar sesión y cada 30 min (configurable)                    */}
       {/* ========================================================================= */}
-      {showPeriodicModal && (isReception || isAdmin) && (
+      {showPeriodicModal && isReception && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95">
             {/* Header del modal */}
