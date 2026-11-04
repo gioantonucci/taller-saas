@@ -1994,8 +1994,9 @@ export default function OrdenDetallePage() {
                 <label className="text-xs font-bold text-slate-700">Tiempo dedicado:</label>
                 <input
                   type="number"
-                  step="0.5"
+                  step="any"
                   min="0.1"
+                  max="24"
                   value={newWorkLogHoras}
                   onChange={(e) => setNewWorkLogHoras(e.target.value)}
                   className="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-mono font-bold text-center"
