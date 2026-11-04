@@ -1913,14 +1913,14 @@ export default function OrdenDetallePage() {
             <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
               {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
             </span>
-            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
+            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && !showAddWorkLog && (
               <button
                 type="button"
-                onClick={() => setShowAddWorkLog((prev) => !prev)}
+                onClick={() => setShowAddWorkLog(true)}
                 className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>{showAddWorkLog ? "Cancelar" : "Cargar Arreglo"}</span>
+                <span>Cargar Arreglo</span>
               </button>
             )}
           </div>
@@ -1932,10 +1932,20 @@ export default function OrdenDetallePage() {
             onSubmit={handleSaveWorkLog}
             className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3.5 animate-in fade-in"
           >
-            <span className="text-xs font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
-              <Wrench className="w-4 h-4 text-indigo-600" />
-              <span>Nuevo Arreglo Técnico</span>
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+                <Wrench className="w-4 h-4 text-indigo-600" />
+                <span>Nuevo Arreglo Técnico</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowAddWorkLog(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-indigo-100/60 transition-colors cursor-pointer"
+                title="Cerrar formulario"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-800 mb-1">
