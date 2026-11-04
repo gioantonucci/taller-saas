@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Iniciando restablecimiento completo y seed profundo de la base de datos...");
 
-  // 1. Limpieza total de datos existentes
+  // 1. Limpieza total de datos existentes (en orden inverso de claves foráneas)
+  await prisma.sparePartRequest.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.auditLog.deleteMany();
   await prisma.workLog.deleteMany();
@@ -984,6 +985,7 @@ async function main() {
         horasInvertidas: 1.5,
         descripcionTarea:
           "Elevación de unidad en puesto 1. Desmontaje de rueda delantera derecha, extracción de tuerca de bieleta gripada con soplete de inducción y montaje de nueva bieleta TRW con par de apriete dinamométrico homologado.",
+        fotos: JSON.stringify(["/uploads/arreglos/7467eaea-e680-4ed7-8af6-833d6d287aad.jpg"]),
         fechaRegistro: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
       },
       {
@@ -992,6 +994,7 @@ async function main() {
         horasInvertidas: 1.0,
         descripcionTarea:
           "Vaciado de aceite motor en caliente. Sustitución de arandela de cobre de tapón de cárter, cambio de elemento filtrante Mann con engrase de junta y llenado de 4.2 L de lubricante Castrol EDGE 5W30. Reset de intervalo de servicio.",
+        fotos: JSON.stringify(["/uploads/arreglos/d58ba112-ce08-4fe9-baae-8cd2514dcd6a.png"]),
         fechaRegistro: new Date(Date.now() - 6 * 60 * 60 * 1000),
       },
       {
@@ -1000,6 +1003,7 @@ async function main() {
         horasInvertidas: 2.5,
         descripcionTarea:
           "Desmontaje de frontal, faro derecho y paso de rueda. Desmontaje de soporte pendular de motor. Retiro de correa de accesorios auxiliar y calado de árboles de levas con útiles de sincronización.",
+        fotos: JSON.stringify(["/uploads/multimedia/6a54142e-08d4-43e8-868e-bc6f712bad22.jpg"]),
         fechaRegistro: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       },
       {
@@ -1008,6 +1012,7 @@ async function main() {
         horasInvertidas: 2.0,
         descripcionTarea:
           "Sustitución de discos de freno ventilados y pastillas delanteras. Limpieza por ultrasonido y cepillado de guías de pinza, aplicación de grasa cerámica antichirridos en apoyos de pastilla.",
+        fotos: JSON.stringify(["/uploads/multimedia/636dd962-f3eb-41ea-bebb-894e0abef773.jpg"]),
         fechaRegistro: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       },
       {
@@ -1016,6 +1021,7 @@ async function main() {
         horasInvertidas: 1.0,
         descripcionTarea:
           "Purga completa de líquido de frenos circuito por circuito con purgador neumático a 1.5 bar de presión. Calibración básica de actuadores de pinzas de freno de mano eléctrico con diagnosis Autel.",
+        fotos: JSON.stringify(["/uploads/multimedia/6d37240d-df63-4096-badf-4ecf30df2436.jpg"]),
         fechaRegistro: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
       {
@@ -1024,6 +1030,7 @@ async function main() {
         horasInvertidas: 4.5,
         descripcionTarea:
           "Desmontaje completo de caja de cambios manual de 6 velocidades. Extracción de volante bimasa fatigado y plato de presión de embrague. Montaje de conjunto Sachs nuevo, purga de bombín hidráulico y prueba en carretera.",
+        fotos: JSON.stringify(["/uploads/multimedia/d7277d52-184c-4702-b975-b8c44f70b182.jpg"]),
         fechaRegistro: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       },
       {
@@ -1032,13 +1039,110 @@ async function main() {
         horasInvertidas: 2.0,
         descripcionTarea:
           "Lectura con diagnosis OBD2 de parámetros en vivo de encendido y presión de rail. Desmontaje de bobinas cil. 1-4 y bujías desgastadas con holgura de electrodo excesiva (1.3 mm).",
+        fotos: JSON.stringify(["/uploads/arreglos/7467eaea-e680-4ed7-8af6-833d6d287aad.jpg"]),
         fechaRegistro: new Date(Date.now() - 12 * 60 * 60 * 1000),
       },
     ],
   });
 
   // =========================================================================
-  // 10. Multimedia de Peritaje y Evidencias Fotográficas
+  // 10. Pedidos de Repuestos (SparePartRequests con datos coherentes)
+  // =========================================================================
+  await prisma.sparePartRequest.createMany({
+    data: [
+      // 1. Pedido en "PARA_ENCARGAR" demorado (> 4h) para probar que Recepción tiene alerta y Admin NO
+      {
+        workOrderId: orden1002.id,
+        mechanicId: mecanico2.id,
+        adminId: admin.id,
+        fallaReparar: "Pérdida de refrigerante y distribución desincronizada",
+        repuestosLista: "1x Kit correa de distribución Gates, 1x Bomba de agua Dolz, 1x Termostato 87°C",
+        itemsSolicitados: JSON.stringify([
+          { id: "item-1", descripcion: "Kit distribución dentada con tensor", cantidad: 1 },
+          { id: "item-2", descripcion: "Bomba de agua con junta metálica", cantidad: 1 },
+          { id: "item-3", descripcion: "Caja de termostato completa", cantidad: 1 },
+        ]),
+        itemsAEncargar: JSON.stringify([
+          { id: "item-1", descripcion: "Kit distribución dentada con tensor", cantidad: 1 },
+          { id: "item-2", descripcion: "Bomba de agua con junta metálica", cantidad: 1 },
+          { id: "item-3", descripcion: "Caja de termostato completa", cantidad: 1 },
+        ]),
+        observacionesMecanico: "Se requiere marca de primera línea (Gates o SKF) para garantizar garantía.",
+        estado: "PARA_ENCARGAR",
+        fechaRevision: new Date(Date.now() - 5.5 * 60 * 60 * 1000), // Hace 5.5 horas (> 4h => Demorado)
+        createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 5.5 * 60 * 60 * 1000),
+      },
+      // 2. Pedido en "SOLICITADO" (recién creado por mecánico, esperando revisión del Admin Patu Poggi)
+      {
+        workOrderId: orden1001.id,
+        mechanicId: mecanico1.id,
+        fallaReparar: "Fuga en manguera de retorno y juego en polea de bomba de agua",
+        repuestosLista: "1x Manguera de retorno de refrigerante, 1x Juego abrazaderas elásticas, 2x Bieletas TRW",
+        itemsSolicitados: JSON.stringify([
+          { id: "item-101", descripcion: "Manguera de retorno de refrigerante", cantidad: 1 },
+          { id: "item-102", descripcion: "Juego de abrazaderas elásticas 16-25mm", cantidad: 1 },
+          { id: "item-103", descripcion: "Bieletas de barra estabilizadora delantera", cantidad: 2 },
+        ]),
+        observacionesMecanico: "Verificar si la manguera viene con acople rápido al depósito de expansión.",
+        estado: "SOLICITADO",
+        createdAt: new Date(Date.now() - 35 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 35 * 60 * 1000),
+      },
+      // 3. Pedido en "ENCARGO_REALIZADO" (Recepción ya lo encargó a proveedor)
+      {
+        workOrderId: orden1006.id,
+        mechanicId: mecanico2.id,
+        adminId: admin.id,
+        fallaReparar: "Tirones en aceleración sostenida a 2.500 RPM",
+        repuestosLista: "4x Bobinas de encendido Bosch, 4x Bujías NGK Laser Iridium",
+        itemsSolicitados: JSON.stringify([
+          { id: "item-201", descripcion: "Bobinas de encendido tipo lápiz Bosch", cantidad: 4 },
+          { id: "item-202", descripcion: "Bujías de iridio NGK ILZKR7B-11", cantidad: 4 },
+        ]),
+        itemsAEncargar: JSON.stringify([
+          { id: "item-201", descripcion: "Bobinas de encendido tipo lápiz Bosch", cantidad: 4 },
+          { id: "item-202", descripcion: "Bujías de iridio NGK ILZKR7B-11", cantidad: 4 },
+        ]),
+        estado: "ENCARGO_REALIZADO",
+        encargadoPor: "María Gómez (Recepción)",
+        fechaEncargo: new Date(Date.now() - 8 * 60 * 60 * 1000),
+        proveedor: "Repuestos AutoValencia S.L.",
+        fechaEstimadaLlegada: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - 14 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
+      },
+      // 4. Pedido en "RECIBIDO" (Piezas recibidas en taller con remito)
+      {
+        workOrderId: orden1003.id,
+        mechanicId: mecanico3.id,
+        adminId: admin.id,
+        fallaReparar: "Discos de freno con reborde y pastillas gastadas",
+        repuestosLista: "2x Discos ventilados 316mm Brembo, 1x Juego pastillas Ferodo Eco",
+        itemsSolicitados: JSON.stringify([
+          { id: "item-301", descripcion: "Discos ventilados delanteros 316 mm", cantidad: 2 },
+          { id: "item-302", descripcion: "Juego pastillas de freno cerámicas", cantidad: 1 },
+        ]),
+        itemsAEncargar: JSON.stringify([
+          { id: "item-301", descripcion: "Discos ventilados delanteros 316 mm", cantidad: 2 },
+          { id: "item-302", descripcion: "Juego pastillas de freno cerámicas", cantidad: 1 },
+        ]),
+        estado: "RECIBIDO",
+        encargadoPor: "María Gómez (Recepción)",
+        fechaEncargo: new Date(Date.now() - 48 * 60 * 60 * 1000),
+        proveedor: "Frenos del Mediterráneo",
+        fechaRecepcion: new Date(Date.now() - 6 * 60 * 60 * 1000),
+        recibidoPor: "María Gómez (Recepción)",
+        remitoNro: "REM-2026-8812",
+        notasRecepcion: "Recibido paquete en perfectas condiciones, verificado con el mecánico.",
+        createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000),
+        updatedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+      },
+    ],
+  });
+
+  // =========================================================================
+  // 11. Multimedia de Peritaje y Evidencias Fotográficas
   // =========================================================================
   await prisma.workOrderMultimedia.createMany({
     data: [
