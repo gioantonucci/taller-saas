@@ -100,14 +100,20 @@ export default function OrdenDetallePage() {
         const isImage =
           file.type.startsWith("image/") ||
           /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(file.name);
-        if (!isImage) continue;
+        const isVideo =
+          file.type.startsWith("video/") ||
+          /\.(mp4|webm|mov|m4v|3gp|3gpp|mkv|avi)$/i.test(file.name);
+
+        if (!isImage && !isVideo) continue;
 
         let fileToUpload: File = file;
-        try {
-          const comp = await compressImageClient(file, 1920, 1920, 0.8);
-          fileToUpload = comp.file;
-        } catch (compErr) {
-          console.warn("Compresión no disponible:", compErr);
+        if (isImage) {
+          try {
+            const comp = await compressImageClient(file, 1920, 1920, 0.8);
+            fileToUpload = comp.file;
+          } catch (compErr) {
+            console.warn("Compresión no disponible:", compErr);
+          }
         }
 
         const formData = new FormData();
@@ -121,7 +127,7 @@ export default function OrdenDetallePage() {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || `Error ${res.status} al subir la fotografía`);
+          throw new Error(errData.error || `Error ${res.status} al subir el archivo`);
         }
 
         const data = await res.json();
@@ -131,10 +137,10 @@ export default function OrdenDetallePage() {
         }
       }
     } catch (err: any) {
-      console.error("Error al subir foto de arreglo:", err);
+      console.error("Error al subir archivo de arreglo:", err);
       await alert({
-        title: "Error al subir fotografía",
-        message: err.message || "No se pudo subir la foto del arreglo. Reintentá nuevamente.",
+        title: "Error al subir archivo",
+        message: err.message || "No se pudo subir la foto o video del arreglo. Reintentá nuevamente.",
         variant: "danger",
       });
     } finally {
@@ -169,11 +175,26 @@ export default function OrdenDetallePage() {
         return;
       }
 
+      // 1. Inyectamos de inmediato el log en la lista local para renderizado instantáneo
+      if (data.log) {
+        setOrder((prev: any) => {
+          if (!prev) return prev;
+          const currentLogs = prev.workLogs || [];
+          return {
+            ...prev,
+            workLogs: [data.log, ...currentLogs.filter((l: any) => l.id !== data.log.id)],
+          };
+        });
+      }
+
+      // 2. Sincronizamos completamente la orden con la base de datos
+      await fetchOrder();
+
+      // 3. Recién cuando la tarea ya está visible y renderizada en la lista, cerramos el modal y limpiamos campos
+      setShowAddWorkLog(false);
       setNewWorkLogTarea("");
       setNewWorkLogHoras("1.0");
       setNewWorkLogFotos([]);
-      setShowAddWorkLog(false);
-      await fetchOrder();
     } catch (err) {
       console.error("Error registrando tarea:", err);
       await alert({
@@ -1938,182 +1959,245 @@ export default function OrdenDetallePage() {
             </div>
           </div>
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
               {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
             </span>
-            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && !showAddWorkLog && (
+            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
               <button
                 type="button"
-                onClick={() => setShowAddWorkLog(true)}
-                className="px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                onClick={() => {
+                  setNewWorkLogTarea("");
+                  setNewWorkLogHoras("1.0");
+                  setNewWorkLogFotos([]);
+                  setShowAddWorkLog(true);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 cursor-pointer shrink-0"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>Cargar Arreglo</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Formulario desplegable para registrar nuevo arreglo con fotos */}
+        {/* Modal emergente para registrar nuevo arreglo técnico con fotos y/o videos */}
         {showAddWorkLog && (
-          <form
-            onSubmit={handleSaveWorkLog}
-            className="p-4 sm:p-5 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3.5 animate-in fade-in"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
-                <Wrench className="w-4 h-4 text-indigo-600" />
-                <span>Nuevo Arreglo Técnico</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowAddWorkLog(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-indigo-100/60 transition-colors cursor-pointer"
-                title="Cerrar formulario"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                Descripción del Arreglo Realizado:
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={newWorkLogTarea}
-                onChange={(e) => setNewWorkLogTarea(e.target.value)}
-                placeholder="Detallá el arreglo realizado (ej: Cambio de manguera de retorno, purga de circuito y test de presión)..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-slate-700">Tiempo dedicado:</label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0.1"
-                  max="24"
-                  value={newWorkLogHoras}
-                  onChange={(e) => setNewWorkLogHoras(e.target.value)}
-                  className="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-mono font-bold text-center"
-                />
-                <span className="text-xs text-slate-500">hs</span>
-              </div>
-
-              {/* Botones de fotos */}
-              <div className="flex items-center gap-2">
-                <label
-                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-800 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                    uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
-                  }`}
-                >
-                  <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Foto</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleUploadWorkLogPhoto}
-                    disabled={uploadingWorkLogPhoto}
-                    className="sr-only"
-                  />
-                </label>
-
-                <label
-                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-                    uploadingWorkLogPhoto ? "opacity-50 pointer-events-none" : ""
-                  }`}
-                >
-                  <Upload className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Galería</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleUploadWorkLogPhoto}
-                    disabled={uploadingWorkLogPhoto}
-                    className="sr-only"
-                  />
-                </label>
-
-                {uploadingWorkLogPhoto && (
-                  <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1 animate-pulse">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Subiendo...
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Previsualización de fotos cargadas o en proceso */}
-            {(newWorkLogFotos.length > 0 || uploadingWorkLogPhoto) && (
-              <div className="pt-2 p-3 bg-white/90 rounded-2xl border border-indigo-200/80 space-y-2">
-                <span className="text-[11px] font-bold text-indigo-950 block">
-                  Fotos adjuntas al arreglo ({newWorkLogFotos.length}):
-                </span>
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {newWorkLogFotos.map((url, fIdx) => (
-                    <div
-                      key={fIdx}
-                      className="relative group w-20 h-20 rounded-xl overflow-hidden border border-indigo-300 shadow-sm bg-slate-900 shrink-0"
-                    >
-                      <img
-                        src={url}
-                        alt={`Foto arreglo ${fIdx + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setNewWorkLogFotos((prev) => prev.filter((_, idx) => idx !== fIdx))
-                        }
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
-                        title="Eliminar foto"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveModalImg(url)}
-                        className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center shadow-md hover:bg-black transition-colors cursor-pointer"
-                        title="Ver en grande"
-                      >
-                        <Maximize2 className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ))}
-
-                  {uploadingWorkLogPhoto && (
-                    <div className="w-20 h-20 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/70 flex flex-col items-center justify-center text-indigo-600 shrink-0 animate-pulse">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="text-[10px] font-extrabold mt-1">Subiendo...</span>
-                    </div>
-                  )}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95 flex flex-col max-h-[92vh]">
+              {/* Header del Modal */}
+              <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+                    <Wrench className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-tight">
+                      Cargar Arreglo Técnico
+                    </h3>
+                    <p className="text-xs text-indigo-200 mt-0.5">
+                      Orden #{order.numeroOrden} • {order.vehicle?.marca} {order.vehicle?.modelo} ({order.vehicle?.patente})
+                    </p>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  disabled={savingWorkLog}
+                  onClick={() => setShowAddWorkLog(false)}
+                  className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Cerrar ventana"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            )}
 
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddWorkLog(false)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={savingWorkLog || uploadingWorkLogPhoto}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-md shadow-indigo-600/20 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>{savingWorkLog ? "Guardando..." : "Guardar en Bitácora"}</span>
-              </button>
+              {/* Formulario del Modal */}
+              <form onSubmit={handleSaveWorkLog} className="flex flex-col flex-1 overflow-hidden">
+                <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                  {/* Campo 1: Tarea / Arreglo */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
+                      Descripción del Arreglo / Tarea Realizada <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      autoFocus
+                      disabled={savingWorkLog}
+                      value={newWorkLogTarea}
+                      onChange={(e) => setNewWorkLogTarea(e.target.value)}
+                      placeholder="Detallá minuciosamente el trabajo efectuado (ej: Sustitución de bieletas delanteras, purga de circuito y prueba dinámica)..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-900 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400 disabled:opacity-60"
+                    />
+                  </div>
+
+                  {/* Campo 2: Duración (Tiempo dedicado) */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800">
+                        Tiempo Dedicado (Horas)
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Cómputo en bitácora técnica de la orden
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <input
+                        type="number"
+                        step="any"
+                        min="0.1"
+                        max="24"
+                        required
+                        disabled={savingWorkLog}
+                        value={newWorkLogHoras}
+                        onChange={(e) => setNewWorkLogHoras(e.target.value)}
+                        className="w-20 px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-mono font-black text-center text-slate-900 shadow-2xs focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
+                      />
+                      <span className="text-xs font-bold text-slate-600">hs</span>
+                    </div>
+                  </div>
+
+                  {/* Campo 3: Fotos y/o Videos de Evidencia */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800">
+                          Fotos y/o Videos de Evidencia (Opcional)
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Respaldo visual técnico del arreglo o pieza sustituida
+                        </p>
+                      </div>
+                      {uploadingWorkLogPhoto && (
+                        <span className="text-[11px] font-bold text-indigo-600 flex items-center gap-1.5 animate-pulse">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Subiendo archivo...
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Botones de Carga */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <label
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100 text-indigo-900 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs ${
+                          uploadingWorkLogPhoto || savingWorkLog ? "opacity-50 pointer-events-none" : ""
+                        }`}
+                      >
+                        <Camera className="w-4 h-4 text-indigo-600" />
+                        <span>Tomar Foto / Video</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          capture="environment"
+                          onChange={handleUploadWorkLogPhoto}
+                          disabled={uploadingWorkLogPhoto || savingWorkLog}
+                          className="sr-only"
+                        />
+                      </label>
+
+                      <label
+                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs ${
+                          uploadingWorkLogPhoto || savingWorkLog ? "opacity-50 pointer-events-none" : ""
+                        }`}
+                      >
+                        <Upload className="w-4 h-4 text-slate-500" />
+                        <span>Subir de Galería</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          multiple
+                          onChange={handleUploadWorkLogPhoto}
+                          disabled={uploadingWorkLogPhoto || savingWorkLog}
+                          className="sr-only"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Previsualización de archivos adjuntos */}
+                    {newWorkLogFotos.length > 0 && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                        <span className="text-[11px] font-extrabold text-slate-700 block">
+                          Archivos adjuntos ({newWorkLogFotos.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {newWorkLogFotos.map((url, fIdx) => {
+                            const isVid = /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(url) || url.includes("video");
+                            return (
+                              <div
+                                key={fIdx}
+                                className="relative group w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-2xs bg-black shrink-0"
+                              >
+                                {isVid ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-900 relative">
+                                    <video src={url} className="w-full h-full object-cover" preload="metadata" />
+                                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">
+                                      <Video className="w-5 h-5" />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={url}
+                                    alt={`Evidencia ${fIdx + 1}`}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={savingWorkLog}
+                                  onClick={() =>
+                                    setNewWorkLogFotos((prev) => prev.filter((_, idx) => idx !== fIdx))
+                                  }
+                                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md hover:bg-rose-700 transition-colors cursor-pointer"
+                                  title="Eliminar archivo"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveModalImg(url)}
+                                  className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center shadow-md hover:bg-black transition-colors cursor-pointer"
+                                  title="Ampliar vista"
+                                >
+                                  <Maximize2 className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer del Modal con estado de carga */}
+                <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={savingWorkLog}
+                    onClick={() => setShowAddWorkLog(false)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/70 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingWorkLog || uploadingWorkLogPhoto || !newWorkLogTarea.trim()}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black shadow-md shadow-indigo-600/25 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {savingWorkLog ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Registrando y renderizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Guardar en Bitácora</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         )}
 
         {order.workLogs.length === 0 ? (
@@ -2169,29 +2253,40 @@ export default function OrdenDetallePage() {
                     {log.descripcionTarea}
                   </p>
 
-                  {/* Fotos del Arreglo */}
+                  {/* Fotos y Videos del Arreglo */}
                   {Array.isArray(fotosList) && fotosList.length > 0 && (
                     <div className="pl-8 pt-1">
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
                         <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Fotos del arreglo ({fotosList.length}):</span>
+                        <span>Evidencias del arreglo ({fotosList.length}):</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {fotosList.map((f: any, fIdx: number) => {
-                          const imgUrl = typeof f === "string" ? f : f?.url;
-                          if (!imgUrl) return null;
+                          const mediaUrl = typeof f === "string" ? f : f?.url;
+                          if (!mediaUrl) return null;
+                          const isVid = /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(mediaUrl) || mediaUrl.includes("video");
+
                           return (
                             <button
                               key={fIdx}
                               type="button"
-                              onClick={() => setActiveModalImg(imgUrl)}
-                              className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-white"
+                              onClick={() => setActiveModalImg(mediaUrl)}
+                              className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-black"
                             >
-                              <img
-                                src={imgUrl}
-                                alt={`Foto de arreglo ${fIdx + 1}`}
-                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
-                              />
+                              {isVid ? (
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-slate-900 relative">
+                                  <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" />
+                                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">
+                                    <Video className="w-5 h-5" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <img
+                                  src={mediaUrl}
+                                  alt={`Evidencia ${fIdx + 1}`}
+                                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
                               <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
                                 <Maximize2 className="w-4 h-4" />
                               </div>
