@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
-  Camera,
-  Upload,
   AlertTriangle,
   Plus,
   Minus,
@@ -12,10 +10,7 @@ import {
   CheckCircle2,
   PackageOpen,
   Loader2,
-  Image as ImageIcon,
-  MessageSquare,
 } from "lucide-react";
-import { compressImageClient } from "@/lib/client-compress";
 
 interface PausaRepuestoModalProps {
   isOpen: boolean;
@@ -29,12 +24,6 @@ interface ItemSolicitadoInput {
   id: string;
   descripcion: string;
   cantidad: number;
-}
-
-interface PhotoInput {
-  id: string;
-  url: string;
-  nota: string;
 }
 
 export default function PausaRepuestoModal({
@@ -51,14 +40,9 @@ export default function PausaRepuestoModal({
     { id: "item-1", descripcion: "", cantidad: 1 },
   ]);
   const [observacionesMecanico, setObservacionesMecanico] = useState("");
-  const [fotos, setFotos] = useState<PhotoInput[]>([]);
 
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const fileInputCameraRef = useRef<HTMLInputElement>(null);
-  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
 
   // Inicializar con datos si es reenvío de devuelto o apertura
   useEffect(() => {
@@ -84,34 +68,10 @@ export default function PausaRepuestoModal({
           }
         }
       } catch {}
-
-      // Fotos
-      try {
-        if (existingRequest.fotos) {
-          const parsedFotos =
-            typeof existingRequest.fotos === "string"
-              ? JSON.parse(existingRequest.fotos)
-              : existingRequest.fotos;
-          if (Array.isArray(parsedFotos)) {
-            setFotos(
-              parsedFotos.map((f: any, idx: number) => ({
-                id: f.id || `foto-${idx}`,
-                url: f.url,
-                nota: f.nota || "",
-              }))
-            );
-          }
-        } else if (existingRequest.fotoUrl) {
-          setFotos([
-            { id: "foto-0", url: existingRequest.fotoUrl, nota: "Foto inicial" },
-          ]);
-        }
-      } catch {}
     } else {
       setFallaReparar("");
       setItems([{ id: "item-1", descripcion: "", cantidad: 1 }]);
       setObservacionesMecanico("");
-      setFotos([]);
       setErrorMsg(null);
     }
   }, [existingRequest, isOpen]);
@@ -154,64 +114,6 @@ export default function PausaRepuestoModal({
     );
   };
 
-  // Carga de fotografías con compresión móvil y nota anclada
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setErrorMsg(null);
-    setUploadingPhoto(true);
-
-    try {
-      let fileToUpload: File = file;
-      try {
-        const compressed = await compressImageClient(file, 1920, 1920, 0.8);
-        fileToUpload = compressed.file;
-      } catch (compErr) {
-        console.warn("Compresión no disponible:", compErr);
-      }
-
-      const formData = new FormData();
-      formData.append("file", fileToUpload);
-      formData.append("folder", "repuestos");
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Error al subir la imagen");
-      }
-
-      const data = await res.json();
-      setFotos((prev) => [
-        ...prev,
-        {
-          id: `foto-${Date.now()}`,
-          url: data.url,
-          nota: "",
-        },
-      ]);
-    } catch (err: any) {
-      setErrorMsg(err.message || "Error al subir la fotografía");
-    } finally {
-      setUploadingPhoto(false);
-      if (e.target) e.target.value = "";
-    }
-  };
-
-  const handleUpdatePhotoNote = (photoId: string, nota: string) => {
-    setFotos((prev) =>
-      prev.map((f) => (f.id === photoId ? { ...f, nota } : f))
-    );
-  };
-
-  const handleRemovePhoto = (photoId: string) => {
-    setFotos((prev) => prev.filter((f) => f.id !== photoId));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -250,7 +152,6 @@ export default function PausaRepuestoModal({
             fallaReparar: fallaReparar.trim(),
             itemsSolicitados: validItems,
             observacionesMecanico: observacionesMecanico.trim() || undefined,
-            fotos: fotos.length > 0 ? fotos : undefined,
           }),
         });
       } else {
@@ -263,7 +164,6 @@ export default function PausaRepuestoModal({
             fallaReparar: fallaReparar.trim(),
             itemsSolicitados: validItems,
             observacionesMecanico: observacionesMecanico.trim() || undefined,
-            fotos: fotos.length > 0 ? fotos : undefined,
           }),
         });
       }
@@ -441,97 +341,6 @@ export default function PausaRepuestoModal({
               placeholder="Ej: Si es posible pedir marca original o de primera línea..."
               className="w-full text-xs sm:text-sm p-3 rounded-2xl border border-slate-200 focus:border-amber-500 focus:outline-hidden bg-slate-50/50 resize-none font-medium"
             />
-          </div>
-
-          {/* 4. FOTOGRAFÍAS CON NOTAS ANCLADAS (Opcional) */}
-          <div className="space-y-3 pt-1">
-            <label className="block text-xs font-black text-slate-700 uppercase tracking-wide flex items-center justify-between">
-              <span>4. Fotos del Repuesto Roto / Despiece (Opcional)</span>
-              <span className="text-[11px] font-normal text-slate-400">
-                {fotos.length} adjuntada{fotos.length !== 1 ? "s" : ""}
-              </span>
-            </label>
-
-            {/* Galería de fotos cargadas con nota anclada */}
-            {fotos.length > 0 && (
-              <div className="space-y-2.5">
-                {fotos.map((foto, idx) => (
-                  <div
-                    key={foto.id}
-                    className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-                  >
-                    <img
-                      src={foto.url}
-                      alt={`Foto repuesto ${idx + 1}`}
-                      className="w-16 h-16 object-cover rounded-xl border border-slate-300 shrink-0 shadow-2xs"
-                    />
-                    <div className="flex-1 w-full min-w-0">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 mb-1">
-                        <MessageSquare className="w-3 h-3 text-amber-500" />
-                        <span>Nota anclada a esta foto:</span>
-                      </div>
-                      <input
-                        type="text"
-                        value={foto.nota}
-                        onChange={(e) => handleUpdatePhotoNote(foto.id, e.target.value)}
-                        placeholder="Ej: Rajadura en la carcasa, desgaste del disco..."
-                        className="w-full text-xs px-3 py-1.5 bg-white rounded-lg border border-slate-300 focus:border-amber-500 focus:outline-hidden"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto(foto.id)}
-                      className="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 self-end sm:self-auto shrink-0"
-                      title="Eliminar foto"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Botones grandes de cámara y galería para mobile */}
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                ref={fileInputCameraRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <button
-                type="button"
-                disabled={uploadingPhoto}
-                onClick={() => fileInputCameraRef.current?.click()}
-                className="py-3 px-4 rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-100/60 text-amber-900 font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[48px]"
-              >
-                {uploadingPhoto ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Camera className="w-4 h-4 text-amber-600" />
-                )}
-                <span>Tomar Foto</span>
-              </button>
-
-              <input
-                ref={fileInputGalleryRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <button
-                type="button"
-                disabled={uploadingPhoto}
-                onClick={() => fileInputGalleryRef.current?.click()}
-                className="py-3 px-4 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[48px]"
-              >
-                <Upload className="w-4 h-4 text-slate-500" />
-                <span>Subir de Galería</span>
-              </button>
-            </div>
           </div>
 
           {/* AVISO DE CAMBIO DE ESTADO DE LA ORDEN */}
