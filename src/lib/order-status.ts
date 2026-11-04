@@ -81,3 +81,32 @@ export function getStatusInfo(status: string): StatusInfo {
     description: status,
   };
 }
+
+/**
+ * Orden lógico del ciclo operativo del taller para ordenamiento secuencial coherente:
+ * 1: En Peritaje -> 2: En Reparación -> 3: En Pausa -> 4: Listo -> 5: Entregado -> 6: Dada de Baja
+ */
+export const STATUS_WORKFLOW_ORDER: Record<string, number> = {
+  PENDIENTE_PERITAJE: 1,
+  PENDIENTE: 1,
+  INGRESADO: 1,
+  EN_REPARACION: 2,
+  EN_CURSO: 2,
+  PERITADO: 2,
+  EN_ESPERA_REPUESTOS: 3,
+  ESPERANDO_REPUESTOS: 3,
+  DETENIDO: 3,
+  FINALIZADO: 4,
+  REPARADO: 4,
+  TERMINADO: 4,
+  ENTREGADO: 5,
+  ARCHIVADO: 5,
+  CANCELADO: 6,
+  CANCELADA: 6,
+  DADA_DE_BAJA: 6,
+  BAJA: 6,
+};
+
+export function getStatusWeight(status: string): number {
+  return STATUS_WORKFLOW_ORDER[status] || 99;
+}

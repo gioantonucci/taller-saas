@@ -36,7 +36,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import { getStatusInfo } from "@/lib/order-status";
+import { getStatusInfo, getStatusWeight } from "@/lib/order-status";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import ClientSignaturePad from "@/components/ClientSignaturePad";
@@ -1136,9 +1136,13 @@ export default function OrdenesPage() {
         const strB = `${b.mechanic?.nombre || ""} ${b.mechanic?.apellido || ""}`.trim().toLowerCase();
         comparison = strA.localeCompare(strB, "es");
       } else if (sortField === "estado") {
-        const strA = (a.estado || "").toLowerCase();
-        const strB = (b.estado || "").toLowerCase();
-        comparison = strA.localeCompare(strB, "es");
+        const weightA = getStatusWeight(a.estado);
+        const weightB = getStatusWeight(b.estado);
+        if (weightA !== weightB) {
+          comparison = weightA - weightB;
+        } else {
+          comparison = (a.numeroOrden || 0) - (b.numeroOrden || 0);
+        }
       } else if (sortField === "fecha") {
         const timeA = getLastStatusDate(a).getTime();
         const timeB = getLastStatusDate(b).getTime();
