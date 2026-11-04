@@ -83,7 +83,18 @@ npm run db:seed
 ```bash
 npm run dev
 ```
-La aplicación estará disponible en [http://localhost:3000](http://localhost:3000).
+La aplicación estará disponible en [http://localhost:3001](http://localhost:3001).
+
+---
+
+## 🌿 Flujo de Trabajo en Git & Ramas
+
+> [!IMPORTANT]
+> **Directiva de Desarrollo Activa:**
+> Todo el trabajo activo, nuevas funcionalidades, correcciones y pruebas se realizan **exclusivamente sobre la rama `develop`** hasta nuevo aviso. La rama `main` se mantiene intacta hasta que se solicite explícitamente un pase a producción / merge.
+
+* **Rama activa de trabajo:** `develop`
+* **Rama de producción:** `main` (congelada para merges directos hasta indicación del usuario)
 
 ---
 
