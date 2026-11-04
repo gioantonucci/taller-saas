@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface AuthLoadingOverlayProps {
@@ -14,6 +14,27 @@ export default function AuthLoadingOverlay({
   message = "Cargando...",
   submessage = "Por favor espere un momento",
 }: AuthLoadingOverlayProps) {
+  const [progress, setProgress] = useState(15);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setProgress(15);
+      return;
+    }
+
+    // Progresión continua y orgánica hacia el 95% para calmar la ansiedad
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 95) return prev;
+        const remaining = 95 - prev;
+        const step = Math.max(1, Math.floor(remaining * 0.12));
+        return Math.min(95, prev + step);
+      });
+    }, 180);
+
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -45,9 +66,12 @@ export default function AuthLoadingOverlay({
           </p>
         )}
 
-        {/* Barra de progreso con animación continua de carga */}
-        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-4 relative">
-          <div className="bg-gradient-to-r from-[#e5242b] via-amber-400 to-sky-500 h-full rounded-full animate-loading-bar shadow-[0_0_12px_rgba(229,36,43,0.6)]" />
+        {/* Porcentaje de carga (sin barra de carga, solo spinner y porcentaje) */}
+        <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 shadow-inner">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#e5242b] animate-pulse" />
+          <span className="text-xs font-mono font-black text-white tracking-wider">
+            {progress}%
+          </span>
         </div>
       </div>
     </div>

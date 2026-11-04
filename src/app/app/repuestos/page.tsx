@@ -45,6 +45,22 @@ export default function RepuestosPage() {
 
   const [requests, setRequests] = useState<SparePartRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(15);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingProgress(15);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 95) return prev;
+        const diff = Math.max(1, Math.floor((95 - prev) * 0.14));
+        return Math.min(95, prev + diff);
+      });
+    }, 150);
+    return () => clearInterval(interval);
+  }, [loading]);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   // Filtros
@@ -677,9 +693,10 @@ export default function RepuestosPage() {
         {loading && requests.length === 0 ? (
           <div className="p-12 text-center space-y-3">
             <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto" />
-            <p className="text-xs font-bold text-slate-500">Cargando pedidos de repuestos...</p>
-            <div className="w-48 max-w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mx-auto relative">
-              <div className="bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500 h-full rounded-full animate-loading-bar" />
+            <p className="text-xs font-bold text-slate-700">Cargando pedidos de repuestos...</p>
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-mono font-black text-amber-800">{loadingProgress}%</span>
             </div>
           </div>
         ) : filteredRequests.length === 0 ? (

@@ -67,6 +67,22 @@ export default function OrdenesPage() {
   const deepLinkProcessed = useRef(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(15);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingProgress(15);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 95) return prev;
+        const diff = Math.max(1, Math.floor((95 - prev) * 0.14));
+        return Math.min(95, prev + diff);
+      });
+    }, 150);
+    return () => clearInterval(interval);
+  }, [loading]);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("TODOS");
@@ -1313,11 +1329,12 @@ export default function OrdenesPage() {
 
       {/* 4. Listado: Tarjetas Limpias para Mobile y Tabla Simple para Desktop */}
       {loading ? (
-        <div className="p-12 text-center text-xs text-slate-400 space-y-3">
-          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-sky-600 mb-2"></div>
-          <p>Cargando recepción...</p>
-          <div className="w-48 max-w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mx-auto relative">
-            <div className="bg-gradient-to-r from-sky-500 via-[#e5242b] to-sky-500 h-full rounded-full animate-loading-bar" />
+        <div className="p-12 text-center text-xs text-slate-500 space-y-3">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-sky-600 mb-1"></div>
+          <p className="font-bold text-slate-700">Cargando recepción...</p>
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse" />
+            <span className="text-xs font-mono font-black text-slate-700">{loadingProgress}%</span>
           </div>
         </div>
       ) : filteredOrders.length === 0 ? (
