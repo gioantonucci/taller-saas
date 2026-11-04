@@ -132,6 +132,8 @@ export default function RepuestosPage() {
 
   const userRole = currentUser ? normalizeRole(currentUser.role) : "RECEPTION";
   const isMechanic = userRole === "MECHANIC";
+  const isReception = userRole === "RECEPTION";
+  const isAdmin = userRole === "ADMIN";
 
   // Abrir detalle del pedido de forma instantánea (0ms de retraso)
   const openDetail = (req: SparePartRequest) => {
@@ -540,7 +542,7 @@ export default function RepuestosPage() {
               <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
                 Para Encargar
               </span>
-              {metrics.escalados > 0 && (
+              {isReception && metrics.escalados > 0 && (
                 <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs">
                   {metrics.escalados} en rojo
                 </span>
@@ -644,7 +646,7 @@ export default function RepuestosPage() {
                 <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
                 <option value="RECIBIDO">4. Recibidos en Taller</option>
                 <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
-                <option value="ESCALADOS">🚨 Demorados en Rojo</option>
+                {isReception && <option value="ESCALADOS">🚨 Demorados en Rojo</option>}
               </select>
             </div>
 
@@ -705,7 +707,7 @@ export default function RepuestosPage() {
                   key={req.id}
                   onClick={() => openDetail(req)}
                   className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all cursor-pointer hover:bg-slate-50/80 ${
-                    !isMechanic && isEscalated
+                    isReception && isEscalated
                       ? "bg-rose-50/70 border-l-4 border-l-rose-600 hover:bg-rose-50"
                       : "border-l-4 border-l-transparent"
                   }`}
@@ -714,7 +716,7 @@ export default function RepuestosPage() {
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     <div
                       className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
-                        !isMechanic && isEscalated
+                        isReception && isEscalated
                           ? "bg-rose-600 text-white shadow-rose-600/30"
                           : "bg-slate-100 text-slate-700"
                       }`}
@@ -734,13 +736,13 @@ export default function RepuestosPage() {
                           {req.workOrder?.vehicle?.marca} {req.workOrder?.vehicle?.modelo}
                         </span>
 
-                        {!isMechanic && isEscalated && (
+                        {isReception && isEscalated && (
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
                             {`Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`}
                           </span>
                         )}
-                        {!isMechanic && !isEscalated && isVencida && (
+                        {isReception && !isEscalated && isVencida && (
                           <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-rose-200">
                             Llegada Vencida
                           </span>
@@ -841,7 +843,7 @@ export default function RepuestosPage() {
                   <span className="text-slate-300 text-xs font-medium">
                     Orden #{selectedRequest.workOrder?.numeroOrden}
                   </span>
-                  {!isMechanic && isSparePartEscalated(selectedRequest) && (
+                  {isReception && isSparePartEscalated(selectedRequest) && (
                     <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
                       🚨 Demorado (&gt; {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
                     </span>
