@@ -919,7 +919,7 @@ export default function OrdenDetallePage() {
         </div>
       )}
 
-      {/* Grid Resumen: 2 Columnas y 2 Filas (Vehículo y Cliente / Mecánico y Estado) */}
+      {/* Grid Resumen: Fila 1 (Vehículo y Cliente) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
         {/* Fila 1 - Columna 1: Vehículo */}
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
@@ -987,9 +987,12 @@ export default function OrdenDetallePage() {
             </div>
           </div>
         </div>
+      </div>
 
+      {/* Grid Resumen: Fila 2 (Mecánico Asignado más compacta + Estado de la Orden con 3 botones) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5">
         {/* Fila 2 - Columna 1: Mecánico Asignado */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="md:col-span-4 lg:col-span-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-3 pb-2.5 border-b border-slate-100">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -1127,7 +1130,7 @@ export default function OrdenDetallePage() {
         </div>
 
         {/* Fila 2 - Columna 2: Estado de la Orden */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="md:col-span-8 lg:col-span-8 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-3 pb-2.5 border-b border-slate-100">
               <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -1277,24 +1280,41 @@ export default function OrdenDetallePage() {
 
                 if (isMechanicOrAdmin) {
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
                         type="button"
                         disabled={updating}
                         onClick={() => setPausaRepuestoModalOpen(true)}
-                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                        className="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-900 border border-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
                         title="Pausar trabajo indicando falla y repuestos necesarios"
                       >
                         <PauseCircle className="w-4 h-4 text-amber-700 shrink-0" />
                         <span className="truncate">Pausar Repuestos</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewWorkLogTarea("");
+                          setNewWorkLogHoras("1.0");
+                          setNewWorkLogFotos([]);
+                          setShowAddWorkLog(true);
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-900 border border-indigo-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                        title="Cargar nuevo arreglo o nota técnica de trabajo"
+                      >
+                        <Plus className="w-4 h-4 text-indigo-600 stroke-[2.5] shrink-0" />
+                        <span className="truncate">Añadir Nota</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setIsFinalizarModalOpen(true)}
-                        className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                        title="Completar control de calidad y marcar orden como terminada"
                       >
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        <span className="truncate">Marcar Listo</span>
+                        <span className="truncate">Marcar Terminado</span>
                       </button>
                     </div>
                   );
@@ -1334,23 +1354,41 @@ export default function OrdenDetallePage() {
 
                 if (isMechanicOrAdmin) {
                   return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <button
                         type="button"
                         disabled={updating}
                         onClick={() => handleStatusChange("EN_REPARACION")}
-                        className="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-50"
+                        className="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-50"
+                        title="Reanudar reparación del vehículo"
                       >
                         <PlayCircle className="w-4 h-4 shrink-0" />
                         <span className="truncate">Reanudar Taller</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewWorkLogTarea("");
+                          setNewWorkLogHoras("1.0");
+                          setNewWorkLogFotos([]);
+                          setShowAddWorkLog(true);
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-900 border border-indigo-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                        title="Cargar nuevo arreglo o nota técnica de trabajo"
+                      >
+                        <Plus className="w-4 h-4 text-indigo-600 stroke-[2.5] shrink-0" />
+                        <span className="truncate">Añadir Nota</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setIsFinalizarModalOpen(true)}
-                        className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        title="Completar control de calidad y marcar orden como terminada"
                       >
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span className="truncate">Marcar Listo</span>
+                        <span className="truncate">Marcar Terminado</span>
                       </button>
                     </div>
                   );
