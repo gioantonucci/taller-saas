@@ -30,7 +30,6 @@ import {
   SPARE_PART_STATUS_MAP,
   normalizeSparePartStatus,
   isSparePartEscalated,
-  isLlegadaVencida,
   formatTiempoTranscurrido,
   getFechaUltimoEstado,
   parseSparePartItems,
@@ -713,7 +712,6 @@ export default function RepuestosPage() {
               const st = normalizeSparePartStatus(req.estado);
               const statusInfo = SPARE_PART_STATUS_MAP[st] || SPARE_PART_STATUS_MAP.SOLICITADO;
               const isEscalated = isSparePartEscalated(req);
-              const isVencida = isLlegadaVencida(req);
 
               // Conteo de repuestos
               const itemsList = parseSparePartItems(req.itemsAEncargar || req.itemsSolicitados, req.repuestosLista);
@@ -757,11 +755,6 @@ export default function RepuestosPage() {
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <AlertTriangle className="w-3 h-3" />
                             {`Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`}
-                          </span>
-                        )}
-                        {isReception && !isEscalated && isVencida && (
-                          <span className="px-2 py-0.5 bg-rose-100 text-rose-800 text-[10px] font-black rounded-md uppercase tracking-wider border border-rose-200">
-                            Llegada Vencida
                           </span>
                         )}
                       </div>

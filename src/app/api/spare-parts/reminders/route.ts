@@ -114,21 +114,10 @@ export async function GET(request: NextRequest) {
     const oldestParaEncargar = paraEncargarList[0] || null;
     const escalatedList = paraEncargarList.filter((p) => p.isEscalated);
 
-    // 2. Pedidos en "Encargo realizado" con llegada vencida
-    const llegadaVencidaList = activeRequests
-      .filter((r) => {
-        if (r.estado !== "ENCARGO_REALIZADO" && r.estado !== "RECIBIDO_PARCIAL") return false;
-        return isLlegadaVencida(r);
-      })
-      .map((r) => ({
-        id: r.id,
-        workOrderId: r.workOrderId,
-        numeroOrden: r.workOrder?.numeroOrden,
-        patente: r.workOrder?.vehicle?.patente,
-        proveedor: r.proveedor,
-        fechaEstimadaLlegada: r.fechaEstimadaLlegada,
-        elapsedFormatted: formatTiempoTranscurrido(r.fechaEstimadaLlegada),
-      }));
+    // 2. Pedidos pendientes de encargar para Recepción
+    // Regla: Cuando ya se encargó, no hace falta banner ni alertas de vencimiento;
+    // lo fundamental es que Recepción haga el encargo de los pedidos aprobados.
+    const llegadaVencidaList: any[] = [];
 
     // 3. Conteo para Administrador (Solicitado o En revisión)
     const solicitadosOEnRevision = activeRequests.filter(
@@ -164,9 +153,9 @@ export async function GET(request: NextRequest) {
         paraEncargarCount: paraEncargarList.length,
         oldestParaEncargar,
         paraEncargarList,
-        llegadaVencidaCount: llegadaVencidaList.length,
-        llegadaVencidaList,
-        hasPendingTasks: paraEncargarList.length > 0 || llegadaVencidaList.length > 0,
+        llegadaVencidaCount: 0,
+        llegadaVencidaList: [],
+        hasPendingTasks: paraEncargarList.length > 0,
       },
       admin: {
         solicitadosCount: solicitadosOEnRevision.length,

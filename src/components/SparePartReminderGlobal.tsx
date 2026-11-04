@@ -30,18 +30,12 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
 
   // Estados del modal periódico de Recepción ("¿Ya encargaste los repuestos...?")
   const [showPeriodicModal, setShowPeriodicModal] = useState(false);
-  const [modalType, setModalType] = useState<"ENCARGO" | "LLEGADA">("ENCARGO");
 
   // Estado para el formulario inline de "Encargo realizado"
   const [activeEncargoId, setActiveEncargoId] = useState<string | null>(null);
   const [proveedor, setProveedor] = useState("");
   const [fechaEstimadaLlegada, setFechaEstimadaLlegada] = useState("");
   const [submittingAction, setSubmittingAction] = useState(false);
-
-  // Estado para el formulario inline de "Recibido"
-  const [activeRecibidoId, setActiveRecibidoId] = useState<string | null>(null);
-  const [remitoNro, setRemitoNro] = useState("");
-  const [notasRecepcion, setNotasRecepcion] = useState("");
 
   // Control de intervalos de preguntas periódicas (30 min por defecto)
   const lastPromptTimeRef = useRef<number>(0);
@@ -54,6 +48,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       setReminderData(data);
 
       // Evaluar si corresponde disparar la pregunta periódica ÚNICAMENTE a Recepción
+      // Solo si hay repuestos pendientes de encargar
       if (role === "RECEPTION") {
         const now = Date.now();
         const intervalMs =
@@ -62,21 +57,15 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
           1000;
 
         const hasParaEncargar = (data.reception?.paraEncargarCount || 0) > 0;
-        const hasLlegadaVencida = (data.reception?.llegadaVencidaCount || 0) > 0;
 
-        // Se muestra al iniciar sesión (primer mount) y luego cada 30 min mientras haya pendientes
-        if (hasParaEncargar || hasLlegadaVencida) {
+        // Se muestra al iniciar sesión (primer mount) y luego periódicamente mientras haya pedidos para encargar
+        if (hasParaEncargar) {
           if (lastPromptTimeRef.current === 0 || now - lastPromptTimeRef.current >= intervalMs) {
-            if (hasParaEncargar) {
-              setModalType("ENCARGO");
-              setShowPeriodicModal(true);
-              lastPromptTimeRef.current = now;
-            } else if (hasLlegadaVencida) {
-              setModalType("LLEGADA");
-              setShowPeriodicModal(true);
-              lastPromptTimeRef.current = now;
-            }
+            setShowPeriodicModal(true);
+            lastPromptTimeRef.current = now;
           }
+        } else {
+          setShowPeriodicModal(false);
         }
       }
     } catch (err) {
@@ -92,12 +81,11 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
   }, [fetchReminders]);
 
   // Manejador "Todavía no" (cierra instantáneamente en 0ms y registra en segundo plano)
-  const handleTodaviaNo = (pedidoId: string, tipo: "ENCARGO" | "LLEGADA") => {
+  const handleTodaviaNo = (pedidoId: string) => {
     // 1. Cierre inmediato sin esperar la red ni bloquear la pantalla
     lastPromptTimeRef.current = Date.now();
     setShowPeriodicModal(false);
     setActiveEncargoId(null);
-    setActiveRecibidoId(null);
 
     // 2. Registro asíncrono en segundo plano
     fetch(`/api/spare-parts/${pedidoId}`, {
@@ -105,7 +93,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "TODAVIA_NO",
-        tipo,
+        tipo: "ENCARGO",
       }),
     })
       .then(() => fetchReminders())
@@ -145,51 +133,19 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
     }
   };
 
-  // Manejador "Recibido"
-  const handleConfirmRecibido = async (pedidoId: string) => {
-    setSubmittingAction(true);
-    try {
-      const res = await fetch(`/api/spare-parts/${pedidoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "RECIBIDO",
-          remitoNro: remitoNro.trim() || undefined,
-          notasRecepcion: notasRecepcion.trim() || undefined,
-        }),
-      });
-      if (res.ok) {
-        setActiveRecibidoId(null);
-        setRemitoNro("");
-        setNotasRecepcion("");
-        const remaining = (reminderData?.reception?.llegadaVencidaList || []).filter(
-          (p: any) => p.id !== pedidoId
-        );
-        if (remaining.length === 0) {
-          setShowPeriodicModal(false);
-        }
-        fetchReminders();
-      }
-    } catch (err) {
-      console.error("Error al confirmar recepción:", err);
-    } finally {
-      setSubmittingAction(false);
-    }
-  };
-
   // Intensidad visual progresiva para el banner fijo de Recepción:
+  // - Solo se activa si hay pedidos esperando que Recepción haga el encargo (paraEncargarCount > 0)
   // - Nivel 1 (< 1h): Súper tranquilo (gris/azul neutro sutil, cero estrés).
   // - Nivel 2 (1h a 3h): Tono cálido ámbar suave, atención moderada.
   // - Nivel 3 (3h a 4h): Naranja vivo, alerta previa al escalamiento.
-  // - Nivel 4 (> 4h o escalado/vencido): Rojo carmesí intenso, máxima urgencia.
+  // - Nivel 4 (> 4h o escalado): Rojo carmesí intenso por demora prolongada.
   const bannerUrgency = useMemo(() => {
     const rec = reminderData?.reception;
-    if (!rec?.hasPendingTasks) return null;
+    if (!rec || (rec.paraEncargarCount || 0) === 0) return null;
     const isEscalated = Boolean(rec.oldestParaEncargar?.isEscalated);
-    const hasLlegadaVencida = (rec.llegadaVencidaCount || 0) > 0;
     const elapsedMinutes = rec.oldestParaEncargar?.elapsedMinutes || 0;
 
-    if (isEscalated || hasLlegadaVencida || elapsedMinutes >= 240) {
+    if (isEscalated || elapsedMinutes >= 240) {
       return {
         level: 4,
         containerClass:
@@ -198,9 +154,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
         labelClass: "bg-white/20 text-white",
         labelText: "Recepción • Urgente",
         badgeClass: "bg-rose-950 text-rose-200 border-rose-400/50",
-        badgeText: isEscalated
-          ? `🚨 Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`
-          : "🚨 Llegada Vencida",
+        badgeText: `🚨 Demorado (> ${SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)`,
         descClass: "text-rose-100",
         strongClass: "text-white font-black",
         btnClass:
@@ -270,10 +224,9 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
     <>
       {/* ========================================================================= */}
       {/* 1. BANNER FIJO NO CERRABLE PARA RECEPCIÓN                                */}
-      {/* Regla: Aparece en todas las pantallas con intensidad progresiva           */}
-      {/* mientras haya pedidos en "Para encargar" o con llegada vencida            */}
+      {/* Regla: Solo aparece mientras haya pedidos en "Para encargar"              */}
       {/* ========================================================================= */}
-      {isReception && reception?.hasPendingTasks && bannerUrgency && (
+      {isReception && (reception?.paraEncargarCount || 0) > 0 && bannerUrgency && (
         <div
           className={`mb-4 rounded-2xl p-4 border transition-all animate-in fade-in slide-in-from-top-3 ${bannerUrgency.containerClass}`}
         >
@@ -298,25 +251,15 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
                   </span>
                 </div>
                 <p className={`text-sm font-medium mt-1 leading-snug ${bannerUrgency.descClass}`}>
-                  {reception.paraEncargarCount > 0 ? (
-                    <>
-                      Hay <strong className={bannerUrgency.strongClass}>{reception.paraEncargarCount}</strong>{" "}
-                      pedido{reception.paraEncargarCount > 1 ? "s" : ""} de repuestos esperando que se
-                      haga el encargo.
-                      {reception.oldestParaEncargar && (
-                        <span className="block sm:inline sm:ml-1">
-                          Más antiguo: <strong className={bannerUrgency.strongClass}>Orden #{reception.oldestParaEncargar.numeroOrden}</strong> (
-                          {reception.oldestParaEncargar.patente}) pendiente hace{" "}
-                          <strong className={bannerUrgency.strongClass}>{reception.oldestParaEncargar.elapsedFormatted}</strong>.
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      Hay <strong className={bannerUrgency.strongClass}>{reception.llegadaVencidaCount}</strong>{" "}
-                      pedido{reception.llegadaVencidaCount > 1 ? "s" : ""} con fecha estimada de llegada
-                      vencida pendientes de recepción.
-                    </>
+                  Hay <strong className={bannerUrgency.strongClass}>{reception.paraEncargarCount}</strong>{" "}
+                  pedido{reception.paraEncargarCount > 1 ? "s" : ""} de repuestos esperando que se
+                  haga el encargo.
+                  {reception.oldestParaEncargar && (
+                    <span className="block sm:inline sm:ml-1">
+                      Más antiguo: <strong className={bannerUrgency.strongClass}>Orden #{reception.oldestParaEncargar.numeroOrden}</strong> (
+                      {reception.oldestParaEncargar.patente}) pendiente hace{" "}
+                      <strong className={bannerUrgency.strongClass}>{reception.oldestParaEncargar.elapsedFormatted}</strong>.
+                    </span>
                   )}
                 </p>
               </div>
@@ -385,9 +328,9 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
 
       {/* ========================================================================= */}
       {/* 4. MODAL PERIÓDICO DE RECEPCIÓN ("¿Ya encargaste los repuestos...?")       */}
-      {/* Aparece al iniciar sesión y cada 30 min (configurable)                    */}
+      {/* Aparece periódicamente mientras haya pedidos para encargar                */}
       {/* ========================================================================= */}
-      {showPeriodicModal && isReception && (
+      {showPeriodicModal && isReception && (reception?.paraEncargarCount || 0) > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95">
             {/* Header del modal */}
@@ -398,14 +341,10 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base leading-tight">
-                    {modalType === "ENCARGO"
-                      ? "¿Ya encargaste los repuestos?"
-                      : "¿Llegaron los repuestos al taller?"}
+                    ¿Ya encargaste los repuestos?
                   </h3>
                   <p className="text-xs text-slate-300 mt-0.5">
-                    {modalType === "ENCARGO"
-                      ? "Control de seguimiento obligatorio para Recepción"
-                      : "Control de llegada de repuestos encargados"}
+                    Control de seguimiento obligatorio para Recepción
                   </p>
                 </div>
               </div>
@@ -422,245 +361,144 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
             {/* Contenido / Lista de pedidos pendientes */}
             <div className="p-5 max-h-[60vh] overflow-y-auto space-y-4">
               <p className="text-xs text-slate-600">
-                {modalType === "ENCARGO"
-                  ? "Los siguientes pedidos fueron aprobados por el Administrador y están esperando que realices el encargo con el proveedor:"
-                  : "Los siguientes pedidos tenían fecha estimada de llegada hoy o anterior:"}
+                Los siguientes pedidos fueron aprobados por el Administrador y están esperando que realices el encargo con el proveedor:
               </p>
 
-              {modalType === "ENCARGO" &&
-                reception?.paraEncargarList?.map((pedido: any) => {
-                  const isExpanded = activeEncargoId === pedido.id;
-                  return (
-                    <div
-                      key={pedido.id}
-                      className={`p-4 rounded-2xl border transition-all ${
-                        pedido.isEscalated
-                          ? "border-rose-400 bg-rose-50/60"
-                          : (pedido.elapsedMinutes || 0) >= 180
-                          ? "border-orange-300 bg-orange-50/40"
-                          : (pedido.elapsedMinutes || 0) >= 60
-                          ? "border-amber-200 bg-amber-50/30"
-                          : "border-slate-200 bg-slate-50/70"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-sm text-slate-900">
-                              Orden #{pedido.numeroOrden}
+              {reception?.paraEncargarList?.map((pedido: any) => {
+                const isExpanded = activeEncargoId === pedido.id;
+                return (
+                  <div
+                    key={pedido.id}
+                    className={`p-4 rounded-2xl border transition-all ${
+                      pedido.isEscalated
+                        ? "border-rose-400 bg-rose-50/60"
+                        : (pedido.elapsedMinutes || 0) >= 180
+                        ? "border-orange-300 bg-orange-50/40"
+                        : (pedido.elapsedMinutes || 0) >= 60
+                        ? "border-amber-200 bg-amber-50/30"
+                        : "border-slate-200 bg-slate-50/70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-sm text-slate-900">
+                            Orden #{pedido.numeroOrden}
+                          </span>
+                          <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
+                            {pedido.patente}
+                          </span>
+                          {pedido.isEscalated ? (
+                            <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded uppercase shadow-xs">
+                              Demorado
                             </span>
-                            <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
-                              {pedido.patente}
+                          ) : (pedido.elapsedMinutes || 0) >= 180 ? (
+                            <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-black rounded uppercase shadow-xs">
+                              Próximo a vencer
                             </span>
-                            {pedido.isEscalated ? (
-                              <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded uppercase shadow-xs">
-                                Demorado
-                              </span>
-                            ) : (pedido.elapsedMinutes || 0) >= 180 ? (
-                              <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-black rounded uppercase shadow-xs">
-                                Próximo a vencer
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="text-xs text-slate-600 mt-1">
-                            <strong className="text-slate-800">Falla:</strong> {pedido.fallaReparar}
-                          </p>
-                          <div className="flex items-center gap-3 text-[11px] mt-2">
-                            <span
-                              className={`flex items-center gap-1 ${
-                                pedido.isEscalated
-                                  ? "text-rose-700 font-bold"
-                                  : (pedido.elapsedMinutes || 0) >= 180
-                                  ? "text-orange-800 font-bold"
-                                  : (pedido.elapsedMinutes || 0) >= 60
-                                  ? "text-amber-800 font-semibold"
-                                  : "text-slate-500 font-medium"
-                              }`}
-                            >
-                              <Clock className="w-3 h-3 opacity-70" />
-                              Esperando hace {pedido.elapsedFormatted}
-                            </span>
-                            <span className="text-slate-400">•</span>
-                            <span className="text-slate-500">{pedido.itemsCount} repuesto(s)</span>
-                          </div>
+                          ) : null}
                         </div>
-
-                        {!isExpanded && (
-                          <div className="flex flex-col gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveEncargoId(pedido.id);
-                                setProveedor("");
-                                setFechaEstimadaLlegada("");
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all"
-                            >
-                              Encargo realizado
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submittingAction}
-                              onClick={() => handleTodaviaNo(pedido.id, "ENCARGO")}
-                              className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all"
-                            >
-                              Todavía no
-                            </button>
-                          </div>
-                        )}
+                        <p className="text-xs text-slate-600 mt-1">
+                          <strong className="text-slate-800">Falla:</strong> {pedido.fallaReparar}
+                        </p>
+                        <div className="flex items-center gap-3 text-[11px] mt-2">
+                          <span
+                            className={`flex items-center gap-1 ${
+                              pedido.isEscalated
+                                ? "text-rose-700 font-bold"
+                                : (pedido.elapsedMinutes || 0) >= 180
+                                ? "text-orange-800 font-bold"
+                                : (pedido.elapsedMinutes || 0) >= 60
+                                ? "text-amber-800 font-semibold"
+                                : "text-slate-500 font-medium"
+                            }`}
+                          >
+                            <Clock className="w-3 h-3 opacity-70" />
+                            Esperando hace {pedido.elapsedFormatted}
+                          </span>
+                          <span className="text-slate-400">•</span>
+                          <span className="text-slate-500">{pedido.itemsCount} repuesto(s)</span>
+                        </div>
                       </div>
 
-                      {/* Formulario corto para "Encargo realizado" */}
-                      {isExpanded && (
-                        <div className="mt-4 pt-3 border-t border-slate-200/80 space-y-3 bg-white p-3 rounded-xl">
-                          <p className="text-xs font-extrabold text-slate-800">
-                            Datos del encargo (opcionales):
-                          </p>
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Proveedor / Distribuidor
-                            </label>
-                            <input
-                              type="text"
-                              value={proveedor}
-                              onChange={(e) => setProveedor(e.target.value)}
-                              placeholder="Ej: Distribuidora Norte, Repuestos Valencia..."
-                              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Fecha estimada de llegada
-                            </label>
-                            <input
-                              type="date"
-                              value={fechaEstimadaLlegada}
-                              onChange={(e) => setFechaEstimadaLlegada(e.target.value)}
-                              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-end gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setActiveEncargoId(null)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100"
-                            >
-                              Volver
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submittingAction}
-                              onClick={() => handleConfirmEncargo(pedido.id)}
-                              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5"
-                            >
-                              {submittingAction && <Loader2 className="w-3 h-3 animate-spin" />}
-                              <span>Confirmar Encargo</span>
-                            </button>
-                          </div>
+                      {!isExpanded && (
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveEncargoId(pedido.id);
+                              setProveedor("");
+                              setFechaEstimadaLlegada("");
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs transition-all"
+                          >
+                            Encargo realizado
+                          </button>
+                          <button
+                            type="button"
+                            disabled={submittingAction}
+                            onClick={() => handleTodaviaNo(pedido.id)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all"
+                          >
+                            Todavía no
+                          </button>
                         </div>
                       )}
                     </div>
-                  );
-                })}
 
-              {modalType === "LLEGADA" &&
-                reception?.llegadaVencidaList?.map((pedido: any) => {
-                  const isExpanded = activeRecibidoId === pedido.id;
-                  return (
-                    <div key={pedido.id} className="p-4 rounded-2xl border border-blue-200 bg-blue-50/50">
-                      <div className="flex items-start justify-between gap-3">
+                    {/* Formulario corto para "Encargo realizado" */}
+                    {isExpanded && (
+                      <div className="mt-4 pt-3 border-t border-slate-200/80 space-y-3 bg-white p-3 rounded-xl">
+                        <p className="text-xs font-extrabold text-slate-800">
+                          Datos del encargo (opcionales):
+                        </p>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-black text-sm text-slate-900">
-                              Orden #{pedido.numeroOrden}
-                            </span>
-                            <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
-                              {pedido.patente}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-600 mt-1">
-                            Proveedor: <strong>{pedido.proveedor || "No indicado"}</strong>
-                          </p>
-                          <p className="text-[11px] font-bold text-rose-700 mt-1">
-                            Llegada prevista: {new Date(pedido.fechaEstimadaLlegada).toLocaleDateString()}
-                          </p>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Proveedor / Distribuidor
+                          </label>
+                          <input
+                            type="text"
+                            value={proveedor}
+                            onChange={(e) => setProveedor(e.target.value)}
+                            placeholder="Ej: Distribuidora Norte, Repuestos Valencia..."
+                            className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Fecha estimada de llegada
+                          </label>
+                          <input
+                            type="date"
+                            value={fechaEstimadaLlegada}
+                            onChange={(e) => setFechaEstimadaLlegada(e.target.value)}
+                            className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                          />
                         </div>
 
-                        {!isExpanded && (
-                          <div className="flex flex-col gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveRecibidoId(pedido.id);
-                                setRemitoNro("");
-                                setNotasRecepcion("");
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs"
-                            >
-                              Marcar Recibido
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submittingAction}
-                              onClick={() => handleTodaviaNo(pedido.id, "LLEGADA")}
-                              className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs"
-                            >
-                              Todavía no
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveEncargoId(null)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-100"
+                          >
+                            Volver
+                          </button>
+                          <button
+                            type="button"
+                            disabled={submittingAction}
+                            onClick={() => handleConfirmEncargo(pedido.id)}
+                            className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-xs flex items-center gap-1.5"
+                          >
+                            {submittingAction && <Loader2 className="w-3 h-3 animate-spin" />}
+                            <span>Confirmar Encargo</span>
+                          </button>
+                        </div>
                       </div>
-
-                      {isExpanded && (
-                        <div className="mt-4 pt-3 border-t border-slate-200 space-y-3 bg-white p-3 rounded-xl">
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Nº Remito / Factura (Opcional)
-                            </label>
-                            <input
-                              type="text"
-                              value={remitoNro}
-                              onChange={(e) => setRemitoNro(e.target.value)}
-                              placeholder="Ej: REM-00984"
-                              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                              Notas de Recepción
-                            </label>
-                            <input
-                              type="text"
-                              value={notasRecepcion}
-                              onChange={(e) => setNotasRecepcion(e.target.value)}
-                              placeholder="Paquete verificado completo..."
-                              className="w-full text-xs px-3 py-2 rounded-lg border border-slate-300"
-                            />
-                          </div>
-                          <div className="flex items-center justify-end gap-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setActiveRecibidoId(null)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600"
-                            >
-                              Volver
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submittingAction}
-                              onClick={() => handleConfirmRecibido(pedido.id)}
-                              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs"
-                            >
-                              {submittingAction && <Loader2 className="w-3 h-3 animate-spin" />}
-                              <span>Confirmar Recepción</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Footer */}
