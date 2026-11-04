@@ -2778,7 +2778,7 @@ export default function OrdenDetallePage() {
                     {savingWorkLog ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Registrando y renderizando...</span>
+                        <span>Registrando...</span>
                       </>
                     ) : (
                       <>
