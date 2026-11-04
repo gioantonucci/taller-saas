@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import ModalPortal from "@/components/ModalPortal";
 import {
   FileCheck,
   AlertTriangle,
@@ -749,11 +750,12 @@ export default function PeritajeIngresoModal({
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div
-        className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalPortal>
+      <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
+        <div
+          className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Cabecera del Modal */}
         <div className="shrink-0 p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3 min-w-0">
@@ -1894,7 +1896,7 @@ export default function PeritajeIngresoModal({
       {/* Visualizador ampliado de fotografía o reproductor de video */}
       {selectedMedia && (
         <div
-          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 w-screen h-screen z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
           onClick={() => setSelectedMedia(null)}
         >
           <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
@@ -1925,5 +1927,6 @@ export default function PeritajeIngresoModal({
         </div>
       )}
     </div>
+    </ModalPortal>
   );
 }

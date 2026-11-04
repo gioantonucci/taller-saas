@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import ModalPortal from "@/components/ModalPortal";
 import {
   Users,
   UserCheck,
@@ -725,8 +726,9 @@ export default function GestionPersonalPage() {
 
       {/* MODAL: BAJA Y REASIGNACIÓN DE ÓRDENES (MECÁNICO) */}
       {bajaModalOpen && bajaMember && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
             {/* Header Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
@@ -969,12 +971,14 @@ export default function GestionPersonalPage() {
             )}
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* MODAL: ALTA DE PERSONAL */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
             {/* Header Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -1188,6 +1192,7 @@ export default function GestionPersonalPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

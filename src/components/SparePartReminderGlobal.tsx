@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
+import ModalPortal from "@/components/ModalPortal";
 import {
   AlertTriangle,
   Clock,
@@ -382,8 +383,9 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       {/* Aparece periódicamente mientras haya pedidos para encargar                */}
       {/* ========================================================================= */}
       {showPeriodicModal && isReception && (reception?.paraEncargarCount || 0) > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95">
             {/* Header del modal */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 flex items-start justify-between">
               <div className="flex items-center gap-3">
@@ -569,6 +571,7 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </>
   );

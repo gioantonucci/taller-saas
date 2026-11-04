@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import ModalPortal from "@/components/ModalPortal";
 import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -779,10 +780,11 @@ export default function VehiculoHistorialClinicoPage() {
 
       {/* MODAL LIGHTBOX / VISOR EN PANTALLA COMPLETA */}
       {selectedPhotoIndex !== null && filteredPhotos[selectedPhotoIndex] && (
-        <div
-          onClick={() => setSelectedPhotoIndex(null)}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 animate-in fade-in select-none"
-        >
+        <ModalPortal>
+          <div
+            onClick={() => setSelectedPhotoIndex(null)}
+            className="fixed inset-0 w-screen h-screen z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-6 animate-in fade-in select-none"
+          >
           {(() => {
             const current = filteredPhotos[selectedPhotoIndex];
             const isVideo = current.tipo === "VIDEO";
@@ -922,6 +924,7 @@ export default function VehiculoHistorialClinicoPage() {
             );
           })()}
         </div>
+        </ModalPortal>
       )}
 
     </div>

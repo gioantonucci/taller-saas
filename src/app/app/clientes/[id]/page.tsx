@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
+import ModalPortal from "@/components/ModalPortal";
 import { hasValidAddress } from "@/lib/search-utils";
 
 export default function ClienteDetallePage() {
@@ -517,8 +518,9 @@ export default function ClienteDetallePage() {
 
       {/* Modal In-Place: Asociar Vehículo (Sin creación de usuarios) */}
       {asociarModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header del Modal */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -773,6 +775,7 @@ export default function ClienteDetallePage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

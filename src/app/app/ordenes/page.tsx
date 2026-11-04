@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import ModalPortal from "@/components/ModalPortal";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -1767,10 +1768,11 @@ export default function OrdenesPage() {
 
       {/* 5. Modal de Ingreso Progresivo de 4 Pasos */}
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setModalOpen(false)}
-        >
+        <ModalPortal>
+          <div
+            className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setModalOpen(false)}
+          >
           <div
             className="w-full max-w-2xl sm:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-h-[520px] sm:min-h-[580px] max-h-[92vh]"
             onClick={(e) => e.stopPropagation()}
@@ -2953,6 +2955,7 @@ export default function OrdenesPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Modal propio del sistema para confirmación de entrega y archivado */}
@@ -2989,8 +2992,9 @@ export default function OrdenesPage() {
 
       {/* Modal de Éxito de Ingreso: Impresión y Descarga del Resguardo de Depósito A4 */}
       {createdOrderSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
             {/* Header con gradiente esmeralda */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white text-center relative">
               <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
@@ -3083,6 +3087,7 @@ export default function OrdenesPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
     </div>

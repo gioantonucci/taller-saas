@@ -23,6 +23,7 @@ import {
   Ban,
 } from "lucide-react";
 import { SparePartRequest, SparePartItem } from "@/types";
+import ModalPortal from "@/components/ModalPortal";
 import { useAppDialog } from "@/components/AppDialog";
 import { normalizeRole } from "@/lib/roles";
 import {
@@ -850,8 +851,9 @@ export default function RepuestosPage() {
       {/* MODAL DETALLE COMPLETO DEL PEDIDO                                         */}
       {/* ========================================================================= */}
       {detailModalOpen && selectedRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-in fade-in">
-          <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto animate-in fade-in">
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
             
             {/* Header del Modal */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 sm:p-6 flex items-start justify-between">
@@ -1516,90 +1518,95 @@ export default function RepuestosPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL ENCARGO REALIZADO (RECEPCIÓN)                                       */}
       {/* ========================================================================= */}
       {encargoModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-base">
-              <Truck className="w-5 h-5 text-emerald-600" />
-              <span>Confirmar Encargo de Repuestos</span>
-            </div>
-            <p className="text-xs text-slate-600">
-              Registra los datos del pedido realizado con el proveedor (ambos opcionales):
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Proveedor / Distribuidor
-                </label>
-                <input
-                  type="text"
-                  value={proveedorInput}
-                  onChange={(e) => setProveedorInput(e.target.value)}
-                  placeholder="Ej: Distribuidora Central, Repuestos Valencia..."
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
-                />
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-base">
+                <Truck className="w-5 h-5 text-emerald-600" />
+                <span>Confirmar Encargo de Repuestos</span>
               </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Fecha Estimada de Llegada al Taller
-                </label>
-                <input
-                  type="date"
-                  value={fechaEstimadaInput}
-                  onChange={(e) => setFechaEstimadaInput(e.target.value)}
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
-                />
+              <p className="text-xs text-slate-600">
+                Registra los datos del pedido realizado con el proveedor (ambos opcionales):
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Proveedor / Distribuidor
+                  </label>
+                  <input
+                    type="text"
+                    value={proveedorInput}
+                    onChange={(e) => setProveedorInput(e.target.value)}
+                    placeholder="Ej: Distribuidora Central, Repuestos Valencia..."
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Fecha Estimada de Llegada al Taller
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaEstimadaInput}
+                    onChange={(e) => setFechaEstimadaInput(e.target.value)}
+                    className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEncargoModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={handleRecepcionEncargoRealizado}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
-              >
-                Confirmar Encargo
-              </button>
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEncargoModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={handleRecepcionEncargoRealizado}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
+                >
+                  Confirmar Encargo
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
       {/* LIGHTBOX FOTO EN GRANDE                                                   */}
       {/* ========================================================================= */}
       {activePhotoUrl && (
-        <div
-          onClick={() => setActivePhotoUrl(null)}
-          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs cursor-pointer animate-in fade-in"
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <img
-              src={activePhotoUrl}
-              alt="Foto ampliada repuesto"
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/20"
-            />
-            <button
-              type="button"
-              onClick={() => setActivePhotoUrl(null)}
-              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <ModalPortal>
+          <div
+            onClick={() => setActivePhotoUrl(null)}
+            className="fixed inset-0 w-screen h-screen z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer animate-in fade-in"
+          >
+            <div className="relative max-w-4xl max-h-[90vh]">
+              <img
+                src={activePhotoUrl}
+                alt="Foto ampliada repuesto"
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/20"
+              />
+              <button
+                type="button"
+                onClick={() => setActivePhotoUrl(null)}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

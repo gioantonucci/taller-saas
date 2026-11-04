@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ModalPortal from "@/components/ModalPortal";
 import {
   X,
   CheckCircle2,
@@ -194,11 +195,12 @@ export default function FinalizarReparacionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalPortal>
+      <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
+        <div
+          className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Cabecera del Modal */}
         <div
           className={`shrink-0 text-white p-4 sm:p-5 pb-4 flex items-start justify-between relative transition-colors duration-200 ${
@@ -631,5 +633,6 @@ export default function FinalizarReparacionModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

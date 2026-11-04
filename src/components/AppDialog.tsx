@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import ModalPortal from "@/components/ModalPortal";
 import {
   AlertTriangle,
   AlertCircle,
@@ -278,12 +279,13 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {isOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-[120] flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => handleClose(false)}
-        >
+        <ModalPortal>
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 w-screen h-screen z-[200] flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => handleClose(false)}
+          >
           <div
             className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col p-5 sm:p-6 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
@@ -348,6 +350,7 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </AppDialogContext.Provider>
   );

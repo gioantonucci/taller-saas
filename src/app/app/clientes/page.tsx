@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { clientFormSchema, ClientFormValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
+import ModalPortal from "@/components/ModalPortal";
 import { hasValidAddress } from "@/lib/search-utils";
 
 export default function ClientesPage() {
@@ -477,8 +478,9 @@ export default function ClientesPage() {
 
       {/* Modal / Sheet de Alta y Edición con ZOD + REACT HOOK FORM */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
             {/* Header del Modal */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
               <div className="flex items-center gap-2">
@@ -661,6 +663,7 @@ export default function ClientesPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

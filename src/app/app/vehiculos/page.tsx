@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { quickVehicleAndClientSchema, QuickVehicleAndClientValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
+import ModalPortal from "@/components/ModalPortal";
 import { getStatusInfo } from "@/lib/order-status";
 
 function getVehicleStatus(v: any) {
@@ -491,8 +492,9 @@ function VehiculosContent() {
 
       {/* Modal de Alta de Vehículo con ZOD + REACT HOOK FORM */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col">
             {/* Header del Modal */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2">
@@ -712,6 +714,7 @@ function VehiculosContent() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

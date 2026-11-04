@@ -10,6 +10,7 @@ import {
 import { DamagePin } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
 import { estimateZone } from "@/lib/damage-utils";
+import ModalPortal from "@/components/ModalPortal";
 
 interface CarDamageBlueprintProps {
   pins: DamagePin[];
@@ -294,8 +295,9 @@ export default function CarDamageBlueprint({
 
       {/* Modal / Sheet Flotante para Asignar Tipo de Daño al hacer Tap */}
       {pendingCoords && !readOnly && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-bottom duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[110] bg-slate-950/75 backdrop-blur-md flex items-end sm:items-center justify-center p-3">
+            <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm">
@@ -408,12 +410,14 @@ export default function CarDamageBlueprint({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Modal para ver / eliminar Pin existente */}
       {activePin && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-3">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[110] bg-slate-950/75 backdrop-blur-md flex items-end sm:items-center justify-center p-3">
+            <div className="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-200 space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span
@@ -476,6 +480,7 @@ export default function CarDamageBlueprint({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Listado de Marcadores debajo del Auto */}

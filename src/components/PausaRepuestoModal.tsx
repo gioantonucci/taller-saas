@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ModalPortal from "@/components/ModalPortal";
 import {
   X,
   AlertTriangle,
@@ -183,8 +184,9 @@ export default function PausaRepuestoModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
+    <ModalPortal>
+      <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto">
+        <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
         
         {/* ENCABEZADO */}
         <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white p-4 sm:p-6 flex items-start justify-between relative overflow-hidden">
@@ -388,5 +390,6 @@ export default function PausaRepuestoModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

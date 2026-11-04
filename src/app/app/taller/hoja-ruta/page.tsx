@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import ModalPortal from "@/components/ModalPortal";
 import {
   Wrench,
   Clock,
@@ -1888,36 +1889,38 @@ export default function HojaRutaMecanicoPage() {
 
       {/* Modal Lightbox de Foto de Arreglo */}
       {activePreviewImg && (
-        <div
-          onClick={() => setActivePreviewImg(null)}
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in"
-        >
+        <ModalPortal>
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col items-center"
+            onClick={() => setActivePreviewImg(null)}
+            className="fixed inset-0 w-screen h-screen z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in"
           >
-            <div className="w-full p-3.5 bg-slate-950 flex items-center justify-between text-white text-xs px-5 border-b border-slate-800">
-              <span className="font-bold flex items-center gap-2">
-                <Camera className="w-4 h-4 text-indigo-400" />
-                <span>Foto de Evidencia del Arreglo</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setActivePreviewImg(null)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-2 sm:p-4 flex items-center justify-center max-h-[80vh] overflow-hidden">
-              <img
-                src={activePreviewImg}
-                alt="Foto del arreglo ampliada"
-                className="max-h-[75vh] w-auto max-w-full object-contain rounded-xl"
-              />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 flex flex-col items-center"
+            >
+              <div className="w-full p-3.5 bg-slate-950 flex items-center justify-between text-white text-xs px-5 border-b border-slate-800">
+                <span className="font-bold flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-indigo-400" />
+                  <span>Foto de Evidencia del Arreglo</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActivePreviewImg(null)}
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-white transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-2 sm:p-4 flex items-center justify-center max-h-[80vh] overflow-hidden">
+                <img
+                  src={activePreviewImg}
+                  alt="Foto del arreglo ampliada"
+                  className="max-h-[75vh] w-auto max-w-full object-contain rounded-xl"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
     </div>

@@ -18,6 +18,7 @@ import {
 import { getStatusInfo } from "@/lib/order-status";
 import DashboardCharts from "@/components/DashboardCharts";
 import ClientSignaturePad from "@/components/ClientSignaturePad";
+import ModalPortal from "@/components/ModalPortal";
 
 interface MetricsData {
   activosEnTaller: number;
@@ -469,8 +470,9 @@ export default function DashboardPage() {
 
       {/* MODAL INGRESO RÁPIDO DE VEHÍCULO (CLIENTE DNI + PATENTE) */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-          <div ref={modalScrollRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-8 animate-in fade-in duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md">
+            <div ref={modalScrollRef} className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-8 animate-in fade-in duration-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Apertura Rápida de Orden de Trabajo</h3>
@@ -788,6 +790,7 @@ export default function DashboardPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

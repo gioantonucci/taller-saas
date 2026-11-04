@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import ModalPortal from "@/components/ModalPortal";
 import {
   PackageCheck,
   X,
@@ -49,12 +50,13 @@ export default function ConfirmDeliveryModal({
   if (!isOpen || !orderInfo) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={() => {
-        if (!loading) onClose();
-      }}
-    >
+    <ModalPortal>
+      <div
+        className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+        onClick={() => {
+          if (!loading) onClose();
+        }}
+      >
       <div
         className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200/80 flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -172,5 +174,6 @@ export default function ConfirmDeliveryModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

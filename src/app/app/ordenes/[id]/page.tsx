@@ -45,6 +45,7 @@ import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
 import PeritajeIngresoModal from "@/components/PeritajeIngresoModal";
 import FinalizarReparacionModal from "@/components/FinalizarReparacionModal";
 import PausaRepuestoModal from "@/components/PausaRepuestoModal";
+import ModalPortal from "@/components/ModalPortal";
 import { getStatusInfo } from "@/lib/order-status";
 import {
   generateResguardoDepositoPDF,
@@ -1980,9 +1981,563 @@ export default function OrdenDetallePage() {
           </div>
         </div>
 
-        {/* Modal emergente para registrar nuevo arreglo técnico con fotos y/o videos */}
-        {showAddWorkLog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in">
+        {order.workLogs.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-500">
+            <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <p className="font-semibold text-slate-600">Aún no se han asentado notas diarias de trabajo</p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Los arreglos técnicos y las fotografías del trabajo se visualizarán aquí.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {order.workLogs.map((log: any, idx: number) => {
+              let fotosList: any[] = [];
+              try {
+                if (log.fotos) {
+                  fotosList = typeof log.fotos === "string" ? JSON.parse(log.fotos) : log.fotos;
+                }
+              } catch {}
+
+              return (
+                <div
+                  key={log.id}
+                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-2"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
+                        #{order.workLogs.length - idx}
+                      </span>
+                      <span className="font-extrabold text-slate-800">
+                        🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 pl-8 sm:pl-0">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {new Date(log.fechaRegistro).toLocaleString("es-AR")}
+                      </span>
+                      {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWorkLog(log.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Eliminar este registro"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">
+                    {log.descripcionTarea}
+                  </p>
+
+                  {/* Fotos y Videos del Arreglo */}
+                  {Array.isArray(fotosList) && fotosList.length > 0 && (
+                    <div className="pl-8 pt-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
+                        <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Evidencias del arreglo ({fotosList.length}):</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {fotosList.map((f: any, fIdx: number) => {
+                          const mediaUrl = typeof f === "string" ? f : f?.url;
+                          if (!mediaUrl) return null;
+                          const isVid = /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(mediaUrl) || mediaUrl.includes("video");
+
+                          return (
+                            <button
+                              key={fIdx}
+                              type="button"
+                              onClick={() => setActiveModalImg(mediaUrl)}
+                              className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-black"
+                            >
+                              {isVid ? (
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-slate-900 relative">
+                                  <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" />
+                                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">
+                                    <Video className="w-5 h-5" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <img
+                                  src={mediaUrl}
+                                  alt={`Evidencia ${fIdx + 1}`}
+                                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
+                                />
+                              )}
+                              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <Maximize2 className="w-4 h-4" />
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {log.horasInvertidas > 0 && (
+                    <div className="pl-8 pt-1 flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">
+                        ⏱️ {log.horasInvertidas} hs computadas
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* SECCIÓN MULTIMEDIA Y EVIDENCIA EN OBJECT STORAGE */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Camera className="w-5 h-5 text-sky-600 shrink-0" />
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Evidencias Multimedia en la Nube</h2>
+              <p className="text-xs text-slate-500">
+                Fotos y peritajes resguardados en Object Storage independiente de la base de datos relacional.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-400 self-start sm:self-auto">
+            {(() => {
+              const uniqueItems = Array.from(
+                new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
+              );
+              return `${uniqueItems.length} archivos`;
+            })()}
+          </span>
+        </div>
+
+        {(() => {
+          const uniqueItems = Array.from(
+            new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
+          );
+
+          if (uniqueItems.length === 0) {
+            return (
+              <div className="p-8 text-center text-xs text-slate-500">
+                No se han registrado fotografías de evidencia para este vehículo.
+              </div>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {uniqueItems.map((item: any) => {
+              const isVid =
+                item.tipo === "VIDEO" ||
+                /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setActiveModalImg(item.urlStorage)}
+                  className="relative rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group bg-slate-900 aspect-video shadow-sm"
+                >
+                  {isVid ? (
+                    <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                      <video
+                        src={item.urlStorage}
+                        preload="metadata"
+                        className="w-full h-full object-cover opacity-75"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-9 h-9 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <Play className="w-4 h-4 fill-white ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={item.urlStorage}
+                      alt={item.descripcion || "Evidencia"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                      {isVid ? <Video className="w-2.5 h-2.5 text-rose-400" /> : <Camera className="w-2.5 h-2.5 text-sky-400" />}
+                      <span>{item.etiqueta || item.tipo}</span>
+                    </span>
+                    <p className="text-[10px] text-slate-300 truncate">
+                      {item.descripcion}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* MODAL FOTO O VIDEO FULL VIEW */}
+      {activeModalImg && (
+        <ModalPortal>
+          <div
+            className="fixed inset-0 w-screen h-screen z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-150"
+            onClick={() => setActiveModalImg(null)}
+          >
+            <div
+              className="max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(activeModalImg) || activeModalImg.includes("video") ? (
+                <video
+                  src={activeModalImg}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="rounded-2xl max-w-full max-h-[80vh] shadow-2xl bg-black"
+                />
+              ) : (
+                <img
+                  src={activeModalImg}
+                  alt="Evidencia Full"
+                  className="rounded-2xl max-w-full max-h-[80vh] object-contain shadow-2xl"
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setActiveModalImg(null)}
+                className="mt-2 px-6 py-2 rounded-full bg-white text-slate-900 font-bold text-xs shadow-xl hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                <span>Cerrar Vista</span>
+              </button>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Modal de Peritaje Digital de Ingreso (100% Local) */}
+      {order && (
+        <PeritajeIngresoModal
+          order={order}
+          isOpen={peritajeModalOpen}
+          onClose={() => setPeritajeModalOpen(false)}
+          onSaved={() => fetchOrder()}
+          isMechanic={isMechanic}
+          readOnly={
+            isPeritajeRealizado ||
+            !isMechanicOrAdmin ||
+            (order.estado !== "PENDIENTE" &&
+              order.estado !== "PENDIENTE_PERITAJE" &&
+              order.estado !== "INGRESADO")
+          }
+        />
+      )}
+
+      {/* Modal de Cierre y Finalización de Reparación */}
+      {order && (
+        <FinalizarReparacionModal
+          isOpen={isFinalizarModalOpen}
+          onClose={() => setIsFinalizarModalOpen(false)}
+          order={order}
+          onSuccess={(updatedOrder) => {
+            setOrder(updatedOrder);
+            fetchOrder();
+          }}
+        />
+      )}
+
+
+      {/* Modal para Asignar Mecánico Responsable */}
+      {assignModalOpen && order && canReassignMechanic && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200">
+            <div
+              className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+            <div className="p-5 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
+                  <UserCheck className="w-5 h-5 text-sky-400" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">
+                    Asignar Mecánico Responsable
+                  </h3>
+                  <p className="text-xs text-sky-200/80">
+                    Orden #{order.numeroOrden} • {order.vehicle?.marca} {order.vehicle?.modelo}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssignModalOpen(false)}
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-600">
+                Seleccione el profesional técnico responsable de realizar el peritaje inicial y gestionar las reparaciones del vehículo:
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {mechanics.map((m) => {
+                  const isSelected = selectedMechanicToAssign === m.id;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setSelectedMechanicToAssign(m.id)}
+                      className={`p-3 rounded-2xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                        isSelected
+                          ? "border-sky-500 bg-sky-50/70 ring-2 ring-sky-500/20"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
+                            isSelected
+                              ? "bg-sky-600 text-white"
+                              : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {m.nombre.charAt(0)}{m.apellido ? m.apellido.charAt(0) : ""}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">
+                            {m.nombre} {m.apellido || ""}
+                          </p>
+                          <p className="text-[11px] text-slate-500">{m.email}</p>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                          isSelected
+                            ? "border-sky-600 bg-sky-600 text-white"
+                            : "border-slate-300"
+                        }`}
+                      >
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Opción desasignar */}
+                <div
+                  onClick={() => setSelectedMechanicToAssign("")}
+                  className={`p-3 rounded-2xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
+                    selectedMechanicToAssign === ""
+                      ? "border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900">Dejar sin asignar</p>
+                      <p className="text-[11px] text-slate-500">
+                        La orden quedará pendiente de designación
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      selectedMechanicToAssign === ""
+                        ? "border-amber-600 bg-amber-600 text-white"
+                        : "border-slate-300"
+                    }`}
+                  >
+                    {selectedMechanicToAssign === "" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAssignModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={assigning}
+                onClick={handleConfirmAssignMechanic}
+                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-60"
+              >
+                {assigning ? "Guardando..." : "Confirmar Asignación"}
+              </button>
+            </div>
+          </div>
+        </div>
+        </ModalPortal>
+      )}
+
+
+
+      {/* Modal propio del sistema para confirmación de entrega y archivado */}
+      <ConfirmDeliveryModal
+        isOpen={deliveryModalOpen}
+        onClose={() => setDeliveryModalOpen(false)}
+        onConfirm={handleConfirmDelivery}
+        loading={delivering}
+        orderInfo={
+          order
+            ? {
+                numeroOrden: order.numeroOrden,
+                marca: order.vehicle?.marca,
+                modelo: order.vehicle?.modelo,
+                patente: order.vehicle?.patente,
+                clienteNombre: `${order.vehicle?.client?.nombre || ""} ${order.vehicle?.client?.apellido || ""}`.trim(),
+                clienteTelefono: order.vehicle?.client?.telefono,
+              }
+            : null
+        }
+      />
+
+      {/* Modal de Pausa por Repuestos */}
+      {pausaRepuestoModalOpen && order && (
+        <PausaRepuestoModal
+          isOpen={pausaRepuestoModalOpen}
+          order={order}
+          onClose={() => setPausaRepuestoModalOpen(false)}
+          onSuccess={() => {
+            fetchOrder();
+          }}
+        />
+      )}
+
+      {/* Modal para Dar de Baja la Orden */}
+      {darDeBajaModalOpen && (
+        <ModalPortal>
+          <div
+            className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => !submittingBaja && setDarDeBajaModalOpen(false)}
+          >
+            <div
+              className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Encabezado */}
+              <div className="bg-rose-900 text-white p-5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                    <Ban className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-white">
+                      Dar de Baja Orden #{order.numeroOrden}
+                    </h3>
+                    <p className="text-[11px] text-rose-200">
+                      {order.vehicle?.marca} {order.vehicle?.modelo} ({order.vehicle?.patente})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={submittingBaja}
+                  onClick={() => setDarDeBajaModalOpen(false)}
+                  className="p-1.5 rounded-xl text-rose-300 hover:text-white hover:bg-rose-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Contenido */}
+              <div className="p-5 space-y-4 text-xs">
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
+                  <p className="font-bold flex items-center gap-1.5 text-xs text-rose-950">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>¿Confirmar cancelación y baja definitiva?</span>
+                  </p>
+                  <p className="text-[11px] text-rose-800 leading-snug">
+                    La orden pasará a estar <strong>Dada de Baja</strong> y se moverá a las archivadas. No contará como vehículo activo en taller.
+                  </p>
+                </div>
+
+                {bajaError && (
+                  <div className="p-3 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl font-bold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                    <span>{bajaError}</span>
+                  </div>
+                )}
+
+                {/* Casilla para escribir el por qué se cancela */}
+                <div className="space-y-1.5">
+                  <label className="font-extrabold text-slate-800 block text-xs">
+                    Motivo de la cancelación / por qué se da de baja: *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={motivoBaja}
+                    onChange={(e) => setMotivoBaja(e.target.value)}
+                    placeholder="Ej: El cliente canceló el trabajo por no aceptar el presupuesto / Se retira sin reparar / No se consiguen los repuestos..."
+                    className="w-full p-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-none font-medium text-xs text-slate-900 placeholder:text-slate-400"
+                  />
+                </div>
+
+                {/* Atajos Rápidos de Motivos */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-500 block">Atajos rápidos:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Cliente canceló por presupuesto",
+                      "Retiró vehículo sin reparar",
+                      "Repuestos no conseguidos",
+                      "Carga duplicada por error",
+                      "Traslado a otro taller",
+                      "Desistimiento del cliente",
+                    ].map((sug) => (
+                      <button
+                        key={sug}
+                        type="button"
+                        onClick={() => setMotivoBaja(sug)}
+                        className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-900 text-slate-700 font-bold border border-slate-200 transition-colors cursor-pointer"
+                      >
+                        + {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  disabled={submittingBaja}
+                  onClick={() => setDarDeBajaModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  disabled={submittingBaja || !motivoBaja.trim()}
+                  onClick={handleDarDeBaja}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Ban className="w-4 h-4" />
+                  <span>{submittingBaja ? "Dando de baja..." : "Confirmar y Dar de Baja"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Modal emergente para registrar nuevo arreglo técnico con fotos y/o videos */}
+      {showAddWorkLog && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
             <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95 flex flex-col max-h-[92vh]">
               {/* Header del Modal */}
               <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 text-white p-5 flex items-center justify-between shrink-0">
@@ -2198,553 +2753,7 @@ export default function OrdenDetallePage() {
               </form>
             </div>
           </div>
-        )}
-
-        {order.workLogs.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-500">
-            <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="font-semibold text-slate-600">Aún no se han asentado notas diarias de trabajo</p>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Los arreglos técnicos y las fotografías del trabajo se visualizarán aquí.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {order.workLogs.map((log: any, idx: number) => {
-              let fotosList: any[] = [];
-              try {
-                if (log.fotos) {
-                  fotosList = typeof log.fotos === "string" ? JSON.parse(log.fotos) : log.fotos;
-                }
-              } catch {}
-
-              return (
-                <div
-                  key={log.id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-2"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
-                        #{order.workLogs.length - idx}
-                      </span>
-                      <span className="font-extrabold text-slate-800">
-                        🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 pl-8 sm:pl-0">
-                      <span className="text-[11px] text-slate-400 font-mono">
-                        {new Date(log.fechaRegistro).toLocaleString("es-AR")}
-                      </span>
-                      {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteWorkLog(log.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Eliminar este registro"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">
-                    {log.descripcionTarea}
-                  </p>
-
-                  {/* Fotos y Videos del Arreglo */}
-                  {Array.isArray(fotosList) && fotosList.length > 0 && (
-                    <div className="pl-8 pt-1">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
-                        <Camera className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Evidencias del arreglo ({fotosList.length}):</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {fotosList.map((f: any, fIdx: number) => {
-                          const mediaUrl = typeof f === "string" ? f : f?.url;
-                          if (!mediaUrl) return null;
-                          const isVid = /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(mediaUrl) || mediaUrl.includes("video");
-
-                          return (
-                            <button
-                              key={fIdx}
-                              type="button"
-                              onClick={() => setActiveModalImg(mediaUrl)}
-                              className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-black"
-                            >
-                              {isVid ? (
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-slate-900 relative">
-                                  <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" />
-                                  <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">
-                                    <Video className="w-5 h-5" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <img
-                                  src={mediaUrl}
-                                  alt={`Evidencia ${fIdx + 1}`}
-                                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
-                                />
-                              )}
-                              <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
-                                <Maximize2 className="w-4 h-4" />
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {log.horasInvertidas > 0 && (
-                    <div className="pl-8 pt-1 flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">
-                        ⏱️ {log.horasInvertidas} hs computadas
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* SECCIÓN MULTIMEDIA Y EVIDENCIA EN OBJECT STORAGE */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-sky-600 shrink-0" />
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Evidencias Multimedia en la Nube</h2>
-              <p className="text-xs text-slate-500">
-                Fotos y peritajes resguardados en Object Storage independiente de la base de datos relacional.
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-bold text-slate-400 self-start sm:self-auto">
-            {(() => {
-              const uniqueItems = Array.from(
-                new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
-              );
-              return `${uniqueItems.length} archivos`;
-            })()}
-          </span>
-        </div>
-
-        {(() => {
-          const uniqueItems = Array.from(
-            new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
-          );
-
-          if (uniqueItems.length === 0) {
-            return (
-              <div className="p-8 text-center text-xs text-slate-500">
-                No se han registrado fotografías de evidencia para este vehículo.
-              </div>
-            );
-          }
-
-          return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {uniqueItems.map((item: any) => {
-              const isVid =
-                item.tipo === "VIDEO" ||
-                /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setActiveModalImg(item.urlStorage)}
-                  className="relative rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group bg-slate-900 aspect-video shadow-sm"
-                >
-                  {isVid ? (
-                    <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
-                      <video
-                        src={item.urlStorage}
-                        preload="metadata"
-                        className="w-full h-full object-cover opacity-75"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-9 h-9 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 fill-white ml-0.5" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <img
-                      src={item.urlStorage}
-                      alt={item.descripcion || "Evidencia"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                      {isVid ? <Video className="w-2.5 h-2.5 text-rose-400" /> : <Camera className="w-2.5 h-2.5 text-sky-400" />}
-                      <span>{item.etiqueta || item.tipo}</span>
-                    </span>
-                    <p className="text-[10px] text-slate-300 truncate">
-                      {item.descripcion}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* MODAL FOTO O VIDEO FULL VIEW */}
-      {activeModalImg && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setActiveModalImg(null)}
-        >
-          <div
-            className="max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(activeModalImg) || activeModalImg.includes("video") ? (
-              <video
-                src={activeModalImg}
-                controls
-                autoPlay
-                playsInline
-                className="rounded-2xl max-w-full max-h-[80vh] shadow-2xl bg-black"
-              />
-            ) : (
-              <img
-                src={activeModalImg}
-                alt="Evidencia Full"
-                className="rounded-2xl max-w-full max-h-[80vh] object-contain shadow-2xl"
-              />
-            )}
-            <button
-              type="button"
-              onClick={() => setActiveModalImg(null)}
-              className="mt-2 px-6 py-2 rounded-full bg-white text-slate-900 font-bold text-xs shadow-xl hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <X className="w-4 h-4" />
-              <span>Cerrar Vista</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Peritaje Digital de Ingreso (100% Local) */}
-      {order && (
-        <PeritajeIngresoModal
-          order={order}
-          isOpen={peritajeModalOpen}
-          onClose={() => setPeritajeModalOpen(false)}
-          onSaved={() => fetchOrder()}
-          isMechanic={isMechanic}
-          readOnly={
-            isPeritajeRealizado ||
-            !isMechanicOrAdmin ||
-            (order.estado !== "PENDIENTE" &&
-              order.estado !== "PENDIENTE_PERITAJE" &&
-              order.estado !== "INGRESADO")
-          }
-        />
-      )}
-
-      {/* Modal de Cierre y Finalización de Reparación */}
-      {order && (
-        <FinalizarReparacionModal
-          isOpen={isFinalizarModalOpen}
-          onClose={() => setIsFinalizarModalOpen(false)}
-          order={order}
-          onSuccess={(updatedOrder) => {
-            setOrder(updatedOrder);
-            fetchOrder();
-          }}
-        />
-      )}
-
-
-      {/* Modal para Asignar Mecánico Responsable */}
-      {assignModalOpen && order && canReassignMechanic && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div
-            className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-5 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30">
-                  <UserCheck className="w-5 h-5 text-sky-400" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-white">
-                    Asignar Mecánico Responsable
-                  </h3>
-                  <p className="text-xs text-sky-200/80">
-                    Orden #{order.numeroOrden} • {order.vehicle?.marca} {order.vehicle?.modelo}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAssignModalOpen(false)}
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4">
-              <p className="text-xs text-slate-600">
-                Seleccione el profesional técnico responsable de realizar el peritaje inicial y gestionar las reparaciones del vehículo:
-              </p>
-
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {mechanics.map((m) => {
-                  const isSelected = selectedMechanicToAssign === m.id;
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => setSelectedMechanicToAssign(m.id)}
-                      className={`p-3 rounded-2xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
-                        isSelected
-                          ? "border-sky-500 bg-sky-50/70 ring-2 ring-sky-500/20"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                            isSelected
-                              ? "bg-sky-600 text-white"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {m.nombre.charAt(0)}{m.apellido ? m.apellido.charAt(0) : ""}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900">
-                            {m.nombre} {m.apellido || ""}
-                          </p>
-                          <p className="text-[11px] text-slate-500">{m.email}</p>
-                        </div>
-                      </div>
-                      <div
-                        className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected
-                            ? "border-sky-600 bg-sky-600 text-white"
-                            : "border-slate-300"
-                        }`}
-                      >
-                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Opción desasignar */}
-                <div
-                  onClick={() => setSelectedMechanicToAssign("")}
-                  className={`p-3 rounded-2xl border text-xs cursor-pointer flex items-center justify-between transition-all ${
-                    selectedMechanicToAssign === ""
-                      ? "border-amber-500 bg-amber-50/70 ring-2 ring-amber-500/20"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
-                      <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900">Dejar sin asignar</p>
-                      <p className="text-[11px] text-slate-500">
-                        La orden quedará pendiente de designación
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                      selectedMechanicToAssign === ""
-                        ? "border-amber-600 bg-amber-600 text-white"
-                        : "border-slate-300"
-                    }`}
-                  >
-                    {selectedMechanicToAssign === "" && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setAssignModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={assigning}
-                onClick={handleConfirmAssignMechanic}
-                className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md shadow-sky-600/20 transition-all cursor-pointer disabled:opacity-60"
-              >
-                {assigning ? "Guardando..." : "Confirmar Asignación"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
-      {/* Modal propio del sistema para confirmación de entrega y archivado */}
-      <ConfirmDeliveryModal
-        isOpen={deliveryModalOpen}
-        onClose={() => setDeliveryModalOpen(false)}
-        onConfirm={handleConfirmDelivery}
-        loading={delivering}
-        orderInfo={
-          order
-            ? {
-                numeroOrden: order.numeroOrden,
-                marca: order.vehicle?.marca,
-                modelo: order.vehicle?.modelo,
-                patente: order.vehicle?.patente,
-                clienteNombre: `${order.vehicle?.client?.nombre || ""} ${order.vehicle?.client?.apellido || ""}`.trim(),
-                clienteTelefono: order.vehicle?.client?.telefono,
-              }
-            : null
-        }
-      />
-
-      {/* Modal de Pausa por Repuestos */}
-      {pausaRepuestoModalOpen && order && (
-        <PausaRepuestoModal
-          isOpen={pausaRepuestoModalOpen}
-          order={order}
-          onClose={() => setPausaRepuestoModalOpen(false)}
-          onSuccess={() => {
-            fetchOrder();
-          }}
-        />
-      )}
-
-      {/* Modal para Dar de Baja la Orden */}
-      {darDeBajaModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => !submittingBaja && setDarDeBajaModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Encabezado */}
-            <div className="bg-rose-900 text-white p-5 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                  <Ban className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-sm text-white">
-                    Dar de Baja Orden #{order.numeroOrden}
-                  </h3>
-                  <p className="text-[11px] text-rose-200">
-                    {order.vehicle?.marca} {order.vehicle?.modelo} ({order.vehicle?.patente})
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={submittingBaja}
-                onClick={() => setDarDeBajaModalOpen(false)}
-                className="p-1.5 rounded-xl text-rose-300 hover:text-white hover:bg-rose-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Contenido */}
-            <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1">
-                <p className="font-bold flex items-center gap-1.5 text-xs text-rose-950">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>¿Confirmar cancelación y baja definitiva?</span>
-                </p>
-                <p className="text-[11px] text-rose-800 leading-snug">
-                  La orden pasará a estar <strong>Dada de Baja</strong> y se moverá a las archivadas. No contará como vehículo activo en taller.
-                </p>
-              </div>
-
-              {bajaError && (
-                <div className="p-3 bg-rose-100 border border-rose-300 text-rose-900 rounded-xl font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span>{bajaError}</span>
-                </div>
-              )}
-
-              {/* Casilla para escribir el por qué se cancela */}
-              <div className="space-y-1.5">
-                <label className="font-extrabold text-slate-800 block text-xs">
-                  Motivo de la cancelación / por qué se da de baja: *
-                </label>
-                <textarea
-                  rows={3}
-                  value={motivoBaja}
-                  onChange={(e) => setMotivoBaja(e.target.value)}
-                  placeholder="Ej: El cliente canceló el trabajo por no aceptar el presupuesto / Se retira sin reparar / No se consiguen los repuestos..."
-                  className="w-full p-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-rose-500 focus:outline-none font-medium text-xs text-slate-900 placeholder:text-slate-400"
-                />
-              </div>
-
-              {/* Atajos Rápidos de Motivos */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-slate-500 block">Atajos rápidos:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    "Cliente canceló por presupuesto",
-                    "Retiró vehículo sin reparar",
-                    "Repuestos no conseguidos",
-                    "Carga duplicada por error",
-                    "Traslado a otro taller",
-                    "Desistimiento del cliente",
-                  ].map((sug) => (
-                    <button
-                      key={sug}
-                      type="button"
-                      onClick={() => setMotivoBaja(sug)}
-                      className="text-[10px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 hover:text-rose-900 text-slate-700 font-bold border border-slate-200 transition-colors cursor-pointer"
-                    >
-                      + {sug}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                disabled={submittingBaja}
-                onClick={() => setDarDeBajaModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition-all cursor-pointer"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                disabled={submittingBaja || !motivoBaja.trim()}
-                onClick={handleDarDeBaja}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Ban className="w-4 h-4" />
-                <span>{submittingBaja ? "Dando de baja..." : "Confirmar y Dar de Baja"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );
