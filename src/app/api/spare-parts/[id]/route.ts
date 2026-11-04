@@ -461,7 +461,17 @@ export async function PATCH(
 
       auditDetails.estadoNuevo = "RECIBIDO";
       auditDetails.remitoNro = updateData.remitoNro;
-      auditDetails.descripcion = `Recepción confirmó la llegada de los repuestos del pedido #${id.slice(-4)}. Se notifica al mecánico para que retome los trabajos.`;
+      auditDetails.descripcion = `Recepción confirmó la llegada de los repuestos del pedido #${id.slice(-4)}. Se reanuda la orden técnica a 'EN_REPARACION' y se notifica al mecánico.`;
+
+      // REANUDAR AUTOMÁTICAMENTE LA ORDEN DE TRABAJO DEL MECÁNICO
+      if (existingReq.workOrderId) {
+        await prisma.workOrder.update({
+          where: { id: existingReq.workOrderId },
+          data: {
+            estado: "EN_REPARACION",
+          },
+        });
+      }
     }
 
     // =========================================================================

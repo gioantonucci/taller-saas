@@ -81,7 +81,6 @@ export default function RepuestosPage() {
   const [proveedorInput, setProveedorInput] = useState("");
   const [fechaEstimadaInput, setFechaEstimadaInput] = useState("");
 
-  const [recibidoModalOpen, setRecibidoModalOpen] = useState(false);
   const [remitoNroInput, setRemitoNroInput] = useState("");
   const [notasRecepcionInput, setNotasRecepcionInput] = useState("");
 
@@ -319,12 +318,13 @@ export default function RepuestosPage() {
     }
   };
 
-  const handleRecepcionMarcarRecibido = async () => {
-    if (!selectedRequest) return;
+  const handleRecepcionMarcarRecibido = async (pedidoId?: string) => {
+    const targetId = pedidoId || selectedRequest?.id;
+    if (!targetId) return;
 
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/spare-parts/${selectedRequest.id}`, {
+      const res = await fetch(`/api/spare-parts/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -340,13 +340,12 @@ export default function RepuestosPage() {
       }
 
       await alert({
-        title: "Repuestos Recibidos",
+        title: "¡Repuestos Recibidos en Taller!",
         message:
-          "Se confirmó la llegada de los repuestos al taller. Se notificó al mecánico para reanudar la reparación.",
+          "Se confirmó la llegada de los repuestos. El pedido fue archivado en 'Completados' y la orden de trabajo del mecánico se reanudó automáticamente.",
         variant: "success",
       });
 
-      setRecibidoModalOpen(false);
       setRemitoNroInput("");
       setNotasRecepcionInput("");
       setDetailModalOpen(false);
@@ -455,6 +454,12 @@ export default function RepuestosPage() {
         if (isMechanic) {
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
+
+        // Pedidos archivados/completados (RECIBIDO) van al final de la lista
+        const aIsRecibido = a.estado === "RECIBIDO";
+        const bIsRecibido = b.estado === "RECIBIDO";
+        if (aIsRecibido && !bIsRecibido) return 1;
+        if (!aIsRecibido && bIsRecibido) return -1;
 
         const aEsc = isSparePartEscalated(a);
         const bEsc = isSparePartEscalated(b);
@@ -602,9 +607,14 @@ export default function RepuestosPage() {
                 : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
             }`}
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-              Recibidos en Taller
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                Archivados / Completados
+              </span>
+              <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-sm">
+                Recibidos
+              </span>
+            </div>
             <span
               className={`text-xl font-black mt-1 block ${
                 statusFilter === "RECIBIDO" ? "text-white" : "text-emerald-600"
@@ -659,7 +669,7 @@ export default function RepuestosPage() {
                 <option value="SOLICITADO">1. Solicitados (Por revisar Admin)</option>
                 <option value="PARA_ENCARGAR">2. Para encargar (Recepción)</option>
                 <option value="ENCARGO_REALIZADO">3. Encargados / En tránsito</option>
-                <option value="RECIBIDO">4. Recibidos en Taller</option>
+                <option value="RECIBIDO">4. Archivados / Completados (Recibidos en Taller)</option>
                 <option value="PENDIENTES_RECEPCION">Pendientes Recepción</option>
                 {isReception && <option value="ESCALADOS">🚨 Demorados en Rojo</option>}
               </select>
@@ -1490,14 +1500,15 @@ export default function RepuestosPage() {
                   selectedRequest.estado === "ENCARGO_REALIZADO" && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setRemitoNroInput("");
-                        setNotasRecepcionInput("");
-                        setRecibidoModalOpen(true);
-                      }}
-                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
+                      disabled={actionLoading}
+                      onClick={() => handleRecepcionMarcarRecibido(selectedRequest.id)}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {actionLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      )}
                       <span>Confirmar Recepción de Repuestos</span>
                     </button>
                   )}
@@ -1560,66 +1571,6 @@ export default function RepuestosPage() {
                 className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
               >
                 Confirmar Encargo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL RECEPCIÓN DE REPUESTOS                                              */}
-      {/* ========================================================================= */}
-      {recibidoModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-emerald-800 font-extrabold text-base">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <span>Confirmar Llegada de Repuestos al Taller</span>
-            </div>
-            <p className="text-xs text-slate-600">
-              Registra los datos de recepción del paquete o comprobante:
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Nº Remito / Factura Proveedor (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={remitoNroInput}
-                  onChange={(e) => setRemitoNroInput(e.target.value)}
-                  placeholder="Ej: REM-09941"
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                  Notas de Recepción / Conformidad (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={notasRecepcionInput}
-                  onChange={(e) => setNotasRecepcionInput(e.target.value)}
-                  placeholder="Paquete en buen estado, piezas verificadas..."
-                  className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setRecibidoModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading}
-                onClick={handleRecepcionMarcarRecibido}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
-              >
-                Confirmar Llegada
               </button>
             </div>
           </div>

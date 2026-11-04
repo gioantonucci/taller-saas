@@ -30,6 +30,24 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
 
   // Estados del modal periódico de Recepción ("¿Ya encargaste los repuestos...?")
   const [showPeriodicModal, setShowPeriodicModal] = useState(false);
+  const [dismissedNoticeIds, setDismissedNoticeIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("dismissed_mechanic_notices");
+      if (stored) setDismissedNoticeIds(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const handleDismissNotice = (noticeId: string) => {
+    setDismissedNoticeIds((prev) => {
+      const next = [...prev, noticeId];
+      try {
+        localStorage.setItem("dismissed_mechanic_notices", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Estado para el formulario inline de "Encargo realizado"
   const [activeEncargoId, setActiveEncargoId] = useState<string | null>(null);
@@ -281,48 +299,81 @@ export default function SparePartReminderGlobal({ user }: SparePartReminderGloba
       {/* ========================================================================= */}
       {/* 2. AVISO PARA MECÁNICO (Devuelto o Recibido)                               */}
       {/* ========================================================================= */}
-      {isMechanic && mechanic?.notices && mechanic.notices.length > 0 && (
+      {isMechanic &&
+        mechanic?.notices &&
+        mechanic.notices.filter((n: any) => !dismissedNoticeIds.includes(n.id)).length > 0 && (
         <div className="mb-4 space-y-2">
-          {mechanic.notices.map((notice: any) => (
-            <div
-              key={notice.id}
-              className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
-                notice.estado === "RECIBIDO"
-                  ? "bg-emerald-50 border-emerald-300 text-emerald-950"
-                  : "bg-rose-50 border-rose-300 text-rose-950"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                {notice.estado === "RECIBIDO" ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-                )}
-                <div>
-                  <p className="text-xs font-black">
-                    {notice.estado === "RECIBIDO"
-                      ? `¡Repuestos recibidos en taller para Orden #${notice.numeroOrden} (${notice.patente})!`
-                      : `Pedido de repuestos devuelto por el Administrador para Orden #${notice.numeroOrden} (${notice.patente})`}
-                  </p>
-                  <p className="text-[11px] opacity-80 mt-0.5">
-                    {notice.estado === "RECIBIDO"
-                      ? "Ya puedes reanudar la reparación técnica en tu Hoja de Trabajo."
-                      : `Motivo de devolución: "${notice.motivoDevolucion || "Revisar ítems solicitados"}"`}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={`/app/ordenes/${notice.workOrderId}`}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 ${
+          {mechanic.notices
+            .filter((n: any) => !dismissedNoticeIds.includes(n.id))
+            .map((notice: any) => (
+              <div
+                key={notice.id}
+                className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 ${
                   notice.estado === "RECIBIDO"
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "bg-rose-600 text-white hover:bg-rose-700"
+                    ? "bg-emerald-50/95 border-emerald-300 text-emerald-950"
+                    : "bg-rose-50/95 border-rose-300 text-rose-950"
                 }`}
               >
-                Ver Orden
-              </Link>
-            </div>
-          ))}
+                <div className="flex items-start sm:items-center gap-3">
+                  {notice.estado === "RECIBIDO" ? (
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-300 text-rose-700 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                          notice.estado === "RECIBIDO"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-rose-600 text-white"
+                        }`}
+                      >
+                        {notice.estado === "RECIBIDO" ? "Repuestos Disponibles" : "Solicitud Devuelta"}
+                      </span>
+                      <span className="font-mono text-xs font-black bg-slate-900 text-amber-300 px-2 py-0.5 rounded-md">
+                        {notice.patente}
+                      </span>
+                    </div>
+                    <p className="text-xs font-black mt-1">
+                      {notice.estado === "RECIBIDO"
+                        ? `¡Ya llegaron los repuestos para la Orden #${notice.numeroOrden}!`
+                        : `Pedido devuelto por el Administrador para la Orden #${notice.numeroOrden}`}
+                    </p>
+                    <p className="text-[11px] opacity-85 mt-0.5 font-medium">
+                      {notice.estado === "RECIBIDO"
+                        ? "La orden se reanudó automáticamente a 'En Reparación'. Ya puedes continuar el trabajo en el taller."
+                        : `Motivo: "${notice.motivoDevolucion || "Revisar ítems solicitados"}"`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <Link
+                    href={`/app/taller/hoja-ruta?orderId=${notice.workOrderId}`}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ${
+                      notice.estado === "RECIBIDO"
+                        ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                        : "bg-rose-600 text-white hover:bg-rose-700"
+                    }`}
+                  >
+                    <span>{notice.estado === "RECIBIDO" ? "Ir a Hoja de Ruta" : "Ver Orden"}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleDismissNotice(notice.id)}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-200/60 transition-all cursor-pointer"
+                    title="Cerrar aviso"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
       )}
 
