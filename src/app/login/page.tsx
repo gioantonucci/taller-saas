@@ -213,7 +213,7 @@ function LoginForm() {
                 <span className="block text-[11px] font-bold text-purple-300 group-hover:text-purple-200">
                   👑 ADMIN
                 </span>
-                <span className="block text-[10px] text-slate-400 truncate">Carlos Rossi (Dueño)</span>
+                <span className="block text-[10px] text-slate-400 truncate">Patu Poggi (Dueño)</span>
               </button>
 
               <button

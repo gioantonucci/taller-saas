@@ -45,8 +45,8 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       tenantId: tenant.id,
-      nombre: "Carlos",
-      apellido: "Rossi",
+      nombre: "Patu",
+      apellido: "Poggi",
       email: "admin@taller.com",
       passwordHash: passwordHash,
       role: "ADMIN",
@@ -869,7 +869,7 @@ async function main() {
         motivoCancelacion:
           "El titular decide no afrontar la reparación integral de la mecatrónica de transmisión en este período por presupuesto elevado. Se entrega en grúa particular sin costo devengado.",
         fechaCancelacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        responsableCancelacion: "Carlos Rossi (Administrador)",
+        responsableCancelacion: "Patu Poggi (Administrador)",
       }),
       costoManoDeObra: 0,
       totalPresupuesto: 0,
