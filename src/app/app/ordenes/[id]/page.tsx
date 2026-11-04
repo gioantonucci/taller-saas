@@ -38,6 +38,7 @@ import {
   Maximize2,
   Loader2,
   Check,
+  Trash2,
 } from "lucide-react";
 import { compressImageClient } from "@/lib/client-compress";
 import ConfirmDeliveryModal from "@/components/ConfirmDeliveryModal";
@@ -182,6 +183,33 @@ export default function OrdenDetallePage() {
       });
     } finally {
       setSavingWorkLog(false);
+    }
+  };
+
+  const handleDeleteWorkLog = async (logId: string) => {
+    const ok = await confirm({
+      title: "¿Eliminar registro?",
+      message: "¿Deseas eliminar este registro de trabajo de la bitácora?",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/work-orders/${order.id}/work-logs?logId=${logId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await fetchOrder();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        await alert({
+          title: "Error",
+          message: data.error || "No se pudo eliminar el registro",
+          variant: "danger",
+        });
+      }
+    } catch (err) {
+      console.error("Error al eliminar nota:", err);
     }
   };
 
@@ -2119,9 +2147,21 @@ export default function OrdenDetallePage() {
                         🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-400 font-mono pl-8 sm:pl-0">
-                      {new Date(log.fechaRegistro).toLocaleString("es-AR")}
-                    </span>
+                    <div className="flex items-center gap-2 pl-8 sm:pl-0">
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        {new Date(log.fechaRegistro).toLocaleString("es-AR")}
+                      </span>
+                      {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWorkLog(log.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Eliminar este registro"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">

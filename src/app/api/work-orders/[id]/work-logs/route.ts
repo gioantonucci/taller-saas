@@ -147,3 +147,71 @@ export async function POST(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const logId = searchParams.get("logId");
+
+    if (!logId) {
+      return NextResponse.json({ error: "ID de registro de trabajo requerido" }, { status: 400 });
+    }
+
+    const log = await prisma.workLog.findUnique({
+      where: { id: logId },
+      include: {
+        mechanic: { select: { nombre: true, apellido: true } },
+      },
+    });
+
+    if (!log || log.workOrderId !== id) {
+      return NextResponse.json({ error: "Registro no encontrado en esta orden" }, { status: 404 });
+    }
+
+    const isMechanic = session.role === "MECHANIC" || session.role === "MECANICO";
+    if (isMechanic && log.mechanicId !== session.id) {
+      return NextResponse.json(
+        { error: "No tienes permiso para eliminar registros creados por otro mecánico" },
+        { status: 403 }
+      );
+    }
+
+    await prisma.workLog.delete({
+      where: { id: logId },
+    });
+
+    await recordAuditLog({
+      user: session,
+      accion: "DELETE",
+      entidadAfectada: "WorkLogs",
+      entidadId: logId,
+      detallesCambio: {
+        eliminado: {
+          tarea: log.descripcionTarea,
+          horas: log.horasInvertidas,
+          ordenId: id,
+        },
+        descripcion: `Eliminación de nota de trabajo de la orden #${id}`,
+      },
+    });
+
+    const budgetSummary = await recalculateWorkOrderBudget(id);
+
+    return NextResponse.json({ success: true, ...budgetSummary });
+  } catch (error: any) {
+    console.error("Error en DELETE /api/work-orders/[id]/work-logs:", error);
+    return NextResponse.json(
+      { error: "Error interno al eliminar el registro de trabajo" },
+      { status: 500 }
+    );
+  }
+}
