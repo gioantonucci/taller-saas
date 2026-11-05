@@ -43,7 +43,7 @@ import { matchesSearchMulti } from "@/lib/search-utils";
 import { getStatusInfo } from "@/lib/order-status";
 import { useAppDialog } from "@/components/AppDialog";
 
-// Los 4 estados clave del flujo del taller
+// Los 3 estados clave del flujo del taller mecánico activo
 const CORE_STATUSES = [
   {
     id: "PENDIENTE",
@@ -77,17 +77,6 @@ const CORE_STATUSES = [
     border: "border-amber-400",
     light: "bg-amber-50 text-amber-700 border-amber-200",
     icon: "⏸️",
-  },
-  {
-    id: "FINALIZADO",
-    step: 4,
-    label: "4. Listo",
-    shortLabel: "Listo",
-    subtitle: "Listo para entrega",
-    color: "bg-emerald-600 text-white",
-    border: "border-emerald-400",
-    light: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    icon: "✅",
   },
 ] as const;
 
@@ -265,8 +254,17 @@ export default function HojaRutaMecanicoPage() {
       const res = await fetch("/api/work-orders?scope=mine");
       if (res.ok) {
         const data = await res.json();
+        // En la hoja de trabajo del taller solo se muestran órdenes activas en proceso.
+        // Si una orden fue finalizada (lista para retiro del cliente) o entregada/archivada/cancelada, no debe mostrarse aquí.
         const activeOrders = (data.orders || []).filter(
-          (o: any) => !isCancelledOrder(o) && o.estado !== "CANCELADO" && o.estado !== "ENTREGADO" && o.estado !== "ARCHIVADO"
+          (o: any) =>
+            !isCancelledOrder(o) &&
+            o.estado !== "CANCELADO" &&
+            o.estado !== "ENTREGADO" &&
+            o.estado !== "ARCHIVADO" &&
+            o.estado !== "FINALIZADO" &&
+            o.estado !== "TERMINADO" &&
+            o.estado !== "REPARADO"
         );
         setOrders(activeOrders);
         if (selectedOrder) {
@@ -292,13 +290,17 @@ export default function HojaRutaMecanicoPage() {
     fetchMechanics();
   }, []);
 
-  const handleFinalizarSuccess = (updatedOrder: any) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
-    );
+  const handleFinalizarSuccess = async (updatedOrder: any) => {
+    // Al concluir la reparación, la orden pasa a recepción para retiro del cliente y se quita de la hoja de trabajo activa
+    setOrders((prev) => prev.filter((o) => o.id !== updatedOrder.id));
     if (selectedOrder && selectedOrder.id === updatedOrder.id) {
-      syncSelectedOrder(updatedOrder);
+      setSelectedOrder(null);
     }
+    await alert({
+      title: "Reparación Finalizada",
+      message: `La Orden #${updatedOrder.numeroOrden} ha concluido satisfactoriamente y quedó lista para retiro del cliente en recepción.`,
+      variant: "success",
+    });
   };
 
   // Determinar si la orden seleccionada tiene el peritaje técnico completado
@@ -478,12 +480,25 @@ export default function HojaRutaMecanicoPage() {
         return;
       }
 
-      setOrders((prev) =>
-        prev.map((o) => (o.id === data.order.id ? data.order : o))
-      );
+      if (
+        newStatus === "FINALIZADO" ||
+        newStatus === "TERMINADO" ||
+        newStatus === "REPARADO" ||
+        newStatus === "ENTREGADO" ||
+        newStatus === "ARCHIVADO"
+      ) {
+        setOrders((prev) => prev.filter((o) => o.id !== data.order.id));
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(null);
+        }
+      } else {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === data.order.id ? data.order : o))
+        );
 
-      if (selectedOrder && selectedOrder.id === orderId) {
-        syncSelectedOrder(data.order);
+        if (selectedOrder && selectedOrder.id === orderId) {
+          syncSelectedOrder(data.order);
+        }
       }
     } catch (err) {
       console.error("Error actualizando estado:", err);
@@ -648,9 +663,6 @@ export default function HojaRutaMecanicoPage() {
     if (statusFilter === "ESPERANDO_REPUESTOS") {
       return o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO";
     }
-    if (statusFilter === "FINALIZADO") {
-      return o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO";
-    }
     return true;
   });
 
@@ -659,7 +671,6 @@ export default function HojaRutaMecanicoPage() {
     pendiente: baseActiveOrders.filter((o) => o.estado === "PENDIENTE" || o.estado === "PENDIENTE_PERITAJE" || o.estado === "INGRESADO").length,
     enCurso: baseActiveOrders.filter((o) => o.estado === "EN_CURSO" || o.estado === "EN_REPARACION" || o.estado === "PERITADO").length,
     esperandoRepuestos: baseActiveOrders.filter((o) => o.estado === "ESPERANDO_REPUESTOS" || o.estado === "EN_ESPERA_REPUESTOS" || o.estado === "DETENIDO").length,
-    finalizado: baseActiveOrders.filter((o) => o.estado === "FINALIZADO" || o.estado === "TERMINADO" || o.estado === "REPARADO").length,
   };
 
   const totalHorasInvertidas =
@@ -743,7 +754,7 @@ export default function HojaRutaMecanicoPage() {
             </div>
 
             {/* Chips de Conteo y Filtro por Estado */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-3">
               <button
                 type="button"
                 onClick={() => setStatusFilter(statusFilter === "PENDIENTE" ? "TODOS" : "PENDIENTE")}
@@ -781,19 +792,6 @@ export default function HojaRutaMecanicoPage() {
               >
                 <div className="text-[10px] uppercase font-bold tracking-wider">⏸️ Espera Repuesto</div>
                 <div className="text-xl font-black mt-0.5">{counts.esperandoRepuestos}</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStatusFilter(statusFilter === "FINALIZADO" ? "TODOS" : "FINALIZADO")}
-                className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                  statusFilter === "FINALIZADO"
-                    ? "bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/30"
-                    : "bg-slate-800/70 text-emerald-300 border-emerald-900/60 hover:bg-slate-800"
-                }`}
-              >
-                <div className="text-[10px] uppercase font-bold tracking-wider">✅ Listo</div>
-                <div className="text-xl font-black mt-0.5">{counts.finalizado}</div>
               </button>
             </div>
           </div>
@@ -840,9 +838,7 @@ export default function HojaRutaMecanicoPage() {
                     ? counts.pendiente
                     : st.id === "EN_CURSO"
                     ? counts.enCurso
-                    : st.id === "ESPERANDO_REPUESTOS"
-                    ? counts.esperandoRepuestos
-                    : counts.finalizado}
+                    : counts.esperandoRepuestos}
                   )
                 </button>
               ))}
