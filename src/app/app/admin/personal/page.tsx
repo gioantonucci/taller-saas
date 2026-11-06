@@ -27,16 +27,19 @@ import {
   ArrowRight,
   Car,
   Clock,
+  Edit2,
+  Shield,
 } from "lucide-react";
 import { StaffMember } from "@/types";
 import { useAppDialog } from "@/components/AppDialog";
+import { normalizeRole } from "@/lib/roles";
 
 export default function GestionPersonalPage() {
   const { confirm, alert } = useAppDialog();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"TODOS" | "MECHANIC" | "RECEPTION" | "INACTIVE">("TODOS");
+  const [roleFilter, setRoleFilter] = useState<"TODOS" | "MECHANIC" | "RECEPTION" | "ADMIN" | "INACTIVE">("TODOS");
 
   // Modal Alta
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,6 +52,20 @@ export default function GestionPersonalPage() {
     email: "",
     password: "",
     role: "MECHANIC" as "MECHANIC" | "RECEPTION",
+  });
+
+  // Modal Edición de Usuario
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editFormError, setEditFormError] = useState<string | null>(null);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    role: "MECHANIC" as "MECHANIC" | "RECEPTION" | "ADMIN",
+    password: "",
   });
 
   // Modal Baja y Reasignación de Órdenes
@@ -103,8 +120,11 @@ export default function GestionPersonalPage() {
     const recepcion = staff.filter(
       (s) => s.status === "ACTIVE" && (s.role === "RECEPTION" || s.role === "RECEPCION")
     ).length;
+    const administradores = staff.filter(
+      (s) => s.status === "ACTIVE" && s.role === "ADMIN"
+    ).length;
     const inactivos = staff.filter((s) => s.status === "INACTIVE").length;
-    return { total, activos, mecanicos, recepcion, inactivos };
+    return { total, activos, mecanicos, recepcion, administradores, inactivos };
   }, [staff]);
 
   // Lista de otros mecánicos activos para reasignación
@@ -144,6 +164,10 @@ export default function GestionPersonalPage() {
           member.status === "ACTIVE" &&
           (member.role === "RECEPTION" || member.role === "RECEPCION")
         );
+      }
+
+      if (roleFilter === "ADMIN") {
+        return member.status === "ACTIVE" && member.role === "ADMIN";
       }
 
       return true;
@@ -400,6 +424,87 @@ export default function GestionPersonalPage() {
     }
   };
 
+  // Abrir modal de edición
+  const handleOpenEditModal = (member: StaffMember) => {
+    setEditingMember(member);
+    setEditFormData({
+      nombre: member.nombre || "",
+      apellido: member.apellido || "",
+      email: member.email || "",
+      role: normalizeRole(member.role),
+      password: "",
+    });
+    setEditFormError(null);
+    setShowEditPassword(false);
+    setEditModalOpen(true);
+  };
+
+  // Generar contraseña aleatoria para edición
+  const generarPasswordEdicion = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
+    let pass = "";
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setEditFormData((prev) => ({ ...prev, password: pass }));
+    setShowEditPassword(true);
+  };
+
+  // Guardar edición de usuario
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setEditFormError(null);
+
+    if (!editFormData.nombre.trim()) {
+      setEditFormError("El nombre es requerido");
+      return;
+    }
+    if (!editFormData.email.trim() || !editFormData.email.includes("@")) {
+      setEditFormError("Ingresa un correo electrónico válido");
+      return;
+    }
+    if (editFormData.password && editFormData.password.length < 6) {
+      setEditFormError("La nueva contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    try {
+      setEditSubmitting(true);
+      const payload: any = {
+        nombre: editFormData.nombre.trim(),
+        apellido: editFormData.apellido.trim() || null,
+        email: editFormData.email.trim().toLowerCase(),
+        role: editFormData.role,
+      };
+      if (editFormData.password.trim()) {
+        payload.password = editFormData.password.trim();
+      }
+
+      const res = await fetch(`/api/staff/${editingMember.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setEditFormError(data.error || "Error al actualizar el usuario");
+        return;
+      }
+
+      setEditModalOpen(false);
+      setEditingMember(null);
+      triggerToast(`Usuario ${data.user.nombre} actualizado con éxito`);
+      await fetchStaff();
+    } catch (err: any) {
+      console.error("Error al editar usuario:", err);
+      setEditFormError("Error de conexión al actualizar");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl pb-16">
       {/* Toast Notificación */}
@@ -444,7 +549,7 @@ export default function GestionPersonalPage() {
       </div>
 
       {/* Tarjetas de Métricas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-2 ${counts.administradores > 0 ? "sm:grid-cols-5" : "sm:grid-cols-4"} gap-3`}>
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider">Total Activos</span>
@@ -471,6 +576,17 @@ export default function GestionPersonalPage() {
           <p className="text-2xl font-black text-sky-600">{counts.recepcion}</p>
           <span className="text-[10px] text-slate-400">Atención e ingreso</span>
         </div>
+
+        {counts.administradores > 0 && (
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
+            <div className="flex items-center justify-between text-purple-600 mb-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Admin</span>
+              <Shield className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-black text-purple-600">{counts.administradores}</p>
+            <span className="text-[10px] text-slate-400">Gestión total</span>
+          </div>
+        )}
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between text-rose-500 mb-1">
@@ -520,6 +636,20 @@ export default function GestionPersonalPage() {
             <ClipboardList className="w-3.5 h-3.5" />
             <span>Recepción ({counts.recepcion})</span>
           </button>
+
+          {counts.administradores > 0 && (
+            <button
+              onClick={() => setRoleFilter("ADMIN")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                roleFilter === "ADMIN"
+                  ? "bg-purple-600 text-white shadow-xs"
+                  : "text-slate-600 hover:bg-purple-50 hover:text-purple-700"
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>Admin ({counts.administradores})</span>
+            </button>
+          )}
 
           <button
             onClick={() => setRoleFilter("INACTIVE")}
@@ -587,6 +717,7 @@ export default function GestionPersonalPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredStaff.map((member) => {
             const isMechanic = member.role === "MECHANIC" || member.role === "MECANICO";
+            const isAdmin = member.role === "ADMIN";
             const isInactive = member.status === "INACTIVE";
             const initials = `${member.nombre.charAt(0)}${member.apellido ? member.apellido.charAt(0) : ""}`.toUpperCase();
             const activeOrdersCount = member._count?.workOrdersMechanic ?? 0;
@@ -602,11 +733,13 @@ export default function GestionPersonalPage() {
               >
                 {/* Cabecera de la tarjeta */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-11 h-11 rounded-2xl font-black text-sm flex items-center justify-center shrink-0 border ${
                         isInactive
                           ? "bg-slate-100 text-slate-400 border-slate-200"
+                          : isAdmin
+                          ? "bg-purple-50 text-purple-700 border-purple-200/70"
                           : isMechanic
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
                           : "bg-sky-50 text-sky-700 border-sky-200/70"
@@ -627,8 +760,16 @@ export default function GestionPersonalPage() {
                     </div>
                   </div>
 
-                  {/* Estado Badge */}
-                  <div>
+                  {/* Estado Badge y Botón rápido de edición */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(member)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                      title="Editar usuario"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
                     {isInactive ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
@@ -649,12 +790,19 @@ export default function GestionPersonalPage() {
                     <span className="text-[11px] text-slate-400 font-medium">Rol Operativo</span>
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold ${
-                        isMechanic
+                        isAdmin
+                          ? "bg-purple-500/10 text-purple-700 border border-purple-500/20"
+                          : isMechanic
                           ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
                           : "bg-sky-500/10 text-sky-700 border border-sky-500/20"
                       }`}
                     >
-                      {isMechanic ? (
+                      {isAdmin ? (
+                        <>
+                          <Shield className="w-3 h-3 text-purple-600" />
+                          <span>Administrador</span>
+                        </>
+                      ) : isMechanic ? (
                         <>
                           <Wrench className="w-3 h-3" />
                           <span>Mecánico</span>
@@ -699,19 +847,37 @@ export default function GestionPersonalPage() {
                 </div>
 
                 {/* Acciones de la Tarjeta */}
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(member)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-2xs"
+                    title="Editar datos del usuario"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Editar</span>
+                  </button>
+
                   {isInactive ? (
                     <button
+                      type="button"
                       onClick={() => handleReactivar(member)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
-                      <span>Reactivar Cuenta</span>
+                      <span>Reactivar</span>
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => handleDarDeBajaClick(member)}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-colors cursor-pointer"
+                      disabled={isAdmin}
+                      className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
+                        isAdmin
+                          ? "bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed opacity-60"
+                          : "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200/80 cursor-pointer"
+                      }`}
+                      title={isAdmin ? "Los administradores no pueden ser dados de baja" : "Dar de baja cuenta"}
                     >
                       <UserMinus className="w-3.5 h-3.5" />
                       <span>Dar de Baja</span>
@@ -1192,6 +1358,255 @@ export default function GestionPersonalPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
+      )}
+
+      {/* MODAL: EDICIÓN DE USUARIO */}
+      {editModalOpen && editingMember && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+              {/* Header Modal */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <Edit2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900">
+                      Editar Usuario
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      {editingMember.nombre} {editingMember.apellido || ""} · {editingMember.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="w-7 h-7 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {editFormError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{editFormError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                {/* Selección de Rol */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-2">
+                    Rol Operativo en el Sistema *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, role: "MECHANIC" })}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editFormData.role === "MECHANIC"
+                          ? "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Wrench
+                          className={`w-3.5 h-3.5 ${
+                            editFormData.role === "MECHANIC" ? "text-emerald-600" : "text-slate-400"
+                          }`}
+                        />
+                        <span
+                          className={`text-xs font-bold ${
+                            editFormData.role === "MECHANIC" ? "text-emerald-900" : "text-slate-700"
+                          }`}
+                        >
+                          Mecánico
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">
+                        Taller y reparaciones
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, role: "RECEPTION" })}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editFormData.role === "RECEPTION"
+                          ? "border-sky-500 bg-sky-50/60 ring-2 ring-sky-500/20"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <ClipboardList
+                          className={`w-3.5 h-3.5 ${
+                            editFormData.role === "RECEPTION" ? "text-sky-600" : "text-slate-400"
+                          }`}
+                        />
+                        <span
+                          className={`text-xs font-bold ${
+                            editFormData.role === "RECEPTION" ? "text-sky-900" : "text-slate-700"
+                          }`}
+                        >
+                          Recepción
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">
+                        Ingresos y clientes
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, role: "ADMIN" })}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editFormData.role === "ADMIN"
+                          ? "border-purple-500 bg-purple-50/60 ring-2 ring-purple-500/20"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Shield
+                          className={`w-3.5 h-3.5 ${
+                            editFormData.role === "ADMIN" ? "text-purple-600" : "text-slate-400"
+                          }`}
+                        />
+                        <span
+                          className={`text-xs font-bold ${
+                            editFormData.role === "ADMIN" ? "text-purple-900" : "text-slate-700"
+                          }`}
+                        >
+                          Admin
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-tight">
+                        Gestión total
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nombre y Apellido */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.nombre}
+                      onChange={(e) => setEditFormData({ ...editFormData, nombre: e.target.value })}
+                      placeholder="Ej. Lucas"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Apellido
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.apellido}
+                      onChange={(e) => setEditFormData({ ...editFormData, apellido: e.target.value })}
+                      placeholder="Ej. Gómez"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Correo Electrónico */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Correo Electrónico *
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="email"
+                      required
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                      placeholder="ejemplo@taller.com"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50/50"
+                    />
+                  </div>
+                </div>
+
+                {/* Contraseña Nueva (Opcional) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Nueva Contraseña <span className="text-slate-400 font-normal">(opcional)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generarPasswordEdicion}
+                      className="text-[11px] font-bold text-purple-600 hover:text-purple-700 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span>Generar aleatoria</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showEditPassword ? "text" : "password"}
+                      minLength={6}
+                      value={editFormData.password}
+                      onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                      placeholder="Dejar en blanco para mantener la actual"
+                      className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-200 text-xs font-mono font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-50/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Solo completa este campo si deseas cambiar la contraseña de acceso del usuario.
+                  </span>
+                </div>
+
+                {/* Botones Acciones */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={editSubmitting}
+                    onClick={() => setEditModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editSubmitting}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md shadow-purple-600/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {editSubmitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Guardando cambios...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Guardar Cambios</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </ModalPortal>
       )}
     </div>

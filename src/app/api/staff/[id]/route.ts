@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession, hashPassword } from "@/lib/auth";
+import { getSession, hashPassword, normalizeRole } from "@/lib/auth";
 import { recordAuditLog } from "@/lib/audit";
 
 export const dynamic = "force-dynamic";
@@ -105,13 +105,6 @@ export async function PATCH(
 
     const { id } = params;
 
-    if (id === session.id) {
-      return NextResponse.json(
-        { error: "No puedes modificar o dar de baja tu propia cuenta de administrador" },
-        { status: 400 }
-      );
-    }
-
     const user = await prisma.user.findUnique({
       where: { id },
     });
@@ -123,14 +116,26 @@ export async function PATCH(
       );
     }
 
-    if (user.role === "ADMIN") {
-      return NextResponse.json(
-        { error: "No se puede dar de baja a un Administrador del sistema" },
-        { status: 403 }
-      );
+    const body = await request.json();
+    const isBaja = body.status === "INACTIVE";
+    const isReactivacion = body.status === "ACTIVE";
+
+    // Si se está dando de baja:
+    if (isBaja) {
+      if (id === session.id) {
+        return NextResponse.json(
+          { error: "No puedes dar de baja tu propia cuenta de administrador" },
+          { status: 400 }
+        );
+      }
+      if (user.role === "ADMIN") {
+        return NextResponse.json(
+          { error: "No se puede dar de baja a un Administrador del sistema" },
+          { status: 403 }
+        );
+      }
     }
 
-    const body = await request.json();
     const dataToUpdate: any = {};
 
     if (body.status !== undefined) {
@@ -143,7 +148,13 @@ export async function PATCH(
       dataToUpdate.status = body.status;
     }
 
-    if (body.nombre !== undefined && typeof body.nombre === "string" && body.nombre.trim().length >= 2) {
+    if (body.nombre !== undefined) {
+      if (typeof body.nombre !== "string" || body.nombre.trim().length < 2) {
+        return NextResponse.json(
+          { error: "El nombre es obligatorio y debe tener al menos 2 caracteres" },
+          { status: 400 }
+        );
+      }
       dataToUpdate.nombre = body.nombre.trim();
     }
 
@@ -151,11 +162,49 @@ export async function PATCH(
       dataToUpdate.apellido = typeof body.apellido === "string" && body.apellido.trim() ? body.apellido.trim() : null;
     }
 
-    if (body.password && typeof body.password === "string" && body.password.length >= 6) {
+    if (body.email !== undefined) {
+      const emailTrim = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (!emailTrim || !emailTrim.includes("@")) {
+        return NextResponse.json(
+          { error: "Debe ingresar un correo electrónico válido" },
+          { status: 400 }
+        );
+      }
+      if (emailTrim !== user.email.toLowerCase()) {
+        const existing = await prisma.user.findUnique({
+          where: { email: emailTrim },
+        });
+        if (existing && existing.id !== id) {
+          return NextResponse.json(
+            { error: "Ya existe un usuario con ese correo electrónico" },
+            { status: 400 }
+          );
+        }
+        dataToUpdate.email = emailTrim;
+      }
+    }
+
+    if (body.role !== undefined) {
+      const normalizedRole = normalizeRole(body.role);
+      if (id === session.id && user.role === "ADMIN" && normalizedRole !== "ADMIN") {
+        return NextResponse.json(
+          { error: "No puedes quitarte el rol de Administrador a ti mismo" },
+          { status: 400 }
+        );
+      }
+      dataToUpdate.role = normalizedRole;
+    }
+
+    if (body.password !== undefined && body.password !== "") {
+      if (typeof body.password !== "string" || body.password.length < 6) {
+        return NextResponse.json(
+          { error: "La contraseña debe tener al menos 6 caracteres" },
+          { status: 400 }
+        );
+      }
       dataToUpdate.passwordHash = await hashPassword(body.password);
     }
 
-    const isBaja = body.status === "INACTIVE";
     let reassignedInfo = "";
 
     // Si se está dando de baja, procesar la reasignación de sus órdenes activas
@@ -223,8 +272,12 @@ export async function PATCH(
       },
     });
 
-    const isReactivacion = body.status === "ACTIVE";
-    const rolLabel = user.role === "MECHANIC" || user.role === "MECANICO" ? "Mecánico" : "Recepción";
+    const rolLabel =
+      updatedUser.role === "ADMIN"
+        ? "Administrador"
+        : updatedUser.role === "MECHANIC" || updatedUser.role === "MECANICO"
+        ? "Mecánico"
+        : "Recepción";
 
     await recordAuditLog({
       user: session,
@@ -243,14 +296,17 @@ export async function PATCH(
           ? `Baja de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})${reassignedInfo ? `. Reasignación: ${reassignedInfo}` : ""}`
           : isReactivacion
           ? `Reactivación de personal: ${user.nombre} ${user.apellido || ""} (${rolLabel})`
-          : `Actualización de datos de personal: ${user.nombre} ${user.apellido || ""}`,
+          : `Actualización de usuario: ${updatedUser.nombre} ${updatedUser.apellido || ""} (${rolLabel})`,
         estadoAnterior: user.status,
         nuevoEstado: updatedUser.status,
         reasignacion: reassignedInfo || null,
         cambios: {
           status: body.status,
-          nombreModificado: Boolean(body.nombre),
-          passwordModificada: Boolean(body.password),
+          nombreModificado: Boolean(dataToUpdate.nombre),
+          apellidoModificado: dataToUpdate.apellido !== undefined,
+          emailModificado: Boolean(dataToUpdate.email),
+          rolModificado: Boolean(dataToUpdate.role),
+          passwordModificada: Boolean(dataToUpdate.passwordHash),
         },
       },
     });
