@@ -74,11 +74,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")?.trim();
     const filter = searchParams.get("filter"); // "LOW_STOCK", "OUT_OF_STOCK", "IN_STOCK"
 
-    // Auto-seed inicial si el inventario está vacío
+    // Auto-seed inicial solo si el inventario está completamente vacío
     const countTotal = await prisma.inventoryItem.count();
     if (countTotal === 0) {
       for (const it of INITIAL_INVENTORY_SEED) {
-        await prisma.inventoryItem.create({ data: it });
+        const exists = await prisma.inventoryItem.findFirst({
+          where: { codigo: it.codigo },
+        });
+        if (!exists) {
+          await prisma.inventoryItem.create({ data: it });
+        }
       }
     }
 
@@ -97,20 +102,35 @@ export async function GET(request: NextRequest) {
       orderBy: [{ stock: "asc" }, { updatedAt: "desc" }],
     });
 
+    // Deduplicación defensiva por ID o código
+    const uniqueMap = new Map<string, typeof items[0]>();
+    for (const it of items) {
+      const key = (it.codigo || it.nombre).trim().toUpperCase();
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, it);
+      } else {
+        const prev = uniqueMap.get(key)!;
+        if (it.stock > prev.stock) {
+          uniqueMap.set(key, it);
+        }
+      }
+    }
+    const deduplicatedItems = Array.from(uniqueMap.values());
+
     const filteredItems =
       search && search.trim()
-        ? items.filter((it) =>
+        ? deduplicatedItems.filter((it) =>
             matchesSearchMulti([it.nombre, it.codigo, it.categoria], search)
           )
-        : items;
+        : deduplicatedItems;
 
     // Calcular estadísticas de stock
     const allItems = await prisma.inventoryItem.findMany();
-    const totalCatalogItems = allItems.length;
-    const totalUnitsInStock = allItems.reduce((acc, it) => acc + Math.max(0, it.stock), 0);
-    const lowStockCount = allItems.filter((it) => it.stock > 0 && it.stock <= it.stockMinimo).length;
-    const outOfStockCount = allItems.filter((it) => it.stock <= 0).length;
-    const totalInventoryValue = allItems.reduce((acc, it) => acc + (Math.max(0, it.stock) * it.costo), 0);
+    const totalCatalogItems = deduplicatedItems.length;
+    const totalUnitsInStock = deduplicatedItems.reduce((acc, it) => acc + Math.max(0, it.stock), 0);
+    const lowStockCount = deduplicatedItems.filter((it) => it.stock > 0 && it.stock <= it.stockMinimo).length;
+    const outOfStockCount = deduplicatedItems.filter((it) => it.stock <= 0).length;
+    const totalInventoryValue = deduplicatedItems.reduce((acc, it) => acc + (Math.max(0, it.stock) * it.costo), 0);
 
     return NextResponse.json({
       success: true,
@@ -167,13 +187,13 @@ export async function POST(request: NextRequest) {
       let existingItem = null;
       if (codigo) {
         existingItem = await prisma.inventoryItem.findFirst({
-          where: { codigo },
+          where: { codigo: { equals: codigo, mode: "insensitive" } },
         });
       }
 
       if (!existingItem) {
         existingItem = await prisma.inventoryItem.findFirst({
-          where: { nombre },
+          where: { nombre: { equals: nombre, mode: "insensitive" } },
         });
       }
 

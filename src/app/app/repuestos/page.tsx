@@ -370,7 +370,19 @@ export default function RepuestosPage() {
       if (!res.ok) throw new Error("Error al consultar inventario");
       const data = await res.json();
       if (data?.items) {
-        setInventoryItems(data.items);
+        const unique = new Map<string, any>();
+        for (const it of data.items) {
+          const key = (it.codigo || it.nombre).trim().toUpperCase();
+          if (!unique.has(key)) {
+            unique.set(key, it);
+          } else {
+            const prev = unique.get(key);
+            if (it.stock > prev.stock) {
+              unique.set(key, it);
+            }
+          }
+        }
+        setInventoryItems(Array.from(unique.values()));
       }
       if (data?.stats) {
         setInventoryStats(data.stats);
