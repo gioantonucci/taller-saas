@@ -171,8 +171,12 @@ async function safeRecognizeWithTesseract(buffer: Buffer): Promise<string> {
     (async () => {
       try {
         const tessdataPath = path.resolve(process.cwd(), "tessdata");
+        const workerPath = path.resolve(process.cwd(), "node_modules/tesseract.js/src/worker-script/node/index.js");
+        const corePath = path.resolve(process.cwd(), "node_modules/tesseract.js-core");
         const { createWorker } = await import("tesseract.js");
         const worker = await createWorker("spa", 1, {
+          workerPath,
+          corePath,
           langPath: tessdataPath,
           cachePath: tessdataPath,
           gzip: true,
