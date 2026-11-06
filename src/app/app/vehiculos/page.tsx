@@ -530,7 +530,7 @@ function VehiculosContent() {
               {/* Sección 1: Datos Técnicos del Vehículo */}
               <div className="space-y-3">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                  1. Información Técnica del Auto
+                  1. Información Técnica del Vehículo
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

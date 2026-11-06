@@ -63,7 +63,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Operación denegada: No se puede empezar a reparar el auto ni cargar horas de trabajo sin cerrar el peritaje primero.",
+            "Operación denegada: No se puede empezar a reparar el vehículo ni cargar horas de trabajo sin cerrar el peritaje primero.",
         },
         { status: 400 }
       );

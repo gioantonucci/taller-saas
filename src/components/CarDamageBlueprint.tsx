@@ -135,7 +135,7 @@ export default function CarDamageBlueprint({
           <span className="font-semibold text-slate-800">
             {readOnly
               ? `Esquema de Daños (${pins.length} marcadores)`
-              : "Hacé 'tap' sobre el auto para marcar un daño"}
+              : "Hacé 'tap' sobre el vehículo para marcar un daño"}
           </span>
         </div>
         {pins.length > 0 && !readOnly && (

@@ -617,7 +617,7 @@ export default function OrdenDetallePage() {
     if (isTargetRepair && !isPeritajeRealizado) {
       await alert({
         title: "Peritaje Previo Requerido",
-        message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
+        message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
         variant: "warning",
         icon: "warning",
       });
@@ -1697,7 +1697,7 @@ export default function OrdenDetallePage() {
                     Peritaje de Recepción y Daños Preexistentes
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Constatación técnica probatoria al recibir el auto (protección legal ante reclamos).
+                    Constatación técnica probatoria al recibir el vehículo (protección legal ante reclamos).
                   </p>
                 </div>
               </div>

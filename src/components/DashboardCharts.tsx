@@ -67,7 +67,7 @@ export default function DashboardCharts({
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5">
               <Car className="w-3.5 h-3.5 text-sky-600" />
-              <span>Autos: Ingresos vs Entregas</span>
+              <span>Vehículos: Ingresos vs Entregas</span>
             </span>
           </div>
         </div>

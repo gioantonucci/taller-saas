@@ -559,7 +559,7 @@ export default function ClienteDetallePage() {
                       : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
-                  + Registrar Nuevo Auto
+                  + Registrar Nuevo Vehículo
                 </button>
                 <button
                   type="button"
@@ -574,7 +574,7 @@ export default function ClienteDetallePage() {
                       : "text-slate-500 hover:text-slate-900"
                   }`}
                 >
-                  Vincular Auto Existente
+                  Vincular Vehículo Existente
                 </button>
               </div>
 

@@ -428,7 +428,7 @@ export default function HojaRutaMecanicoPage() {
         if (!hasPeritaje) {
           await alert({
             title: "Peritaje Previo Requerido",
-            message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
+            message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
             variant: "warning",
             icon: "warning",
           });
@@ -520,7 +520,7 @@ export default function HojaRutaMecanicoPage() {
     if (!selectedOrderHasPeritaje) {
       await alert({
         title: "Peritaje Requerido",
-        message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
+        message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
         variant: "warning",
         icon: "warning",
       });
@@ -737,8 +737,8 @@ export default function HojaRutaMecanicoPage() {
                   </h1>
                   <p className="text-xs text-sky-300 font-medium mt-0.5">
                     {isEncargado
-                      ? `Órdenes de todos los mecánicos • ${counts.total} autos en taller`
-                      : `Panel Táctil para Mecánicos • ${counts.total} autos en taller`}
+                      ? `Órdenes de todos los mecánicos • ${counts.total} vehículos en taller`
+                      : `Panel Táctil para Mecánicos • ${counts.total} vehículos en taller`}
                   </p>
                 </div>
               </div>
@@ -747,7 +747,7 @@ export default function HojaRutaMecanicoPage() {
                 type="button"
                 onClick={fetchOrders}
                 className="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-                title="Actualizar listado de autos"
+                title="Actualizar listado de vehículos"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -1081,7 +1081,7 @@ export default function HojaRutaMecanicoPage() {
                             : "bg-slate-900 hover:bg-slate-800 text-white"
                         }`}
                       >
-                        {isPeritaje && <span>Peritar Auto</span>}
+                        {isPeritaje && <span>Peritar Vehículo</span>}
                         {isReparando && <span>Cargar Tareas</span>}
                         {isEspera && <span>Ver Espera</span>}
                         {isTerminado && <span>Ver Ficha</span>}
@@ -1118,7 +1118,7 @@ export default function HojaRutaMecanicoPage() {
                 type="button"
                 onClick={fetchOrders}
                 className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-                title="Refrescar datos del auto"
+                title="Refrescar datos del vehículo"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -1551,7 +1551,7 @@ export default function HojaRutaMecanicoPage() {
                       if (!selectedOrderHasPeritaje) {
                         await alert({
                           title: "Peritaje Requerido",
-                          message: "No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
+                          message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
                           variant: "warning",
                           icon: "warning",
                         });

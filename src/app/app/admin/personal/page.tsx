@@ -1068,7 +1068,7 @@ export default function GestionPersonalPage() {
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-500 leading-tight">
-                      Admisión de clientes, registro de autos y apertura de órdenes.
+                      Admisión de clientes, registro de vehículos y apertura de órdenes.
                     </p>
                   </button>
                 </div>

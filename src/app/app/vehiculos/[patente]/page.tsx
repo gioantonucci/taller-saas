@@ -386,7 +386,7 @@ export default function VehiculoHistorialClinicoPage() {
         {/* Datos Técnicos */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Datos Técnicos del Auto
+            Datos Técnicos del Vehículo
           </span>
           <div className="space-y-1.5 text-xs">
             <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-1 border-b border-slate-100/80 gap-0.5">
@@ -697,7 +697,7 @@ export default function VehiculoHistorialClinicoPage() {
               <p className="text-[11px] text-slate-400 max-w-md mx-auto">
                 {allVehiclePhotos.length === 0
                   ? "Las fotos tomadas durante el peritaje de ingreso, los arreglos técnicos en la bitácora de trabajo o solicitudes de repuestos aparecerán aquí automáticamente."
-                  : "Probá cambiando la categoría o la orden seleccionada para visualizar otras fotos del auto."}
+                  : "Probá cambiando la categoría o la orden seleccionada para visualizar otras fotos del vehículo."}
               </p>
             </div>
           ) : (

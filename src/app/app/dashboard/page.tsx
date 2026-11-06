@@ -715,7 +715,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-amber-900 leading-tight">
-                    Comentario del dueño indicando abolladuras, rayones y desperfectos preexistentes al entregar el auto:
+                    Comentario del dueño indicando abolladuras, rayones y desperfectos preexistentes al entregar el vehículo:
                   </p>
                   <textarea
                     rows={2}

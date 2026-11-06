@@ -587,7 +587,7 @@ export default function OrdenesPage() {
       }
       if (vehicleMode === "NEW") {
         if (!orderForm.vehiculoPatente.trim() || !orderForm.vehiculoMarca.trim() || !orderForm.vehiculoModelo.trim()) {
-          setFormError("Por favor completa Patente, Marca y Modelo del nuevo auto.");
+          setFormError("Por favor completa Patente, Marca y Modelo del nuevo vehículo.");
           return false;
         }
         const activeOrder = getVehicleActiveOrder(undefined, orderForm.vehiculoPatente);
@@ -1196,7 +1196,7 @@ export default function OrdenesPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Ingresar Auto</span>
+            <span>Ingresar Vehículo</span>
           </button>
         </div>
       </div>
@@ -1316,7 +1316,7 @@ export default function OrdenesPage() {
         <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
         <input
           type="text"
-          placeholder="Buscar por patente, auto o cliente..."
+          placeholder="Buscar por patente, vehículo o cliente..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full pl-10 pr-9 py-2.5 rounded-2xl border border-slate-200 bg-white text-sm font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none placeholder:text-slate-400 shadow-2xs"
@@ -1784,7 +1784,7 @@ export default function OrdenesPage() {
                   <Plus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Ingreso de Auto a Taller</h3>
+                  <h3 className="font-extrabold text-sm text-white">Ingreso de Vehículo a Taller</h3>
                   <p className="text-[11px] text-slate-400 font-medium">Paso {step} de 5</p>
                 </div>
               </div>
@@ -2012,7 +2012,7 @@ export default function OrdenesPage() {
                                     </div>
                                     <div className="shrink-0 flex items-center gap-2 pl-2">
                                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-semibold border border-slate-200/60">
-                                        🚗 {c.vehicles?.length || 0} autos
+                                        🚗 {c.vehicles?.length || 0} vehículos
                                       </span>
                                       {isSelected && <Check className="w-4 h-4 text-sky-600 stroke-[3]" />}
                                     </div>
@@ -2069,10 +2069,10 @@ export default function OrdenesPage() {
 
                             <div className="bg-white p-2.5 rounded-xl border border-sky-100 shadow-2xs">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Autos Registrados
+                                Vehículos Registrados
                               </span>
                               <span className="font-bold text-sky-950 block truncate mt-0.5">
-                                🚗 {clientVehicles.length} {clientVehicles.length === 1 ? "auto registrado" : "autos registrados"}
+                                🚗 {clientVehicles.length} {clientVehicles.length === 1 ? "vehículo registrado" : "vehículos registrados"}
                               </span>
                             </div>
                           </div>
@@ -2236,7 +2236,7 @@ export default function OrdenesPage() {
                               selectedVehicleId
                                 ? `${(() => {
                                     const v = clientVehicles.find((item: any) => item.id === selectedVehicleId) || existingVehicles.find((item: any) => item.id === selectedVehicleId);
-                                    return v ? `${v.patente} — ${v.marca} ${v.modelo}` : "Escribe para buscar auto...";
+                                    return v ? `${v.patente} — ${v.marca} ${v.modelo}` : "Escribe para buscar vehículo...";
                                   })()}`
                                 : `Buscar por patente, marca o modelo (${clientVehicles.length} disponibles)...`
                             }
@@ -2345,7 +2345,7 @@ export default function OrdenesPage() {
                                   <span>Vehículo actualmente activo en el taller</span>
                                 </div>
                                 <p className="text-[11px] text-amber-900/90 leading-relaxed">
-                                  Este vehículo ya cuenta con la <strong>Orden activa #{selectedVehicleActiveOrder.numeroOrden}</strong> en estado <strong>'{selectedVehicleActiveOrder.estado}'</strong>. El mismo auto no puede estar dos veces en peritaje o en reparación simultáneamente. Debe finalizarse o entregarse la orden actual antes de habilitar un nuevo ingreso.
+                                  Este vehículo ya cuenta con la <strong>Orden activa #{selectedVehicleActiveOrder.numeroOrden}</strong> en estado <strong>'{selectedVehicleActiveOrder.estado}'</strong>. El mismo vehículo no puede estar dos veces en peritaje o en reparación simultáneamente. Debe finalizarse o entregarse la orden actual antes de habilitar un nuevo ingreso.
                                 </p>
                                 <div className="pt-0.5">
                                   <Link
@@ -2436,7 +2436,7 @@ export default function OrdenesPage() {
                         </span>
                         {clientMode === "EXISTING" && clientVehicles.length === 0 && (
                           <span className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md">
-                            Titular sin autos previos
+                            Titular sin vehículos previos
                           </span>
                         )}
                       </div>
@@ -2616,7 +2616,7 @@ export default function OrdenesPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-amber-900 leading-tight">
-                      Abolladuras, raspones y detalles que el auto ya trae al entregarse en recepción:
+                      Abolladuras, raspones y detalles que el vehículo ya trae al entregarse en recepción:
                     </p>
                     <textarea
                       rows={2}
@@ -2655,7 +2655,7 @@ export default function OrdenesPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-bold text-xs text-slate-800 block">Esquema Gráfico de Daños Preexistentes</span>
-                        <span className="text-[11px] text-slate-500">Toca las zonas del auto para marcar rayones, abolladuras o roturas previas.</span>
+                        <span className="text-[11px] text-slate-500">Toca las zonas del vehículo para marcar rayones, abolladuras o roturas previas.</span>
                       </div>
                       {orderForm.damagePins.length > 0 && (
                         <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
@@ -2831,7 +2831,7 @@ export default function OrdenesPage() {
                           </div>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                          {vehicleMode === "EXISTING" ? "Auto Registrado" : "Nuevo Auto"}
+                          {vehicleMode === "EXISTING" ? "Vehículo Registrado" : "Nuevo Vehículo"}
                         </span>
                       </div>
 
@@ -2949,7 +2949,7 @@ export default function OrdenesPage() {
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{submitting ? "Creando Orden..." : "Confirmar e Ingresar Auto"}</span>
+                  <span>{submitting ? "Creando Orden..." : "Confirmar e Ingresar Vehículo"}</span>
                 </button>
               )}
             </div>
@@ -3002,7 +3002,7 @@ export default function OrdenesPage() {
               </div>
               <h3 className="text-xl font-black tracking-tight">¡Vehículo Ingresado con Éxito!</h3>
               <p className="text-xs text-emerald-100 font-medium mt-1">
-                La Orden #{createdOrderSuccessModal.numeroOrden} ha sido creada y el auto quedó formalmente ingresado al taller.
+                La Orden #{createdOrderSuccessModal.numeroOrden} ha sido creada y el vehículo quedó formalmente ingresado al taller.
               </p>
             </div>
 
@@ -3037,7 +3037,7 @@ export default function OrdenesPage() {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 space-y-1">
                 <p className="font-bold flex items-center gap-1.5">
                   <FileText className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Copia impresa para el cliente (Al momento de dejar el auto)</span>
+                  <span>Copia impresa para el cliente (Al momento de dejar el vehículo)</span>
                 </p>
                 <p className="text-amber-800 leading-snug">
                   Imprime el <strong>Resguardo de Depósito (A4)</strong> para que el cliente se lleve una copia firmada con el estado del coche y la autorización de guarda.

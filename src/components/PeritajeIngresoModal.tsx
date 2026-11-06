@@ -1509,10 +1509,10 @@ export default function PeritajeIngresoModal({
 
                   <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700">
                     <span className="font-bold text-slate-900 block mb-1">
-                      Mapeo Visual de Daños Estéticos Preexistentes (Esquema del Auto)
+                      Mapeo Visual de Daños Estéticos Preexistentes (Esquema del Vehículo)
                     </span>
                     <p className="text-[11px]">
-                      Hacé &ldquo;tap&rdquo; o clic sobre la silueta del auto para colocar pines de rayones, abolladuras o roturas con sus coordenadas (X, Y).
+                      Hacé &ldquo;tap&rdquo; o clic sobre la silueta del vehículo para colocar pines de rayones, abolladuras o roturas con sus coordenadas (X, Y).
                     </p>
                   </div>
 

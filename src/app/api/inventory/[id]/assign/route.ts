@@ -29,7 +29,7 @@ export async function POST(
 
     if (!workOrderId) {
       return NextResponse.json(
-        { error: "Debe seleccionar una orden de trabajo (auto) válida" },
+        { error: "Debe seleccionar una orden de trabajo (vehículo) válida" },
         { status: 400 }
       );
     }

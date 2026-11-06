@@ -327,7 +327,7 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
   if ((peritaje.damagePins?.length || 0) > 0) {
     if (y > 240) { doc.addPage(); y = 15; }
     setFont(doc, "bold", 7.5, C.slate600);
-    doc.text(`Pines de daño marcados en el esquema del auto: ${peritaje.damagePins!.length}`, MARGIN, y + 4);
+    doc.text(`Pines de daño marcados en el esquema del vehículo: ${peritaje.damagePins!.length}`, MARGIN, y + 4);
     const pinsData = peritaje.damagePins!.map((p, i) => {
       const zone = estimateZone(p.x, p.y);
       const danio = p.descripcion && p.descripcion.trim()

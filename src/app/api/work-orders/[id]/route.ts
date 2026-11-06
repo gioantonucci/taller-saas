@@ -313,7 +313,7 @@ export async function PATCH(
           return NextResponse.json(
             {
               error:
-                "Operación denegada: No se puede empezar a reparar el auto sin cerrar el peritaje primero.",
+                "Operación denegada: No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
             },
             { status: 400 }
           );
