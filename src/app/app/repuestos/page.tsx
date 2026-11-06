@@ -77,7 +77,6 @@ export default function RepuestosPage() {
     codigo: "",
     categoria: "Mecánica General",
     stock: 1,
-    costo: 0,
     precioVenta: 0,
   });
 
@@ -468,7 +467,6 @@ export default function RepuestosPage() {
       codigo: "",
       categoria: "Mecánica General",
       stock: 1,
-      costo: 0,
       precioVenta: 0,
     });
     setStockModalOpen(true);
@@ -482,7 +480,6 @@ export default function RepuestosPage() {
       codigo: item.codigo || "",
       categoria: item.categoria || "Mecánica General",
       stock: item.stock || 0,
-      costo: item.costo || 0,
       precioVenta: item.precioVenta || 0,
     });
     setStockModalOpen(true);
@@ -510,7 +507,6 @@ export default function RepuestosPage() {
             codigo: stockForm.codigo.trim() || undefined,
             categoria: stockForm.categoria || "Mecánica General",
             cantidad: Number(stockForm.stock) || 0,
-            costo: Number(stockForm.costo) || 0,
             precioVenta: Number(stockForm.precioVenta) || 0,
           }),
         });
@@ -534,7 +530,6 @@ export default function RepuestosPage() {
             codigo: stockForm.codigo.trim() || undefined,
             categoria: stockForm.categoria || "Mecánica General",
             stock: Number(stockForm.stock) || 0,
-            costo: Number(stockForm.costo) || 0,
             precioVenta: Number(stockForm.precioVenta) || 0,
           }),
         });
@@ -1515,7 +1510,7 @@ export default function RepuestosPage() {
                       <th className="py-3.5 px-4">Descripción del Repuesto</th>
                       <th className="py-3.5 px-4">Categoría</th>
                       <th className="py-3.5 px-4 text-center">Stock Actual</th>
-                      <th className="py-3.5 px-4 text-right">Costo / Venta</th>
+                      <th className="py-3.5 px-4 text-right">Precio Venta</th>
                       <th className="py-3.5 px-4 text-center">Ajuste</th>
                       <th className="py-3.5 px-4 text-right">Acciones</th>
                     </tr>
@@ -1565,14 +1560,11 @@ export default function RepuestosPage() {
                             )}
                           </td>
 
-                          {/* Costo / Venta */}
+                          {/* Precio Venta */}
                           <td className="py-3.5 px-4 text-right">
-                            <div className="font-mono text-slate-900 font-bold">
+                            <span className="font-mono text-slate-900 font-bold">
                               {Number(item.precioVenta || 0).toLocaleString("es-ES")} €
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              Costo: {Number(item.costo || 0).toLocaleString("es-ES")} €
-                            </div>
+                            </span>
                           </td>
 
                           {/* Ajuste rápido */}
@@ -2905,34 +2897,18 @@ export default function RepuestosPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Costo Unitario (€):
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={stockForm.costo}
-                      onChange={(e) => setStockForm({ ...stockForm, costo: parseFloat(e.target.value) || 0 })}
-                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Precio de Venta (€):
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={stockForm.precioVenta}
-                      onChange={(e) => setStockForm({ ...stockForm, precioVenta: parseFloat(e.target.value) || 0 })}
-                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
-                    />
-                  </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Precio de Venta (€):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={stockForm.precioVenta}
+                    onChange={(e) => setStockForm({ ...stockForm, precioVenta: parseFloat(e.target.value) || 0 })}
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                  />
                 </div>
 
                 {/* Footer */}
