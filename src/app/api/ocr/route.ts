@@ -179,13 +179,14 @@ async function safeRecognizeWithTesseract(buffer: Buffer): Promise<string> {
   return new Promise((resolve) => {
     let resolved = false;
 
-    // Timeout de seguridad: 15 segundos
+    // Timeout de seguridad: 60 segundos
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
+        console.warn("[OCR] Timeout de 60s alcanzado al procesar imagen");
         resolve("");
       }
-    }, 15000);
+    }, 60000);
 
     (async () => {
       try {

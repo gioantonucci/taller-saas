@@ -629,8 +629,8 @@ export default function RepuestosPage() {
         URL.revokeObjectURL(objectUrl);
         try {
           const { width, height } = img;
-          if (width < 1800) {
-            const scale = Math.min(4, Math.max(1.5, 2000 / width));
+          if (width < 1000) {
+            const scale = Math.min(2.5, 1200 / width);
             const targetWidth = Math.round(width * scale);
             const targetHeight = Math.round(height * scale);
 
@@ -657,7 +657,7 @@ export default function RepuestosPage() {
                   }
                 },
                 "image/jpeg",
-                0.92
+                0.90
               );
               return;
             }
