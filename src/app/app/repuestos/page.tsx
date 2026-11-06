@@ -121,18 +121,9 @@ export default function RepuestosPage() {
           setCurrentUser(data.user);
           const r = normalizeRole(data.user.role);
 
-          // Filtro por defecto según el rol (Sección 8):
-          // Administrador: ve lo que está por revisar
-          // Recepción: ve lo que falta encargar o recibir
-          // Mecánico: ve sus propios pedidos
+          // Filtro por defecto: Total de pedidos para todos los roles
           if (!initialEstado) {
-            if (r === "ADMIN") {
-              setStatusFilter("SOLICITADO");
-            } else if (r === "RECEPTION") {
-              setStatusFilter("PENDIENTES_RECEPCION");
-            } else if (r === "MECHANIC") {
-              setStatusFilter("TODOS");
-            }
+            setStatusFilter("TODOS");
           }
         }
       })
