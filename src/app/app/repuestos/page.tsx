@@ -1059,11 +1059,6 @@ export default function RepuestosPage() {
               {/* Header */}
               <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black uppercase tracking-wider border border-amber-500/30">
-                      Recepción / Administración
-                    </span>
-                  </div>
                   <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
                     <Package className="w-5 h-5 text-amber-400" />
                     <span>Nuevo Encargue de Repuestos</span>
