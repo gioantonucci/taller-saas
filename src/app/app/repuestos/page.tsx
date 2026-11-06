@@ -1020,30 +1020,34 @@ export default function RepuestosPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("TODOS")}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
               statusFilter === "TODOS"
                 ? "bg-slate-900 text-white border-slate-900 shadow-md"
                 : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
             }`}
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-              Total Pedidos
-            </span>
+            <div className="min-h-[28px] flex items-start justify-between gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
+                Total Pedidos
+              </span>
+            </div>
             <span className="text-xl font-black mt-1 block">{metrics.total}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setStatusFilter("SOLICITADO")}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
               statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
                 ? "bg-purple-900 text-white border-purple-900 shadow-md"
                 : "bg-white border-purple-200 text-purple-950 hover:bg-purple-50/50"
             }`}
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-              Por Revisar (Admin)
-            </span>
+            <div className="min-h-[28px] flex items-start justify-between gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
+                Por Revisar (Admin)
+              </span>
+            </div>
             <span
               className={`text-xl font-black mt-1 block ${
                 statusFilter === "SOLICITADO" || statusFilter === "POR_REVISAR"
@@ -1058,18 +1062,18 @@ export default function RepuestosPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("PARA_ENCARGAR")}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
               statusFilter === "PARA_ENCARGAR"
                 ? "bg-amber-600 text-white border-amber-600 shadow-md"
                 : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            <div className="min-h-[28px] flex items-start justify-between gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
                 Para Encargar
               </span>
               {isReception && metrics.escalados > 0 && (
-                <span className="px-1.5 py-0.2 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs">
+                <span className="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-sm shadow-xs shrink-0">
                   {metrics.escalados} en rojo
                 </span>
               )}
@@ -1086,15 +1090,17 @@ export default function RepuestosPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("ENCARGO_REALIZADO")}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
               statusFilter === "ENCARGO_REALIZADO"
                 ? "bg-blue-600 text-white border-blue-600 shadow-md"
                 : "bg-white border-blue-200 text-blue-950 hover:bg-blue-50/50"
             }`}
           >
-            <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-              Encargados / En Tránsito
-            </span>
+            <div className="min-h-[28px] flex items-start justify-between gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
+                Encargados / En Tránsito
+              </span>
+            </div>
             <span
               className={`text-xl font-black mt-1 block ${
                 statusFilter === "ENCARGO_REALIZADO" ? "text-white" : "text-blue-600"
@@ -1107,17 +1113,17 @@ export default function RepuestosPage() {
           <button
             type="button"
             onClick={() => setStatusFilter("RECIBIDO")}
-            className={`p-3.5 rounded-2xl border text-left transition-all ${
+            className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
               statusFilter === "RECIBIDO"
                 ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
                 : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+            <div className="min-h-[28px] flex items-start justify-between gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
                 Archivados / Completados
               </span>
-              <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-sm">
+              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-sm shrink-0">
                 Recibidos
               </span>
             </div>
@@ -1392,15 +1398,17 @@ export default function RepuestosPage() {
             <button
               type="button"
               onClick={() => setInventoryStatusFilter("ALL")}
-              className={`p-3.5 rounded-2xl border text-left transition-all ${
+              className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
                 inventoryStatusFilter === "ALL"
                   ? "bg-slate-900 text-white border-slate-900 shadow-md"
                   : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
               }`}
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-                Piezas en Catálogo
-              </span>
+              <div className="min-h-[28px] flex items-start justify-between gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
+                  Piezas en Catálogo
+                </span>
+              </div>
               <span className="text-xl font-black mt-1 block">
                 {inventoryStats?.totalCatalogItems ?? inventoryItems.length}
               </span>
@@ -1409,15 +1417,17 @@ export default function RepuestosPage() {
             <button
               type="button"
               onClick={() => setInventoryStatusFilter("IN_STOCK")}
-              className={`p-3.5 rounded-2xl border text-left transition-all ${
+              className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
                 inventoryStatusFilter === "IN_STOCK"
                   ? "bg-emerald-700 text-white border-emerald-700 shadow-md"
                   : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
               }`}
             >
-              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-                Unidades Físicas en Stock
-              </span>
+              <div className="min-h-[28px] flex items-start justify-between gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
+                  Unidades Físicas en Stock
+                </span>
+              </div>
               <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "IN_STOCK" ? "text-white" : "text-emerald-600"}`}>
                 {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + Math.max(0, it.stock || 0), 0)} u.
               </span>
