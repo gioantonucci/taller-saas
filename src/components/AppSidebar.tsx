@@ -9,7 +9,6 @@ import {
   Users,
   Car,
   Wrench,
-  History,
   LogOut,
   Shield,
   UserCheck,
@@ -149,13 +148,6 @@ export default function AppSidebar({ user }: AppSidebarProps) {
       icon: UserCheck,
       roles: ["ADMIN"],
       mobileBadge: "Personal",
-    },
-    {
-      href: "/app/admin/auditoria",
-      label: "Historial y Auditoría",
-      icon: History,
-      roles: ["ADMIN"],
-      mobileBadge: "Historial",
     },
     {
       href: "/app/configuracion",
