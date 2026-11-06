@@ -276,9 +276,6 @@ export default function ClientesPage() {
                       <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors text-sm block">
                         {c.nombre} {c.apellido}
                       </span>
-                      <span className="inline-block mt-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
-                        DNI {c.dni}
-                      </span>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -374,7 +371,7 @@ export default function ClientesPage() {
               <table className="w-full text-left text-xs min-w-[650px]">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
                   <tr>
-                    <th className="p-3.5">Cliente / DNI</th>
+                    <th className="p-3.5">Cliente</th>
                     <th className="p-3.5">Contacto</th>
                     <th className="p-3.5">Dirección</th>
                     <th className="p-3.5">Vehículos</th>
@@ -391,9 +388,6 @@ export default function ClientesPage() {
                       <td className="p-3.5">
                         <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors block text-sm">
                           {c.nombre} {c.apellido}
-                        </span>
-                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
-                          DNI {c.dni}
                         </span>
                       </td>
 
