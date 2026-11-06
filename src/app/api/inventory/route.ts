@@ -125,10 +125,8 @@ export async function GET(request: NextRequest) {
         : deduplicatedItems;
 
     // Calcular estadísticas de stock
-    const allItems = await prisma.inventoryItem.findMany();
     const totalCatalogItems = deduplicatedItems.length;
     const totalUnitsInStock = deduplicatedItems.reduce((acc, it) => acc + Math.max(0, it.stock), 0);
-    const lowStockCount = deduplicatedItems.filter((it) => it.stock > 0 && it.stock <= it.stockMinimo).length;
     const outOfStockCount = deduplicatedItems.filter((it) => it.stock <= 0).length;
     const totalInventoryValue = deduplicatedItems.reduce((acc, it) => acc + (Math.max(0, it.stock) * it.costo), 0);
 
@@ -138,7 +136,6 @@ export async function GET(request: NextRequest) {
       stats: {
         totalCatalogItems,
         totalUnitsInStock,
-        lowStockCount,
         outOfStockCount,
         totalInventoryValue,
       },
