@@ -83,6 +83,7 @@ export default function RepuestosPage() {
     stock: 1,
     precioVenta: 0,
   });
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   // Estados de Escaneo OCR de Factura / Albarán
   const [ocrModalOpen, setOcrModalOpen] = useState(false);
@@ -395,6 +396,30 @@ export default function RepuestosPage() {
     return Array.from(set);
   }, [inventoryItems]);
 
+  const stockCategoryOptions = useMemo(() => {
+    const defaultList = [
+      "Mecánica General",
+      "Frenos",
+      "Filtros",
+      "Fluidos",
+      "Motor",
+      "Suspensión",
+      "Electricidad",
+      "Encendido",
+      "Refrigeración",
+      "Transmisión / Embrague",
+      "Neumáticos",
+    ];
+    const set = new Set<string>(defaultList);
+    inventoryItems.forEach((it) => {
+      if (it.categoria?.trim()) set.add(it.categoria.trim());
+    });
+    if (stockForm.categoria?.trim()) {
+      set.add(stockForm.categoria.trim());
+    }
+    return Array.from(set);
+  }, [inventoryItems, stockForm.categoria]);
+
   const filteredInventoryItems = useMemo(() => {
     return inventoryItems.filter((it) => {
       if (inventoryCategoryFilter !== "TODAS" && it.categoria !== inventoryCategoryFilter) {
@@ -482,6 +507,7 @@ export default function RepuestosPage() {
   const openCreateStockItem = () => {
     setStockModalMode("CREATE");
     setSelectedStockItem(null);
+    setIsCustomCategory(false);
     setStockForm({
       nombre: "",
       codigo: "",
@@ -495,6 +521,7 @@ export default function RepuestosPage() {
   const openEditStockItem = (item: any) => {
     setStockModalMode("EDIT");
     setSelectedStockItem(item);
+    setIsCustomCategory(false);
     setStockForm({
       nombre: item.nombre || "",
       codigo: item.codigo || "",
@@ -3082,16 +3109,74 @@ export default function RepuestosPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Categoría:
-                    </label>
-                    <input
-                      type="text"
-                      value={stockForm.categoria}
-                      onChange={(e) => setStockForm({ ...stockForm, categoria: e.target.value })}
-                      placeholder="Ej: Frenos, Filtros, Fluidos, Motor..."
-                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
-                    />
+                    {isCustomCategory ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold text-slate-700 block">
+                            Nueva Categoría:
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomCategory(false);
+                              setStockForm({ ...stockForm, categoria: "Mecánica General" });
+                            }}
+                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                          >
+                            Elegir de la lista
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          autoFocus
+                          required
+                          value={stockForm.categoria}
+                          onChange={(e) => setStockForm({ ...stockForm, categoria: e.target.value })}
+                          placeholder="Escribe el nombre de la nueva categoría..."
+                          className="w-full text-xs px-3 py-2.5 rounded-xl border border-emerald-500 bg-emerald-50/20 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold text-slate-700 block">
+                            Categoría:
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomCategory(true);
+                              setStockForm({ ...stockForm, categoria: "" });
+                            }}
+                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Crear nueva</span>
+                          </button>
+                        </div>
+                        <select
+                          value={stockForm.categoria}
+                          onChange={(e) => {
+                            if (e.target.value === "__NEW__") {
+                              setIsCustomCategory(true);
+                              setStockForm({ ...stockForm, categoria: "" });
+                            } else {
+                              setStockForm({ ...stockForm, categoria: e.target.value });
+                            }
+                          }}
+                          className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium cursor-pointer"
+                        >
+                          {stockCategoryOptions.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                          <option value="__NEW__" className="text-emerald-700 font-bold">
+                            + Crear nueva categoría...
+                          </option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
 
