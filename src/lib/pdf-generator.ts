@@ -182,7 +182,7 @@ export function buildActaPeritajeDoc(params: ActaPeritajeParams): jsPDF {
   setFont(doc, "bold", 9.5, C.slate900);
   doc.text(`${cliente.nombre} ${cliente.apellido}`, cx, y + 12);
   setFont(doc, "normal", 7.5, C.slate600);
-  doc.text(`DNI / CUIT: ${cliente.dni}`, cx, y + 18);
+  doc.text(`DNI / NIE / CIF: ${cliente.dni}`, cx, y + 18);
   doc.text(`Tel: ${cliente.telefono || "S/D"}`, cx, y + 23);
   if (cliente.email) doc.text(`Email: ${cliente.email}`, cx, y + 28);
 

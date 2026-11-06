@@ -301,7 +301,7 @@ export default function ClienteDetallePage() {
             Datos de Identificación
           </span>
           <p className="font-mono text-base font-bold text-slate-900">
-            DNI/CUIT: {client.dni}
+            DNI / NIE / CIF: {client.dni}
           </p>
           <p className="text-xs text-slate-600 flex items-center gap-2 break-words">
             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />

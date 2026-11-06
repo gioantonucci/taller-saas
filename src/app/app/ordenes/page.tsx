@@ -566,7 +566,7 @@ export default function OrdenesPage() {
       }
       if (clientMode === "NEW") {
         if (!orderForm.clienteNombre.trim() || !orderForm.clienteDni.trim()) {
-          setFormError("Por favor completa al menos el Nombre y DNI/CUIT del nuevo cliente.");
+          setFormError("Por favor completa al menos el Nombre y DNI/NIE/CIF del nuevo cliente.");
           return false;
         }
       }
@@ -926,7 +926,7 @@ export default function OrdenesPage() {
     }
 
     if (clientMode === "NEW" && (!orderForm.clienteNombre.trim() || !orderForm.clienteDni.trim())) {
-      setFormError("Por favor completa los datos obligatorios del nuevo cliente (Nombre y DNI/CUIT).");
+      setFormError("Por favor completa los datos obligatorios del nuevo cliente (Nombre y DNI/NIE/CIF).");
       setSubmitting(false);
       return;
     }
@@ -2051,7 +2051,7 @@ export default function OrdenesPage() {
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
                             <div className="bg-white p-2.5 rounded-xl border border-sky-100 shadow-2xs">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                DNI / CUIT
+                                DNI / NIE / CIF
                               </span>
                               <span className="font-mono font-bold text-slate-800 block truncate mt-0.5">
                                 {selectedClient.dni || "No especificado"}
@@ -2123,11 +2123,11 @@ export default function OrdenesPage() {
                         </div>
                         <div>
                           <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                            CUIL / DNI <span className="text-rose-500">*</span>
+                            DNI / NIE / CIF <span className="text-rose-500">*</span>
                           </label>
                           <input
                             type="text"
-                            placeholder="Ej: 20-34890123-8 o 34890123"
+                            placeholder="Ej: 12345678Z, X1234567L o B12345678"
                             value={orderForm.clienteDni}
                             onChange={(e) => setOrderForm({ ...orderForm, clienteDni: e.target.value })}
                             className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-xs text-slate-900 focus:ring-2 focus:ring-sky-500 focus:outline-none"
@@ -2791,7 +2791,7 @@ export default function OrdenesPage() {
                               : orderForm.clienteNombre + " " + orderForm.clienteApellido}
                           </span>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500 mt-0.5">
-                            <span>CUIL/DNI: <strong className="font-mono text-slate-700">{clientMode === "EXISTING" ? existingClients.find((c) => c.id === selectedClientId)?.dni : orderForm.clienteDni || "S/D"}</strong></span>
+                            <span>DNI/NIE/CIF: <strong className="font-mono text-slate-700">{clientMode === "EXISTING" ? existingClients.find((c) => c.id === selectedClientId)?.dni : orderForm.clienteDni || "S/D"}</strong></span>
                             <span>Tel: <strong className="text-slate-700">{clientMode === "EXISTING" ? existingClients.find((c) => c.id === selectedClientId)?.telefono : orderForm.clienteTelefono || "S/D"}</strong></span>
                             {(clientMode === "EXISTING" ? existingClients.find((c) => c.id === selectedClientId)?.email : orderForm.clienteEmail) && (
                               <span>Email: <strong className="text-slate-700">{clientMode === "EXISTING" ? existingClients.find((c) => c.id === selectedClientId)?.email : orderForm.clienteEmail}</strong></span>

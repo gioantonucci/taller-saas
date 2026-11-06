@@ -15,8 +15,8 @@ export const clientFormSchema = z.object({
     .max(100, "Apellido demasiado largo"),
   dni: z
     .string()
-    .min(6, "El DNI/CUIT debe tener al menos 6 caracteres")
-    .max(20, "DNI/CUIT demasiado largo")
+    .min(5, "El DNI/NIE/CIF debe tener al menos 5 caracteres")
+    .max(20, "DNI/NIE/CIF demasiado largo")
     .regex(/^[0-9A-Za-z.\-_ ]+$/, "Formato de documento inválido"),
   telefono: z
     .string()

@@ -94,7 +94,7 @@ const FIELD_LABELS: Record<string, string> = {
   email: "Correo electrónico",
   direccion: "Dirección",
   dni: "DNI",
-  cuit: "CUIT / DNI",
+  cuit: "DNI / NIE / CIF",
   codigo: "Código de pieza",
   cantidad: "Cantidad",
   costoUnitario: "Costo unitario",

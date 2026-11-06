@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: `Ya existe un cliente activo registrado con el DNI/CUIT ${cleanDni}` },
+        { error: `Ya existe un cliente activo registrado con el DNI/NIE/CIF ${cleanDni}` },
         { status: 400 }
       );
     }

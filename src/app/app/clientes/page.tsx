@@ -582,12 +582,12 @@ export default function ClientesPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    CUIL / DNI <span className="text-rose-500">*</span>
+                    DNI / NIE / CIF <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     {...register("dni")}
-                    placeholder="Ej. 20-34890123-8 o 34890123"
+                    placeholder="Ej. 12345678Z, X1234567L o B12345678"
                     className={`w-full px-3 py-2 rounded-xl border text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-2 ${
                       errors.dni
                         ? "border-rose-300 focus:ring-rose-500 bg-rose-50/20"
