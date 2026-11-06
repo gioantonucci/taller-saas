@@ -69,43 +69,62 @@ function parseInvoiceText(rawText: string, _fileName: string = "") {
         nombreRepuesto = rest.split(/\d{2,}/)[0].replace(/^[¡!]/, "").trim();
       }
     } else {
-      // PATRÓN 2: Línea tabular estándar de recambio / factura
-      const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución|anticongelante|refrigerante|valvula|válvula|silencioso|escape|polea|tensor|brazo|suspension|suspensión|freno|frenos|neumatico|neumático|cubierta|rodamiento|cojinete|recambio|repuesto/i.test(line);
-
-      const codeMatch = line.match(/\b([A-Z0-9]{2,8}[-_][A-Z0-9]{2,8}|[A-Z]{2,4}\d{4,8})\b/i);
-      const priceMatch = line.match(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/);
-      const qtyMatch = line.match(/(?:^|\s)(\d+)\s*(?:x|ud|uds|unidades?|piezas?|u)\b/i) || line.match(/^(\d+)\s+[A-Za-z]/);
-
-      if (!isAutoPartKeyword && !(priceMatch && (codeMatch || qtyMatch))) {
-        continue;
-      }
-
-      if (codeMatch) {
-        codigo = codeMatch[1].toUpperCase();
-      }
-
-      if (priceMatch) {
-        const rawP = parseFloat(priceMatch[1].replace(",", "."));
-        if (!isNaN(rawP) && rawP > 0 && rawP < 5000) {
-          precioVenta = Math.round(rawP * 100) / 100;
+      // PATRÓN 2: Línea tabular estructurada: [CODIGO] [DESCRIPCION] [CANTIDAD] [PRECIO] [DTO?] [TOTAL]
+      // Ej: "000113 Válvula antirretorno doble clapeta 2 DN50 20.00 48.83 976.60"
+      const tabMatch = line.match(/^([A-Za-z0-9\-_]{2,12})\s+(.+?)\s+(\d{1,4}(?:[.,]\d{1,2})?)\s+(\d{1,4}(?:[.,]\d{2})?)(?:\s+\d+)?\s+(\d{1,5}(?:[.,]\d{2}))$/);
+      if (tabMatch) {
+        codigo = tabMatch[1].toUpperCase();
+        nombreRepuesto = tabMatch[2].trim();
+        const rawQty = parseFloat(tabMatch[3].replace(",", "."));
+        cantidad = Math.max(1, Math.round(rawQty));
+        let rawPrice = parseFloat(tabMatch[4].replace(",", "."));
+        // Si el precio viene sin coma por OCR (ej 675 en vez de 6.75) y hay total
+        const rawTotal = parseFloat(tabMatch[5].replace(",", "."));
+        if (rawPrice > 100 && rawTotal > 0 && cantidad > 0 && rawPrice > rawTotal) {
+          rawPrice = Math.round((rawTotal / cantidad) * 100) / 100;
         }
-      }
-
-      if (qtyMatch) {
-        const qVal = parseInt(qtyMatch[1], 10);
-        if (!isNaN(qVal) && qVal > 0 && qVal < 500) {
-          cantidad = qVal;
+        if (!isNaN(rawPrice) && rawPrice > 0) {
+          precioVenta = Math.round(rawPrice * 100) / 100;
         }
-      }
+      } else {
+        // PATRÓN 3: Línea libre estándar de recambio / factura
+        const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución|anticongelante|refrigerante|valvula|válvula|silencioso|escape|polea|tensor|brazo|suspension|suspensión|freno|frenos|neumatico|neumático|cubierta|rodamiento|cojinete|recambio|repuesto/i.test(line);
 
-      nombreRepuesto = line
-        .replace(codeMatch ? codeMatch[0] : "", "")
-        .replace(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/g, "")
-        .replace(/(?:^|\s)\d+\s*(?:x|ud|uds|unidades?|piezas?|u)\b/gi, "")
-        .replace(/^[\d\.\-\|#\)]+\s*/, "")
-        .replace(/[|–—]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+        const codeMatch = line.match(/\b([A-Z0-9]{2,8}[-_][A-Z0-9]{2,8}|[A-Z]{2,4}\d{4,8})\b/i);
+        const priceMatch = line.match(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/);
+        const qtyMatch = line.match(/(?:^|\s)(\d+)\s*(?:x|ud|uds|unidades?|piezas?|u)\b/i) || line.match(/^(\d+)\s+[A-Za-z]/);
+
+        if (!isAutoPartKeyword && !(priceMatch && (codeMatch || qtyMatch))) {
+          continue;
+        }
+
+        if (codeMatch) {
+          codigo = codeMatch[1].toUpperCase();
+        }
+
+        if (priceMatch) {
+          const rawP = parseFloat(priceMatch[1].replace(",", "."));
+          if (!isNaN(rawP) && rawP > 0 && rawP < 5000) {
+            precioVenta = Math.round(rawP * 100) / 100;
+          }
+        }
+
+        if (qtyMatch) {
+          const qVal = parseInt(qtyMatch[1], 10);
+          if (!isNaN(qVal) && qVal > 0 && qVal < 500) {
+            cantidad = qVal;
+          }
+        }
+
+        nombreRepuesto = line
+          .replace(codeMatch ? codeMatch[0] : "", "")
+          .replace(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/g, "")
+          .replace(/(?:^|\s)\d+\s*(?:x|ud|uds|unidades?|piezas?|u)\b/gi, "")
+          .replace(/^[\d\.\-\|#\)]+\s*/, "")
+          .replace(/[|–—]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
     }
 
     if (!codigo) {

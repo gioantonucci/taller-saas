@@ -616,14 +616,76 @@ export default function RepuestosPage() {
     setOcrModalOpen(true);
   };
 
+  const preprocessImageForOcr = async (file: File): Promise<File> => {
+    if (!file.type.startsWith("image/")) {
+      return file;
+    }
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        try {
+          const { width, height } = img;
+          if (width < 1800) {
+            const scale = Math.min(4, Math.max(1.5, 2000 / width));
+            const targetWidth = Math.round(width * scale);
+            const targetHeight = Math.round(height * scale);
+
+            const canvas = document.createElement("canvas");
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext("2d");
+
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = "high";
+              ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+              canvas.toBlob(
+                (blob) => {
+                  if (blob && blob.size > 0) {
+                    const enhancedFile = new File([blob], file.name, {
+                      type: "image/jpeg",
+                      lastModified: Date.now(),
+                    });
+                    resolve(enhancedFile);
+                  } else {
+                    resolve(file);
+                  }
+                },
+                "image/jpeg",
+                0.92
+              );
+              return;
+            }
+          }
+          resolve(file);
+        } catch {
+          resolve(file);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(file);
+      };
+
+      img.src = objectUrl;
+    });
+  };
+
   const handleOcrProcessFile = async (file: File) => {
     if (!file) return;
     setOcrFile(file);
     setOcrScanning(true);
 
     try {
+      const fileToUpload = await preprocessImageForOcr(file);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
 
       const res = await fetch("/api/ocr", {
         method: "POST",
