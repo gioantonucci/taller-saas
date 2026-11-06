@@ -245,7 +245,7 @@ function VehiculosContent() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Búsqueda de fichas clínicas de autos, órdenes acumuladas y altas de nuevos ingresos.
+            Búsqueda de fichas de vehículos, órdenes acumuladas y altas de nuevos ingresos.
           </p>
         </div>
 

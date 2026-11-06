@@ -933,7 +933,7 @@ export default function OrdenDetallePage() {
                 href={`/app/vehiculos/${order.vehicle.patente}`}
                 className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-1"
               >
-                <span>Historial Clínico</span>
+                <span>Ficha del Vehículo</span>
                 <span>→</span>
               </Link>
             </div>
