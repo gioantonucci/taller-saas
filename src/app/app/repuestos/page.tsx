@@ -663,8 +663,8 @@ export default function RepuestosPage() {
         ]);
         await alert({
           title: "Factura subida",
-          message: "El comprobante fue guardado. Puedes añadir las piezas detectadas manualmente en la tabla.",
-          variant: "warning",
+          message: "El comprobante fue guardado con éxito. Puedes revisar o añadir las piezas en la tabla.",
+          variant: "success",
         });
       }
     } catch (err: any) {
