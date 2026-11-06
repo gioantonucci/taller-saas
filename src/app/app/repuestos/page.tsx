@@ -978,7 +978,7 @@ export default function RepuestosPage() {
         <button
           type="button"
           onClick={() => setActiveMainTab("pedidos")}
-          className={`flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeMainTab === "pedidos"
               ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
@@ -1001,7 +1001,7 @@ export default function RepuestosPage() {
             setActiveMainTab("stock");
             if (inventoryItems.length === 0) fetchInventory();
           }}
-          className={`flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeMainTab === "stock"
               ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
               : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
