@@ -14,62 +14,114 @@ function parseInvoiceText(rawText: string, _fileName: string = "") {
     categoria: string;
     precioVenta: number;
   }> = [];
+  const seen = new Set<string>();
 
   for (const line of lines) {
-    // Si la línea es encabezado de tabla o datos generales, ignorar
-    if (/^(ítems?|items?|descripci[oó]n|cantidad|precio|total|subtotal|c[oó]digo|albar[aá]n|factura|n[uú]m|ref|referencia|concepto|iva|base)/i.test(line)) {
+    // Descartar encabezados, metadatos de empresa, direcciones o líneas triviales
+    if (
+      line.length < 4 ||
+      /^(albar[aá]n|factura|fecha|p[aá]gina|tel|obra|pedido|pesido|paso|n[uú]m|c\/|ctra|cif|nif|total|subtotal|base|iva|banco|iban|vivienda|madera|productor|compactos|\d+$|=)/i.test(line) ||
+      /\b(alicante|madrid|barcelona|valencia|sevilla|s\.l\.|s\.a\.|c\.v\.|autovia|avenida|calle)\b/i.test(line)
+    ) {
       continue;
     }
 
-    // Buscar precios: ej. "45,50 €", "28.00", "€ 120,00", "EUR 35"
-    const priceMatch = line.match(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2})?)\s*(?:€|\bEUR)?/);
-    
-    // Palabras clave automotrices y de recambios
-    const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución|anticongelante|refrigerante|valvula|válvula|silencioso|escape|polea|tensor|brazo|suspension|suspensión|freno|frenos|neumatico|neumático|cubierta|rodamiento|cojinete/i.test(line);
+    let codigo = "";
+    let nombreRepuesto = "";
+    let cantidad = 1;
+    let precioVenta = 0;
 
-    // Patrón de fila de albarán/factura: ej. "2 | Pastillas de freno | BOS-PD1422"
-    const tableRowMatch = line.match(/^(?:(?:\d+[\.\)]|\d+x?|\#\d+)\s*\|?\s*)?([A-Za-záéíóúñÁÉÍÓÚÑ\s\-_\/0-9]{3,40})/i);
+    // PATRÓN 1: Formato con separación por barra o pipe (ej. "COMALU | 100 COMPACTO ...")
+    const pipeMatch = line.match(/^([A-Z0-9\-_]{2,15})\s*\|\s*(.*)$/i);
+    if (pipeMatch) {
+      codigo = pipeMatch[1].trim().toUpperCase();
+      let rest = pipeMatch[2].trim();
 
-    if (isAutoPartKeyword || (line.length > 5 && priceMatch) || tableRowMatch) {
-      // Extraer cantidad (ej. "2x", "Cant: 2", "2 UN", "2 uds", "4 u")
-      let cantidad = 1;
-      const qtyMatch = line.match(/(?:^|\s)(\d+)(?:\s*(?:x|un|cant|uds?|unidades?|piezas?|u))\b/i) || line.match(/^(\d+)\s+/);
+      const qtyMatch = rest.match(/^(\d+(?:[.,]\d+)?)\s*(?:x|uds?|ud|unidades?|piezas?|u\b)?\s+(.*)$/i);
       if (qtyMatch) {
-        const parsedQty = parseInt(qtyMatch[1], 10);
-        if (!isNaN(parsedQty) && parsedQty > 0 && parsedQty < 500) {
-          cantidad = parsedQty;
+        let qVal = parseFloat(qtyMatch[1].replace(",", "."));
+        // En muchos albaranes españoles 100 representa 1.00 ud, 300 = 3.00, etc.
+        if (qVal >= 100 && qVal % 100 === 0 && qVal <= 5000) {
+          qVal = qVal / 100;
+        } else if (qVal > 500) {
+          qVal = 1;
+        }
+        cantidad = Math.max(1, Math.round(qVal));
+        rest = qtyMatch[2].trim();
+      }
+
+      const priceEndMatch = rest.match(/([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?$/i);
+      if (priceEndMatch) {
+        const rawP = parseFloat(priceEndMatch[1].replace(",", "."));
+        if (!isNaN(rawP) && rawP > 0) {
+          precioVenta = Math.round(rawP * 100) / 100;
         }
       }
 
-      // Detectar precio
-      let precioVenta = 35; // Precio estimado base en euros
+      nombreRepuesto = rest
+        .replace(/^[¡!]/, "")
+        .replace(/\d+([.,]\d+)?\s*(?:x\s*\d+|m2|ud|uds|kg|cm|mm).*$/i, "")
+        .replace(/\d+([.,]\d+)?\s*%/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!nombreRepuesto || nombreRepuesto.length < 3) {
+        nombreRepuesto = rest.split(/\d{2,}/)[0].replace(/^[¡!]/, "").trim();
+      }
+    } else {
+      // PATRÓN 2: Línea tabular estándar de recambio / factura
+      const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución|anticongelante|refrigerante|valvula|válvula|silencioso|escape|polea|tensor|brazo|suspension|suspensión|freno|frenos|neumatico|neumático|cubierta|rodamiento|cojinete|recambio|repuesto/i.test(line);
+
+      const codeMatch = line.match(/\b([A-Z0-9]{2,8}[-_][A-Z0-9]{2,8}|[A-Z]{2,4}\d{4,8})\b/i);
+      const priceMatch = line.match(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/);
+      const qtyMatch = line.match(/(?:^|\s)(\d+)\s*(?:x|ud|uds|unidades?|piezas?|u)\b/i) || line.match(/^(\d+)\s+[A-Za-z]/);
+
+      if (!isAutoPartKeyword && !(priceMatch && (codeMatch || qtyMatch))) {
+        continue;
+      }
+
+      if (codeMatch) {
+        codigo = codeMatch[1].toUpperCase();
+      }
+
       if (priceMatch) {
-        const cleanPrice = priceMatch[1].replace(",", ".");
-        const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed) && parsed > 0 && parsed < 5000) {
-          precioVenta = Math.round(parsed * 1.35 * 100) / 100; // margen sugerido PVP
+        const rawP = parseFloat(priceMatch[1].replace(",", "."));
+        if (!isNaN(rawP) && rawP > 0 && rawP < 5000) {
+          precioVenta = Math.round(rawP * 100) / 100;
         }
       }
 
-      // Extraer código o referencia de pieza (ej. "MANN-W712", "BOS-PD1422", "K015569", "7701477028")
-      const codeMatch = line.match(/\b([A-Z0-9]{2,8}-[A-Z0-9]{2,8}|[A-Z0-9]{6,12})\b/);
-      const codigo = codeMatch ? codeMatch[1].toUpperCase() : `REC-${Math.floor(1000 + Math.random() * 9000)}`;
+      if (qtyMatch) {
+        const qVal = parseInt(qtyMatch[1], 10);
+        if (!isNaN(qVal) && qVal > 0 && qVal < 500) {
+          cantidad = qVal;
+        }
+      }
 
-      // Limpiar nombre del repuesto / descripción
-      let nombreRepuesto = line
+      nombreRepuesto = line
         .replace(codeMatch ? codeMatch[0] : "", "")
-        .replace(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2})?)\s*(?:€|\bEUR)?/g, "")
-        .replace(/(?:^|\s)\d+\s*(?:x|un|cant|uds?|unidades?|piezas?|u)\b/gi, "")
+        .replace(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:€|\bEUR)?/g, "")
+        .replace(/(?:^|\s)\d+\s*(?:x|ud|uds|unidades?|piezas?|u)\b/gi, "")
         .replace(/^[\d\.\-\|#\)]+\s*/, "")
         .replace(/[|–—]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
+    }
 
-      if (nombreRepuesto.length < 3 && tableRowMatch) {
-        nombreRepuesto = tableRowMatch[1].trim();
-      }
+    if (!codigo) {
+      codigo = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
 
-      // Detectar categoría sugerida
+    if (nombreRepuesto && nombreRepuesto.length >= 3) {
+      nombreRepuesto = nombreRepuesto
+        .replace(/\s+\d+(?:[.,]\d+)?(?:\s*[xX\/\-]?\s*\d+(?:[.,]\d+)?)*[\s\/\,\.]*$/g, "")
+        .replace(/\s+[A-Za-z]$/, "")
+        .replace(/[\/\,\.\-\s]+$/, "")
+        .trim();
+
+      nombreRepuesto = nombreRepuesto.charAt(0).toUpperCase() + nombreRepuesto.slice(1);
+
+      // Categoría sugerida automática
       let categoria = "Mecánica General";
       const lower = (nombreRepuesto + " " + line).toLowerCase();
       if (/freno|pastilla|disco|liquido de freno/i.test(lower)) {
@@ -86,13 +138,15 @@ function parseInvoiceText(rawText: string, _fileName: string = "") {
         categoria = "Electricidad";
       }
 
-      if (nombreRepuesto.length >= 3 && !/^(total|subtotal|fecha|recib[ií]|responsable|cif|nif|direcci[oó]n|albar[aá]n|cliente|taller)/i.test(nombreRepuesto)) {
+      const dedupeKey = `${codigo}_${nombreRepuesto}`.toLowerCase();
+      if (!seen.has(dedupeKey)) {
+        seen.add(dedupeKey);
         items.push({
-          nombreRepuesto: nombreRepuesto.charAt(0).toUpperCase() + nombreRepuesto.slice(1),
+          nombreRepuesto,
           codigo,
           cantidad: cantidad > 0 ? cantidad : 1,
           categoria,
-          precioVenta,
+          precioVenta: precioVenta > 0 ? precioVenta : 25,
         });
       }
     }

@@ -3361,7 +3361,7 @@ export default function RepuestosPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                          Piezas Detectadas ({ocrItems.length})
+                          Piezas Detectadas ({ocrItems.filter((i) => i.nombre.trim().length > 0).length})
                         </span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                           Revisión editable
