@@ -293,7 +293,6 @@ function VehiculosContent() {
           <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
             Vehículos Activos Registrados ({vehicles.length})
           </h2>
-          <span className="text-[11px] text-slate-400 font-medium">Bajas lógicas excluidas</span>
         </div>
 
         {loading && vehicles.length === 0 ? (

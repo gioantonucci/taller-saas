@@ -247,7 +247,6 @@ export default function ClientesPage() {
           <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
             Listado de Clientes Activos ({clients.length})
           </h2>
-          <span className="text-[11px] text-slate-400 font-medium">Bajas lógicas excluidas</span>
         </div>
 
         {loading && clients.length === 0 ? (
