@@ -4,62 +4,62 @@ import { saveStorageFile } from "@/lib/storage";
 import { recordAuditLog } from "@/lib/audit";
 import path from "path";
 
-// Función heurística de extracción para comprobantes, remitos y facturas
+// Función heurística de extracción para comprobantes, remitos, albaranes y facturas de recambios
 function parseInvoiceText(rawText: string, _fileName: string = "") {
   const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
   const items: Array<{
     nombreRepuesto: string;
     codigo: string;
     cantidad: number;
-    costo: number;
-    precioSugerido: number;
+    categoria: string;
+    precioVenta: number;
   }> = [];
 
   for (const line of lines) {
-    // Si la línea es encabezado de tabla, ignorar
-    if (/^(ítems?|items?|descripci[oó]n|cantidad|precio|total|subtotal|c[oó]digo|nota de entrega)/i.test(line)) {
+    // Si la línea es encabezado de tabla o datos generales, ignorar
+    if (/^(ítems?|items?|descripci[oó]n|cantidad|precio|total|subtotal|c[oó]digo|albar[aá]n|factura|n[uú]m|ref|referencia|concepto|iva|base)/i.test(line)) {
       continue;
     }
 
-    // Buscar precios: ej. "$ 14.500", "35000", "ARS 48.000,00"
-    const priceMatch = line.match(/(?:\$|\bARS|\bUSD)?\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?|[0-9]{2,7}(?:\.[0-9]{2})?)/);
+    // Buscar precios: ej. "45,50 €", "28.00", "€ 120,00", "EUR 35"
+    const priceMatch = line.match(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2})?)\s*(?:€|\bEUR)?/);
     
-    // Palabras clave automotrices
-    const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución/i.test(line);
+    // Palabras clave automotrices y de recambios
+    const isAutoPartKeyword = /filtro|aceite|pastilla|disco|correa|bomba|bujia|bujía|amortiguador|optica|óptica|faro|embrague|reten|retén|manguera|bateria|batería|liquido|líquido|sensor|bobina|crapodina|rotula|rótula|extremo|cremallera|radiador|termostato|junta|distribucion|distribución|anticongelante|refrigerante|valvula|válvula|silencioso|escape|polea|tensor|brazo|suspension|suspensión|freno|frenos|neumatico|neumático|cubierta|rodamiento|cojinete/i.test(line);
 
-    // Patrón de fila de tabla o remito: ej. "1 | Pollo | 5 kilos" o "2 Arroz 250 gramos" o "1x MANN-C25114 Filtro $ 14500"
-    const tableRowMatch = line.match(/^(?:(?:\d+[\.\)]|\d+x?|\#\d+)\s*\|?\s*)?([A-Za-záéíóúñÁÉÍÓÚÑ\s\-_\/]{3,35})\s*\|?\s*(\d+(?:[.,]\d+)?)\s*(kilos?|kg|g|gramos|litros?|lts?|unidades?|un|uds?|piezas?|x)?/i);
+    // Patrón de fila de albarán/factura: ej. "2 | Pastillas de freno | BOS-PD1422"
+    const tableRowMatch = line.match(/^(?:(?:\d+[\.\)]|\d+x?|\#\d+)\s*\|?\s*)?([A-Za-záéíóúñÁÉÍÓÚÑ\s\-_\/0-9]{3,40})/i);
 
-    if (isAutoPartKeyword || (line.length > 6 && priceMatch) || tableRowMatch) {
-      // Extraer cantidad (ej. "2x", "Cant: 2", "2 UN", "5 kilos")
+    if (isAutoPartKeyword || (line.length > 5 && priceMatch) || tableRowMatch) {
+      // Extraer cantidad (ej. "2x", "Cant: 2", "2 UN", "2 uds", "4 u")
       let cantidad = 1;
-      const qtyMatch = line.match(/(?:^|\s)(\d+(?:[.,]\d+)?)(?:\s*(?:x|un|cant|uds?|unidades?|kilos?|kg|g|gramos|litros?|lts?))?\b/i);
+      const qtyMatch = line.match(/(?:^|\s)(\d+)(?:\s*(?:x|un|cant|uds?|unidades?|piezas?|u))\b/i) || line.match(/^(\d+)\s+/);
       if (qtyMatch) {
-        const parsedQty = parseFloat(qtyMatch[1].replace(",", "."));
-        if (!isNaN(parsedQty) && parsedQty > 0 && parsedQty < 1000) {
-          cantidad = Math.round(parsedQty);
+        const parsedQty = parseInt(qtyMatch[1], 10);
+        if (!isNaN(parsedQty) && parsedQty > 0 && parsedQty < 500) {
+          cantidad = parsedQty;
         }
       }
 
-      // Limpiar precio numérico
-      let costo = 22000;
+      // Detectar precio
+      let precioVenta = 35; // Precio estimado base en euros
       if (priceMatch) {
-        const cleanPrice = priceMatch[1].replace(/\./g, "").replace(",", ".");
+        const cleanPrice = priceMatch[1].replace(",", ".");
         const parsed = parseFloat(cleanPrice);
-        if (!isNaN(parsed) && parsed > 50) {
-          costo = parsed;
+        if (!isNaN(parsed) && parsed > 0 && parsed < 5000) {
+          precioVenta = Math.round(parsed * 1.35 * 100) / 100; // margen sugerido PVP
         }
       }
 
-      // Extraer código si existe (ej. "MANN-C25114", "FRA-PD1422", etc.)
-      const codeMatch = line.match(/\b([A-Z0-9]{3,}-[A-Z0-9]{2,})\b/i);
-      const codigo = codeMatch ? codeMatch[1].toUpperCase() : `REP-${Math.floor(1000 + Math.random() * 9000)}`;
+      // Extraer código o referencia de pieza (ej. "MANN-W712", "BOS-PD1422", "K015569", "7701477028")
+      const codeMatch = line.match(/\b([A-Z0-9]{2,8}-[A-Z0-9]{2,8}|[A-Z0-9]{6,12})\b/);
+      const codigo = codeMatch ? codeMatch[1].toUpperCase() : `REC-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // Limpiar nombre del repuesto / ítem
+      // Limpiar nombre del repuesto / descripción
       let nombreRepuesto = line
         .replace(codeMatch ? codeMatch[0] : "", "")
-        .replace(/(?:\$|\bARS|\bUSD)?\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})?|[0-9]{2,7}(?:\.[0-9]{2})?)/g, "")
-        .replace(/(?:^|\s)\d+(?:[.,]\d+)?\s*(?:x|un|cant|uds?|unidades?|kilos?|kg|g|gramos|litros?|lts?)\b/gi, "")
+        .replace(/(?:€|\bEUR|\$)?\s*([0-9]{1,4}(?:[.,][0-9]{2})?)\s*(?:€|\bEUR)?/g, "")
+        .replace(/(?:^|\s)\d+\s*(?:x|un|cant|uds?|unidades?|piezas?|u)\b/gi, "")
         .replace(/^[\d\.\-\|#\)]+\s*/, "")
         .replace(/[|–—]/g, " ")
         .replace(/\s+/g, " ")
@@ -69,14 +69,30 @@ function parseInvoiceText(rawText: string, _fileName: string = "") {
         nombreRepuesto = tableRowMatch[1].trim();
       }
 
-      if (nombreRepuesto.length >= 3 && !/^(total|subtotal|fecha|recib[ií]|responsable|empresa)/i.test(nombreRepuesto)) {
-        const precioSugerido = Math.round(costo * 1.45);
+      // Detectar categoría sugerida
+      let categoria = "Mecánica General";
+      const lower = (nombreRepuesto + " " + line).toLowerCase();
+      if (/freno|pastilla|disco|liquido de freno/i.test(lower)) {
+        categoria = "Frenos";
+      } else if (/filtro/i.test(lower)) {
+        categoria = "Filtros";
+      } else if (/aceite|anticongelante|refrigerante|valvul|liquido/i.test(lower)) {
+        categoria = "Fluidos";
+      } else if (/correa|distribucion|distribución|bomba|tensor|polea|junta|valvula|termostato/i.test(lower)) {
+        categoria = "Motor";
+      } else if (/amortiguador|brazo|rotula|rótula|suspension|suspensión/i.test(lower)) {
+        categoria = "Suspensión";
+      } else if (/bateria|batería|bujia|bujía|bobina|sensor|faro|optica|óptica/i.test(lower)) {
+        categoria = "Electricidad";
+      }
+
+      if (nombreRepuesto.length >= 3 && !/^(total|subtotal|fecha|recib[ií]|responsable|cif|nif|direcci[oó]n|albar[aá]n|cliente|taller)/i.test(nombreRepuesto)) {
         items.push({
           nombreRepuesto: nombreRepuesto.charAt(0).toUpperCase() + nombreRepuesto.slice(1),
           codigo,
           cantidad: cantidad > 0 ? cantidad : 1,
-          costo,
-          precioSugerido,
+          categoria,
+          precioVenta,
         });
       }
     }
@@ -85,25 +101,27 @@ function parseInvoiceText(rawText: string, _fileName: string = "") {
   return items;
 }
 
-// Ejecución ultra-segura de Tesseract con límite de tiempo estricto (1.8s) para nunca congelar
+// Ejecución ultra-segura de Tesseract usando modelos locales pre-descargados (offline, sin red)
 async function safeRecognizeWithTesseract(buffer: Buffer): Promise<string> {
   return new Promise((resolve) => {
     let resolved = false;
 
-    // Timeout de seguridad: si no responde en 1800ms, salir inmediatamente
+    // Timeout de seguridad: 15 segundos
     const timer = setTimeout(() => {
       if (!resolved) {
         resolved = true;
         resolve("");
       }
-    }, 1800);
+    }, 15000);
 
     (async () => {
       try {
-        const workerScript = path.resolve(process.cwd(), "node_modules/tesseract.js/src/worker-script/node/index.js");
+        const tessdataPath = path.resolve(process.cwd(), "tessdata");
         const { createWorker } = await import("tesseract.js");
         const worker = await createWorker("spa", 1, {
-          workerPath: workerScript,
+          langPath: tessdataPath,
+          cachePath: tessdataPath,
+          gzip: true,
           errorHandler: () => {},
         });
         const ret = await worker.recognize(buffer);
@@ -114,7 +132,8 @@ async function safeRecognizeWithTesseract(buffer: Buffer): Promise<string> {
           clearTimeout(timer);
           resolve(ret?.data?.text || "");
         }
-      } catch {
+      } catch (err) {
+        console.error("Error al procesar con Tesseract OCR:", err);
         if (!resolved) {
           resolved = true;
           clearTimeout(timer);
@@ -165,7 +184,7 @@ export async function POST(request: NextRequest) {
         fileName: file?.name || "Entrada manual",
         itemsCount: items.length,
         fileUrl,
-        itemsSummary: items.slice(0, 5).map((i) => `${i.nombreRepuesto} ($${i.costo})`),
+        itemsSummary: items.slice(0, 5).map((i) => `${i.nombreRepuesto} (${i.cantidad} u.)`),
         descripcion: `Escaneo OCR de comprobante '${file?.name || "manual"}' (${items.length} repuestos identificados)`,
       },
     });

@@ -31,6 +31,10 @@ import {
   PlusCircle,
   MinusCircle,
   Edit3,
+  ScanLine,
+  UploadCloud,
+  FileText,
+  Eye,
 } from "lucide-react";
 import { SparePartRequest, SparePartItem } from "@/types";
 import ModalPortal from "@/components/ModalPortal";
@@ -79,6 +83,22 @@ export default function RepuestosPage() {
     stock: 1,
     precioVenta: 0,
   });
+
+  // Estados de Escaneo OCR de Factura / Albarán
+  const [ocrModalOpen, setOcrModalOpen] = useState(false);
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const [ocrSaving, setOcrSaving] = useState(false);
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrFileUrl, setOcrFileUrl] = useState("");
+  const [ocrRawText, setOcrRawText] = useState("");
+  const [ocrItems, setOcrItems] = useState<Array<{
+    id: string;
+    nombre: string;
+    codigo: string;
+    categoria: string;
+    cantidad: number;
+    precioVenta: number;
+  }>>([]);
 
   const [requests, setRequests] = useState<SparePartRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -559,6 +579,155 @@ export default function RepuestosPage() {
     }
   };
 
+  const openOcrModal = () => {
+    setOcrFile(null);
+    setOcrFileUrl("");
+    setOcrRawText("");
+    setOcrItems([]);
+    setOcrScanning(false);
+    setOcrSaving(false);
+    setOcrModalOpen(true);
+  };
+
+  const handleOcrProcessFile = async (file: File) => {
+    if (!file) return;
+    setOcrFile(file);
+    setOcrScanning(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/ocr", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al procesar la factura con OCR");
+      }
+
+      const data = await res.json();
+      setOcrFileUrl(data.fileUrl || "");
+      setOcrRawText(data.rawText || "");
+
+      if (Array.isArray(data.items) && data.items.length > 0) {
+        setOcrItems(
+          data.items.map((it: any, idx: number) => ({
+            id: `ocr-${Date.now()}-${idx}`,
+            nombre: it.nombreRepuesto || it.nombre || "",
+            codigo: it.codigo || "",
+            categoria: it.categoria || "Mecánica General",
+            cantidad: Number(it.cantidad) || 1,
+            precioVenta: Number(it.precioVenta) || 0,
+          }))
+        );
+      } else {
+        setOcrItems([
+          {
+            id: `ocr-${Date.now()}-0`,
+            nombre: "",
+            codigo: "",
+            categoria: "Mecánica General",
+            cantidad: 1,
+            precioVenta: 0,
+          },
+        ]);
+        await alert({
+          title: "Factura subida",
+          message: "El comprobante fue guardado. Puedes añadir las piezas detectadas manualmente en la tabla.",
+          variant: "warning",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error OCR:", err);
+      await alert({
+        title: "Error al Escanear",
+        message: err.message || "Ocurrió un error al procesar la factura.",
+        variant: "danger",
+      });
+    } finally {
+      setOcrScanning(false);
+    }
+  };
+
+  const handleAddOcrRow = () => {
+    setOcrItems((prev) => [
+      ...prev,
+      {
+        id: `ocr-${Date.now()}-${prev.length}`,
+        nombre: "",
+        codigo: "",
+        categoria: "Mecánica General",
+        cantidad: 1,
+        precioVenta: 0,
+      },
+    ]);
+  };
+
+  const handleRemoveOcrRow = (id: string) => {
+    setOcrItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const handleUpdateOcrRow = (id: string, field: string, val: any) => {
+    setOcrItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, [field]: val } : it))
+    );
+  };
+
+  const handleSaveOcrBatch = async () => {
+    const validItems = ocrItems.filter((it) => it.nombre.trim().length > 0);
+    if (validItems.length === 0) {
+      await alert({
+        title: "Sin repuestos",
+        message: "Por favor añade al menos un repuesto con nombre o descripción.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setOcrSaving(true);
+    try {
+      const res = await fetch("/api/inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: validItems.map((it) => ({
+            nombre: it.nombre.trim(),
+            codigo: it.codigo.trim() || undefined,
+            categoria: it.categoria || "Mecánica General",
+            cantidad: Number(it.cantidad) || 1,
+            precioVenta: Number(it.precioVenta) || 0,
+          })),
+          archivoFacturaURL: ocrFileUrl || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || "Error al ingresar repuestos al stock");
+      }
+
+      await alert({
+        title: "¡Factura e Inventario Guardados!",
+        message: `Se han cargado ${validItems.length} repuesto(s) al stock físico y se vinculó la factura con éxito.`,
+        variant: "success",
+      });
+
+      setOcrModalOpen(false);
+      fetchInventory(true);
+    } catch (err: any) {
+      await alert({
+        title: "Error al guardar",
+        message: err.message || "No se pudieron guardar los repuestos.",
+        variant: "danger",
+      });
+    } finally {
+      setOcrSaving(false);
+    }
+  };
+
   const handleOrderFromStock = (item: any) => {
     resetCreateForm();
     setEncargoItems([
@@ -945,14 +1114,26 @@ export default function RepuestosPage() {
           )}
 
           {!isMechanic && activeMainTab === "stock" && (
-            <button
-              type="button"
-              onClick={openCreateStockItem}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Cargar Repuesto a Stock</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={openOcrModal}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer border border-slate-700"
+                title="Escanear comprobante, remito o factura con OCR"
+              >
+                <ScanLine className="w-4 h-4 text-emerald-400" />
+                <span>Escanear Factura</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openCreateStockItem}
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Cargar Repuesto</span>
+              </button>
+            </div>
           )}
 
           <button
@@ -2848,6 +3029,30 @@ export default function RepuestosPage() {
 
               {/* Form */}
               <form onSubmit={handleSaveStockItem} className="p-5 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto">
+                {stockModalMode === "CREATE" && (
+                  <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                        <ScanLine className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">¿Tienes una factura o albarán?</p>
+                        <p className="text-[11px] text-slate-500">Escanéala para detectar y cargar piezas automáticamente.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStockModalOpen(false);
+                        openOcrModal();
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 transition-all cursor-pointer shadow-xs"
+                    >
+                      Escanear Factura
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">
                     Descripción / Nombre del Repuesto <span className="text-rose-500">*</span>
@@ -2948,6 +3153,266 @@ export default function RepuestosPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL ESCANEAR FACTURA / ALBARÁN CON OCR                                 */}
+      {/* ========================================================================= */}
+      {ocrModalOpen && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto animate-in fade-in">
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
+                <div className="space-y-1">
+                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <ScanLine className="w-5 h-5 text-emerald-400" />
+                    <span>Escanear Factura / Albarán de Repuestos</span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Sube una foto o PDF del comprobante para detectar automáticamente los recambios y cargarlos al stock.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setOcrModalOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 sm:p-6 space-y-5 max-h-[78vh] overflow-y-auto">
+                {/* Zona de Carga / Drag & Drop */}
+                {!ocrFile ? (
+                  <label className="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50/80 hover:bg-emerald-50/20 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleOcrProcessFile(file);
+                      }}
+                    />
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 text-emerald-600 flex items-center justify-center mb-3 transition-transform group-hover:scale-105">
+                      <UploadCloud className="w-7 h-7" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 group-hover:text-emerald-700">
+                      Toca o arrastra aquí la factura o albarán
+                    </span>
+                    <span className="text-xs text-slate-400 mt-1 max-w-sm">
+                      Admite imágenes (JPG, PNG) y documentos PDF. La IA extraerá piezas, códigos y cantidades.
+                    </span>
+                    <span className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-sm group-hover:bg-emerald-600 transition-colors">
+                      Seleccionar o Tomar Foto
+                    </span>
+                  </label>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">{ocrFile.name}</p>
+                        <p className="text-[11px] text-slate-400">
+                          {(ocrFile.size / 1024).toFixed(1)} KB • Procesado con OCR
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {ocrFileUrl && (
+                        <a
+                          href={ocrFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Ver archivo</span>
+                        </a>
+                      )}
+                      <label className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleOcrProcessFile(file);
+                          }}
+                        />
+                        <ScanLine className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Cambiar factura</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estado de carga OCR */}
+                {ocrScanning && (
+                  <div className="p-8 rounded-2xl bg-emerald-50/50 border border-emerald-200 flex flex-col items-center justify-center text-center space-y-3 animate-pulse">
+                    <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">Analizando comprobante con OCR...</p>
+                      <p className="text-xs text-slate-500">Reconociendo descripciones, códigos de recambio y unidades.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tabla de Piezas Reconocidas */}
+                {!ocrScanning && ocrFile && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                          Piezas Detectadas ({ocrItems.length})
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                          Revisión editable
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddOcrRow}
+                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Añadir otra pieza</span>
+                      </button>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase text-slate-500">
+                            <th className="py-2.5 px-3">Descripción / Repuesto *</th>
+                            <th className="py-2.5 px-3">Código / Ref</th>
+                            <th className="py-2.5 px-3">Categoría</th>
+                            <th className="py-2.5 px-3 w-20 text-center">Cant.</th>
+                            <th className="py-2.5 px-3 w-24 text-right">PVP (€)</th>
+                            <th className="py-2.5 px-2 w-10 text-center"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {ocrItems.map((item) => (
+                            <tr key={item.id} className="hover:bg-slate-50/60">
+                              <td className="py-2 px-3">
+                                <input
+                                  type="text"
+                                  required
+                                  value={item.nombre}
+                                  onChange={(e) => handleUpdateOcrRow(item.id, "nombre", e.target.value)}
+                                  placeholder="Ej: Filtro de Aceite"
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
+                                />
+                              </td>
+                              <td className="py-2 px-3">
+                                <input
+                                  type="text"
+                                  value={item.codigo}
+                                  onChange={(e) => handleUpdateOcrRow(item.id, "codigo", e.target.value)}
+                                  placeholder="Ej: BOS-1422"
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-mono font-bold"
+                                />
+                              </td>
+                              <td className="py-2 px-3">
+                                <select
+                                  value={item.categoria}
+                                  onChange={(e) => handleUpdateOcrRow(item.id, "categoria", e.target.value)}
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-medium"
+                                >
+                                  <option value="Mecánica General">Mecánica General</option>
+                                  <option value="Frenos">Frenos</option>
+                                  <option value="Filtros">Filtros</option>
+                                  <option value="Fluidos">Fluidos</option>
+                                  <option value="Motor">Motor</option>
+                                  <option value="Suspensión">Suspensión</option>
+                                  <option value="Electricidad">Electricidad</option>
+                                </select>
+                              </td>
+                              <td className="py-2 px-3">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  required
+                                  value={item.cantidad}
+                                  onChange={(e) => handleUpdateOcrRow(item.id, "cantidad", parseInt(e.target.value, 10) || 1)}
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-bold text-center"
+                                />
+                              </td>
+                              <td className="py-2 px-3">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={item.precioVenta}
+                                  onChange={(e) => handleUpdateOcrRow(item.id, "precioVenta", parseFloat(e.target.value) || 0)}
+                                  className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500 font-mono font-bold text-right"
+                                />
+                              </td>
+                              <td className="py-2 px-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOcrRow(item.id)}
+                                  disabled={ocrItems.length === 1}
+                                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+                                  title="Quitar repuesto"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setOcrModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={ocrScanning || ocrSaving || !ocrFile || ocrItems.filter((i) => i.nombre.trim().length > 0).length === 0}
+                  onClick={handleSaveOcrBatch}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 text-white text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                >
+                  {ocrSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Ingresando al inventario...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>
+                        Cargar {ocrItems.filter((i) => i.nombre.trim().length > 0).length} Repuestos al Stock
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         </ModalPortal>
