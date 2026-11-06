@@ -457,23 +457,23 @@ export default function VehiculoHistorialClinicoPage() {
       </div>
 
       {/* Selector de Pestañas: Órdenes y Galería */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-1">
+      <div className="w-full grid grid-cols-2 gap-1.5 p-1.5 bg-slate-200/80 rounded-2xl border border-slate-300/70 shadow-inner">
         <button
           type="button"
           onClick={() => setActiveTab("ordenes")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === "ordenes"
-              ? "bg-sky-600 text-white shadow-md shadow-sky-600/25"
-              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+              ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
           }`}
         >
-          <History className="w-4 h-4" />
+          <History className={`w-4 h-4 transition-colors ${activeTab === "ordenes" ? "text-sky-400" : "text-slate-500"}`} />
           <span>Historial de Órdenes</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black transition-colors ${
               activeTab === "ordenes"
-                ? "bg-white/25 text-white"
-                : "bg-slate-100 text-slate-700"
+                ? "bg-sky-400/20 text-sky-300 border border-sky-400/30"
+                : "bg-slate-300 text-slate-700"
             }`}
           >
             {vehicle.workOrders?.length || 0}
@@ -483,19 +483,19 @@ export default function VehiculoHistorialClinicoPage() {
         <button
           type="button"
           onClick={() => setActiveTab("galeria")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeTab === "galeria"
-              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/25"
-              : "bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+              ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
           }`}
         >
-          <Camera className="w-4 h-4" />
+          <Camera className={`w-4 h-4 transition-colors ${activeTab === "galeria" ? "text-indigo-400" : "text-slate-500"}`} />
           <span>Galería</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black transition-colors ${
               activeTab === "galeria"
-                ? "bg-white/25 text-white"
-                : "bg-slate-100 text-slate-700"
+                ? "bg-indigo-400/20 text-indigo-300 border border-indigo-400/30"
+                : "bg-slate-300 text-slate-700"
             }`}
           >
             {allVehiclePhotos.length}
