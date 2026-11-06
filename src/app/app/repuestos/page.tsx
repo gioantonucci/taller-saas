@@ -63,7 +63,7 @@ export default function RepuestosPage() {
   const [inventoryStats, setInventoryStats] = useState<any>(null);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [inventorySearch, setInventorySearch] = useState("");
-  const [inventoryStatusFilter, setInventoryStatusFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState<"ALL" | "IN_STOCK" | "OUT_OF_STOCK">("ALL");
   const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState("TODAS");
 
   // Modales de Stock: Crear o Editar repuesto
@@ -77,7 +77,6 @@ export default function RepuestosPage() {
     codigo: "",
     categoria: "Mecánica General",
     stock: 1,
-    stockMinimo: 2,
     costo: 0,
     precioVenta: 0,
   });
@@ -383,9 +382,7 @@ export default function RepuestosPage() {
         return false;
       }
 
-      if (inventoryStatusFilter === "LOW_STOCK") {
-        if (!(it.stock > 0 && it.stock <= it.stockMinimo)) return false;
-      } else if (inventoryStatusFilter === "OUT_OF_STOCK") {
+      if (inventoryStatusFilter === "OUT_OF_STOCK") {
         if (it.stock > 0) return false;
       } else if (inventoryStatusFilter === "IN_STOCK") {
         if (it.stock <= 0) return false;
@@ -471,7 +468,6 @@ export default function RepuestosPage() {
       codigo: "",
       categoria: "Mecánica General",
       stock: 1,
-      stockMinimo: 2,
       costo: 0,
       precioVenta: 0,
     });
@@ -486,7 +482,6 @@ export default function RepuestosPage() {
       codigo: item.codigo || "",
       categoria: item.categoria || "Mecánica General",
       stock: item.stock || 0,
-      stockMinimo: item.stockMinimo || 2,
       costo: item.costo || 0,
       precioVenta: item.precioVenta || 0,
     });
@@ -515,7 +510,6 @@ export default function RepuestosPage() {
             codigo: stockForm.codigo.trim() || undefined,
             categoria: stockForm.categoria || "Mecánica General",
             cantidad: Number(stockForm.stock) || 0,
-            stockMinimo: Number(stockForm.stockMinimo) || 2,
             costo: Number(stockForm.costo) || 0,
             precioVenta: Number(stockForm.precioVenta) || 0,
           }),
@@ -540,7 +534,6 @@ export default function RepuestosPage() {
             codigo: stockForm.codigo.trim() || undefined,
             categoria: stockForm.categoria || "Mecánica General",
             stock: Number(stockForm.stock) || 0,
-            stockMinimo: Number(stockForm.stockMinimo) || 2,
             costo: Number(stockForm.costo) || 0,
             precioVenta: Number(stockForm.precioVenta) || 0,
           }),
@@ -577,7 +570,7 @@ export default function RepuestosPage() {
       {
         id: `item-${Date.now()}-0`,
         descripcion: `${item.nombre}${item.codigo ? ` (${item.codigo})` : ""}`,
-        cantidad: Math.max(1, (item.stockMinimo * 2) - item.stock),
+        cantidad: 1,
       },
     ]);
     setNewMotivo(`Reposición de stock: ${item.nombre}`);
@@ -1463,7 +1456,6 @@ export default function RepuestosPage() {
                 >
                   <option value="ALL">Todos los repuestos</option>
                   <option value="IN_STOCK">En Stock (&gt; 0)</option>
-                  <option value="LOW_STOCK">⚠️ Stock Bajo</option>
                   <option value="OUT_OF_STOCK">🚨 Agotados (0 u.)</option>
                 </select>
               </div>
@@ -1530,7 +1522,6 @@ export default function RepuestosPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {filteredInventoryItems.map((item) => {
-                      const isLowStock = item.stock > 0 && item.stock <= item.stockMinimo;
                       const isOutOfStock = item.stock <= 0;
 
                       return (
@@ -1549,11 +1540,6 @@ export default function RepuestosPage() {
                           {/* Nombre */}
                           <td className="py-3.5 px-4">
                             <span className="font-bold text-slate-900 block">{item.nombre}</span>
-                            {item.stockMinimo > 0 && (
-                              <span className="text-[10px] text-slate-400 block mt-0.5">
-                                Stock mín. alertado: {item.stockMinimo} u.
-                              </span>
-                            )}
                           </td>
 
                           {/* Categoría */}
@@ -1570,11 +1556,6 @@ export default function RepuestosPage() {
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
                                 <Ban className="w-3 h-3 text-rose-600" />
                                 <span>Agotado (0)</span>
-                              </span>
-                            ) : isLowStock ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
-                                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                                <span>Bajo ({item.stock} u.)</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -1624,7 +1605,7 @@ export default function RepuestosPage() {
                           {/* Acciones */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              {(isLowStock || isOutOfStock) && !isMechanic && (
+                              {isOutOfStock && !isMechanic && (
                                 <button
                                   type="button"
                                   onClick={() => handleOrderFromStock(item)}
@@ -2853,7 +2834,7 @@ export default function RepuestosPage() {
                   <p className="text-xs text-slate-300">
                     {stockModalMode === "CREATE"
                       ? "Registra una nueva pieza en el catálogo e inventario físico del taller."
-                      : "Modifica existencias, umbral de alerta y precios del repuesto."}
+                      : "Modifica existencias y precios del repuesto."}
                   </p>
                 </div>
 
@@ -2910,34 +2891,18 @@ export default function RepuestosPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Cantidad en Stock:
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      required
-                      value={stockForm.stock}
-                      onChange={(e) => setStockForm({ ...stockForm, stock: parseInt(e.target.value, 10) || 0 })}
-                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      Stock Mínimo (Alerta):
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      required
-                      value={stockForm.stockMinimo}
-                      onChange={(e) => setStockForm({ ...stockForm, stockMinimo: parseInt(e.target.value, 10) || 1 })}
-                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-bold"
-                    />
-                  </div>
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Cantidad en Stock:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={stockForm.stock}
+                    onChange={(e) => setStockForm({ ...stockForm, stock: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-bold"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
