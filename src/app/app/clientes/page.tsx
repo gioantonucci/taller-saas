@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -25,6 +26,7 @@ import ModalPortal from "@/components/ModalPortal";
 import { hasValidAddress } from "@/lib/search-utils";
 
 export default function ClientesPage() {
+  const router = useRouter();
   const { alert, confirm } = useAppDialog();
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,21 +266,22 @@ export default function ClientesPage() {
             {/* VISTA MOBILE: Tarjetas Responsivas */}
             <div className="md:hidden divide-y divide-slate-100">
               {clients.map((c) => (
-                <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+                <div
+                  key={c.id}
+                  onClick={() => router.push(`/app/clientes/${c.id}`)}
+                  className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors cursor-pointer group"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <Link
-                        href={`/app/clientes/${c.id}`}
-                        className="font-bold text-slate-900 hover:text-sky-600 transition-colors text-sm block"
-                      >
+                      <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors text-sm block">
                         {c.nombre} {c.apellido}
-                      </Link>
+                      </span>
                       <span className="inline-block mt-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
                         DNI {c.dni}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => openEditModal(c)}
                         className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
@@ -295,7 +298,7 @@ export default function ClientesPage() {
                       </button>
                       <Link
                         href={`/app/clientes/${c.id}`}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600 text-slate-700 hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-sky-600 text-slate-700 group-hover:text-white transition-colors"
                         title="Ver Ficha Completa"
                       >
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -308,6 +311,7 @@ export default function ClientesPage() {
                     {c.telefono ? (
                       <a
                         href={`tel:${c.telefono}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 text-slate-700 font-medium hover:text-sky-600"
                       >
                         <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -320,6 +324,7 @@ export default function ClientesPage() {
                     {c.email && (
                       <a
                         href={`mailto:${c.email}`}
+                        onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 text-slate-500 text-[11px] hover:text-sky-600 truncate"
                       >
                         <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -349,6 +354,7 @@ export default function ClientesPage() {
                         <Link
                           key={v.id}
                           href={`/app/vehiculos/${v.patente}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
                         >
                           {v.patente}
@@ -377,14 +383,15 @@ export default function ClientesPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {clients.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr
+                      key={c.id}
+                      onClick={() => router.push(`/app/clientes/${c.id}`)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    >
                       <td className="p-3.5">
-                        <Link
-                          href={`/app/clientes/${c.id}`}
-                          className="font-bold text-slate-900 hover:text-sky-600 transition-colors block text-sm"
-                        >
+                        <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors block text-sm">
                           {c.nombre} {c.apellido}
-                        </Link>
+                        </span>
                         <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200">
                           DNI {c.dni}
                         </span>
@@ -428,6 +435,7 @@ export default function ClientesPage() {
                               <Link
                                 key={v.id}
                                 href={`/app/vehiculos/${v.patente}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
                               >
                                 {v.patente}
@@ -442,7 +450,7 @@ export default function ClientesPage() {
                         </div>
                       </td>
 
-                      <td className="p-3.5 text-right">
+                      <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => openEditModal(c)}
@@ -460,7 +468,7 @@ export default function ClientesPage() {
                           </button>
                           <Link
                             href={`/app/clientes/${c.id}`}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-sky-600 text-slate-700 hover:text-white transition-colors ml-1"
+                            className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-sky-600 text-slate-700 group-hover:text-white transition-colors ml-1"
                             title="Ver Ficha Completa"
                           >
                             <ChevronRight className="w-3.5 h-3.5" />
