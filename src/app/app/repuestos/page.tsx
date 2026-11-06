@@ -1007,11 +1007,6 @@ export default function RepuestosPage() {
         >
           <Boxes className={`w-4 h-4 ${activeMainTab === "stock" ? "text-emerald-600" : "text-slate-400"}`} />
           <span>Stock Cargado / Inventario</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            activeMainTab === "stock" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"
-          }`}>
-            {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + (it.stock || 0), 0)} u.
-          </span>
         </button>
       </div>
 
