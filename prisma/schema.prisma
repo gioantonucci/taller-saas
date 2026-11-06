@@ -214,8 +214,8 @@ model Transaction {
 
 model SparePartRequest {
   id              String         @id @default(cuid())
-  workOrderId     String
-  workOrder       WorkOrder      @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  workOrderId     String?
+  workOrder       WorkOrder?     @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   mechanicId      String?
   mechanic        User?          @relation("MechanicPartRequests", fields: [mechanicId], references: [id], onDelete: SetNull)
   adminId         String?

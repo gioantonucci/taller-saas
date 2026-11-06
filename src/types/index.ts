@@ -167,7 +167,7 @@ export type SparePartStatus =
 
 export interface SparePartRequest {
   id: string;
-  workOrderId: string;
+  workOrderId?: string | null;
   workOrder?: any;
   mechanicId?: string | null;
   mechanic?: {

@@ -21,11 +21,15 @@ import {
   Loader2,
   ChevronRight,
   Ban,
+  Car,
+  PauseCircle,
+  Check,
 } from "lucide-react";
 import { SparePartRequest, SparePartItem } from "@/types";
 import ModalPortal from "@/components/ModalPortal";
 import { useAppDialog } from "@/components/AppDialog";
 import { normalizeRole } from "@/lib/roles";
+import { getStatusInfo as getOrderStatusInfo } from "@/lib/order-status";
 import {
   SPARE_PARTS_CONFIG,
   SPARE_PART_STATUS_MAP,
@@ -88,6 +92,26 @@ export default function RepuestosPage() {
   // Modal de foto grande (lightbox)
   const [activePhotoUrl, setActivePhotoUrl] = useState<string | null>(null);
 
+  // Estados para Modal de Nuevo Encargue (Recepción y Administrador)
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  const [orderAnchorMode, setOrderAnchorMode] = useState<"ANCHORED" | "GENERAL">("ANCHORED");
+  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string>("");
+  const [pausarVehiculo, setPausarVehiculo] = useState<boolean>(true);
+  const [orderSearchText, setOrderSearchText] = useState<string>("");
+
+  const [encargoItems, setEncargoItems] = useState<{ id: string; descripcion: string; cantidad: number }[]>([
+    { id: "item-0", descripcion: "", cantidad: 1 },
+  ]);
+  const [newProveedor, setNewProveedor] = useState("");
+  const [newFechaEstimada, setNewFechaEstimada] = useState("");
+  const [newMotivo, setNewMotivo] = useState("");
+  const [newObservaciones, setNewObservaciones] = useState("");
+  const [marcarComoEncargado, setMarcarComoEncargado] = useState(false);
+
   // Obtener usuario actual
   useEffect(() => {
     fetch("/api/auth/me")
@@ -149,6 +173,147 @@ export default function RepuestosPage() {
   const isMechanic = userRole === "MECHANIC";
   const isReception = userRole === "RECEPTION";
   const isAdmin = userRole === "ADMIN";
+
+  // Gestión del Formulario de Nuevo Encargue
+  const resetCreateForm = () => {
+    setOrderAnchorMode("ANCHORED");
+    setSelectedWorkOrderId("");
+    setPausarVehiculo(true);
+    setOrderSearchText("");
+    setEncargoItems([{ id: `item-${Date.now()}-0`, descripcion: "", cantidad: 1 }]);
+    setNewProveedor("");
+    setNewFechaEstimada("");
+    setNewMotivo("");
+    setNewObservaciones("");
+    setMarcarComoEncargado(false);
+  };
+
+  const handleAddEncargoItem = () => {
+    setEncargoItems((prev) => [
+      ...prev,
+      { id: `item-${Date.now()}-${prev.length}`, descripcion: "", cantidad: 1 },
+    ]);
+  };
+
+  const handleRemoveEncargoItem = (idx: number) => {
+    setEncargoItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleUpdateEncargoItem = (idx: number, field: "descripcion" | "cantidad", val: any) => {
+    setEncargoItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, [field]: val } : it))
+    );
+  };
+
+  useEffect(() => {
+    if (createModalOpen) {
+      setLoadingOrders(true);
+      fetch("/api/work-orders")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.orders) {
+            const active = data.orders.filter(
+              (o: any) =>
+                o.estado !== "CANCELADO" &&
+                o.estado !== "ENTREGADO" &&
+                o.estado !== "ARCHIVADO"
+            );
+            setActiveOrders(active);
+          }
+        })
+        .catch((err) => console.error("Error al cargar órdenes de trabajo:", err))
+        .finally(() => setLoadingOrders(false));
+    }
+  }, [createModalOpen]);
+
+  const filteredOrdersForSelector = useMemo(() => {
+    if (!orderSearchText.trim()) return activeOrders;
+    const q = orderSearchText.toLowerCase().trim();
+    return activeOrders.filter((o) => {
+      const nro = String(o.numeroOrden || "");
+      const pat = (o.vehicle?.patente || "").toLowerCase();
+      const cli = `${o.vehicle?.client?.nombre || ""} ${o.vehicle?.client?.apellido || ""}`.toLowerCase();
+      const veh = `${o.vehicle?.marca || ""} ${o.vehicle?.modelo || ""}`.toLowerCase();
+      return nro.includes(q) || pat.includes(q) || cli.includes(q) || veh.includes(q);
+    });
+  }, [activeOrders, orderSearchText]);
+
+  const selectedOrder = useMemo(() => {
+    if (!selectedWorkOrderId) return null;
+    return activeOrders.find((o) => o.id === selectedWorkOrderId) || null;
+  }, [activeOrders, selectedWorkOrderId]);
+
+  const handleCreateEncargo = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const validItems = encargoItems
+      .filter((it) => it.descripcion && it.descripcion.trim().length > 0)
+      .map((it) => ({
+        id: it.id,
+        descripcion: it.descripcion.trim(),
+        cantidad: Math.max(1, Number(it.cantidad) || 1),
+      }));
+
+    if (validItems.length === 0) {
+      await alert({
+        title: "Repuestos requeridos",
+        message: "Por favor agrega al menos un repuesto a encargar con su descripción.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    if (orderAnchorMode === "ANCHORED" && !selectedWorkOrderId) {
+      await alert({
+        title: "Orden de trabajo requerida",
+        message: "Seleccionaste anclar a una orden de trabajo. Por favor elige una orden o selecciona 'Pedido General / Stock de Taller'.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const res = await fetch("/api/spare-parts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workOrderId: orderAnchorMode === "ANCHORED" ? selectedWorkOrderId : null,
+          itemsAEncargar: validItems,
+          itemsSolicitados: validItems,
+          fallaReparar: newMotivo.trim() || undefined,
+          proveedor: newProveedor.trim() || undefined,
+          fechaEstimadaLlegada: newFechaEstimada || undefined,
+          observacionesMecanico: newObservaciones.trim() || undefined,
+          pausarVehiculo: orderAnchorMode === "ANCHORED" ? pausarVehiculo : false,
+          marcarComoEncargado: marcarComoEncargado || Boolean(newProveedor.trim()),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error al crear el encargue de repuestos");
+      }
+
+      await alert({
+        title: "¡Encargue Creado!",
+        message: data.message || "El encargo de repuestos se creó con éxito.",
+        variant: "success",
+      });
+
+      setCreateModalOpen(false);
+      resetCreateForm();
+      fetchRequests(false);
+    } catch (err: any) {
+      await alert({
+        title: "Error al crear encargue",
+        message: err.message || "Ocurrió un error inesperado al guardar el encargo.",
+        variant: "danger",
+      });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   // Abrir detalle del pedido de forma instantánea (0ms de retraso)
   const openDetail = (req: SparePartRequest) => {
@@ -497,6 +662,20 @@ export default function RepuestosPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {!isMechanic && (
+            <button
+              type="button"
+              onClick={() => {
+                resetCreateForm();
+                setCreateModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Encargue</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => fetchRequests(false)}
@@ -710,12 +889,25 @@ export default function RepuestosPage() {
             </div>
           </div>
         ) : filteredRequests.length === 0 ? (
-          <div className="p-12 text-center space-y-2">
+          <div className="p-12 text-center space-y-3">
             <Package className="w-10 h-10 text-slate-300 mx-auto" />
             <p className="text-sm font-bold text-slate-700">No se encontraron pedidos de repuestos</p>
             <p className="text-xs text-slate-400">
               Prueba cambiando los filtros seleccionados o la búsqueda.
             </p>
+            {!isMechanic && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetCreateForm();
+                  setCreateModalOpen(true);
+                }}
+                className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Crear Nuevo Encargue</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -752,15 +944,23 @@ export default function RepuestosPage() {
 
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                          Orden #{req.workOrder?.numeroOrden}
-                        </span>
-                        <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
-                          {req.workOrder?.vehicle?.patente || "SIN PATENTE"}
-                        </span>
-                        <span className="text-xs font-bold text-slate-700 truncate">
-                          {req.workOrder?.vehicle?.marca} {req.workOrder?.vehicle?.modelo}
-                        </span>
+                        {req.workOrder ? (
+                          <>
+                            <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                              Orden #{req.workOrder.numeroOrden}
+                            </span>
+                            <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded-md">
+                              {req.workOrder.vehicle?.patente || "SIN PATENTE"}
+                            </span>
+                            <span className="text-xs font-bold text-slate-700 truncate">
+                              {req.workOrder.vehicle?.marca} {req.workOrder.vehicle?.modelo}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-md border border-slate-200">
+                            Encargue General / Stock Taller
+                          </span>
+                        )}
 
                         {isReception && isEscalated && (
                           <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider flex items-center gap-1 shadow-xs">
@@ -771,28 +971,38 @@ export default function RepuestosPage() {
                       </div>
 
                       <p className="text-xs text-slate-800 font-semibold line-clamp-1">
-                        <span className="text-slate-500 font-normal">Falla:</span> {req.fallaReparar}
+                        <span className="text-slate-500 font-normal">Falla / Motivo:</span> {req.fallaReparar}
                       </p>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
-                        {!isMechanic && (
+                        {!isMechanic && req.mechanic && (
                           <>
                             <span className="flex items-center gap-1">
                               <User className="w-3 h-3 text-slate-400" />
                               Mecánico:{" "}
                               <strong className="text-slate-700">
-                                {req.mechanic?.nombre} {req.mechanic?.apellido || ""}
+                                {req.mechanic.nombre} {req.mechanic.apellido || ""}
                               </strong>
                             </span>
                             <span>•</span>
                           </>
                         )}
-                        <span>
-                          Cliente: {req.workOrder?.vehicle?.client?.nombre}{" "}
-                          {req.workOrder?.vehicle?.client?.apellido || ""}
-                        </span>
-                        <span>•</span>
+                        {req.workOrder?.vehicle?.client && (
+                          <>
+                            <span>
+                              Cliente: {req.workOrder.vehicle.client.nombre}{" "}
+                              {req.workOrder.vehicle.client.apellido || ""}
+                            </span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span>{itemsCount} repuesto(s)</span>
+                        {req.proveedor && (
+                          <>
+                            <span>•</span>
+                            <span className="text-slate-600">Proveedor: <strong className="text-slate-800">{req.proveedor}</strong></span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -848,6 +1058,430 @@ export default function RepuestosPage() {
       </div>
 
       {/* ========================================================================= */}
+      {/* MODAL CREAR ENCARGUE DE REPUESTOS (RECEPCIÓN Y ADMINISTRADOR)            */}
+      {/* ========================================================================= */}
+      {createModalOpen && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto animate-in fade-in">
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs font-black uppercase tracking-wider border border-amber-500/30">
+                      Recepción / Administración
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <Package className="w-5 h-5 text-amber-400" />
+                    <span>Nuevo Encargue de Repuestos</span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Crea un encargo de piezas para un vehículo en taller o para stock general del taller.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateModalOpen(false);
+                    resetCreateForm();
+                  }}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleCreateEncargo} className="p-5 sm:p-6 space-y-6 max-h-[78vh] overflow-y-auto">
+                
+                {/* 1. SECCIÓN DE ANCLAJE A ORDEN DE TRABAJO */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                        1. Destino del Encargo
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        ¿Deseas anclar este pedido a una orden de trabajo existente?
+                      </h4>
+                    </div>
+
+                    {/* Selector de Modo */}
+                    <div className="flex items-center bg-slate-200/80 p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setOrderAnchorMode("ANCHORED")}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          orderAnchorMode === "ANCHORED"
+                            ? "bg-white text-slate-900 shadow-xs"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <Car className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Anclar a Orden</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderAnchorMode("GENERAL");
+                          setSelectedWorkOrderId("");
+                          setPausarVehiculo(false);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          orderAnchorMode === "GENERAL"
+                            ? "bg-white text-slate-900 shadow-xs"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        <Package className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Stock General Taller</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {orderAnchorMode === "ANCHORED" ? (
+                    <div className="space-y-3 pt-1">
+                      {!selectedOrder ? (
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-700 block">
+                            Buscar y seleccionar orden de trabajo activa:
+                          </label>
+                          <div className="relative">
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              value={orderSearchText}
+                              onChange={(e) => setOrderSearchText(e.target.value)}
+                              placeholder="Escribe patente, orden #, cliente o modelo..."
+                              className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                            />
+                          </div>
+
+                          {loadingOrders ? (
+                            <div className="p-4 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                              <span>Cargando órdenes del taller...</span>
+                            </div>
+                          ) : filteredOrdersForSelector.length === 0 ? (
+                            <div className="p-4 rounded-xl bg-white border border-slate-200 text-center text-xs text-slate-500">
+                              No se encontraron órdenes activas que coincidan con la búsqueda.
+                            </div>
+                          ) : (
+                            <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-2xs">
+                              {filteredOrdersForSelector.slice(0, 8).map((order) => {
+                                const stInfo = getOrderStatusInfo(order.estado);
+                                return (
+                                  <button
+                                    key={order.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedWorkOrderId(order.id);
+                                      if (order.estado !== "EN_ESPERA_REPUESTOS") {
+                                        setPausarVehiculo(true);
+                                      }
+                                    }}
+                                    className="w-full p-2.5 text-left hover:bg-amber-50/60 flex items-center justify-between gap-3 transition-all cursor-pointer"
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shrink-0">
+                                        Orden #{order.numeroOrden}
+                                      </span>
+                                      <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-[11px] font-black rounded shrink-0">
+                                        {order.vehicle?.patente || "SIN PATENTE"}
+                                      </span>
+                                      <span className="text-xs font-bold text-slate-800 truncate">
+                                        {order.vehicle?.marca} {order.vehicle?.modelo}
+                                      </span>
+                                      <span className="text-xs text-slate-500 truncate hidden sm:inline">
+                                        • {order.vehicle?.client?.nombre} {order.vehicle?.client?.apellido || ""}
+                                      </span>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${stInfo.badgeClass}`}>
+                                      {stInfo.shortLabel}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* Orden Seleccionada */}
+                          <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-300 flex items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono font-black text-xs text-slate-900 bg-white px-2 py-0.5 rounded-md border border-amber-200">
+                                  Orden #{selectedOrder.numeroOrden}
+                                </span>
+                                <span className="px-2 py-0.5 bg-slate-900 text-amber-300 font-mono text-xs font-black rounded-md">
+                                  {selectedOrder.vehicle?.patente}
+                                </span>
+                                <span className="text-xs font-bold text-slate-900">
+                                  {selectedOrder.vehicle?.marca} {selectedOrder.vehicle?.modelo}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600">
+                                Cliente: <strong className="text-slate-800">{selectedOrder.vehicle?.client?.nombre} {selectedOrder.vehicle?.client?.apellido || ""}</strong> • Tel: {selectedOrder.vehicle?.client?.telefono || "S/D"}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedWorkOrderId("");
+                                setPausarVehiculo(false);
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all cursor-pointer shrink-0"
+                            >
+                              Cambiar orden
+                            </button>
+                          </div>
+
+                          {/* CHECKBOX / CONTROL PARA PAUSAR EL VEHÍCULO */}
+                          <div className={`p-4 rounded-2xl border transition-all ${
+                            pausarVehiculo
+                              ? "bg-amber-50 border-amber-300 ring-2 ring-amber-500/20 shadow-xs"
+                              : "bg-white border-slate-200"
+                          }`}>
+                            <label className="flex items-start gap-3 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={pausarVehiculo}
+                                onChange={(e) => setPausarVehiculo(e.target.checked)}
+                                className="w-5 h-5 rounded-md text-amber-600 border-slate-300 focus:ring-amber-500 mt-0.5 cursor-pointer"
+                              />
+                              <div className="space-y-0.5">
+                                <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                                  <PauseCircle className="w-4 h-4 text-amber-600" />
+                                  <span>Pausar vehículo inmediatamente por espera de repuestos</span>
+                                </span>
+                                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                                  La orden pasará al estado <strong>"En Pausa" (Esperando Repuestos)</strong>. Cuando los repuestos sean recibidos en recepción, la orden se reanudará automáticamente a "En Reparación".
+                                </p>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 flex items-center gap-2 font-medium">
+                      <Package className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Este encargo se registrará como repuestos de stock general del taller, sin pausar ningún vehículo.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. SECCIÓN: REPUESTOS A ENCARGAR (LISTA DINÁMICA) */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                        2. Repuestos Requeridos
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        Lista de piezas o materiales a encargar <span className="text-rose-500">*</span>
+                      </h4>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddEncargoItem}
+                      className="px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Agregar Repuesto</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {encargoItems.map((item, index) => (
+                      <div key={item.id} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <span className="w-6 text-center text-xs font-mono font-bold text-slate-400">
+                          #{index + 1}
+                        </span>
+
+                        <input
+                          type="text"
+                          required
+                          value={item.descripcion}
+                          onChange={(e) => handleUpdateEncargoItem(index, "descripcion", e.target.value)}
+                          placeholder="Descripción del repuesto (ej: Kit distribución, Pastillas delanteras, Filtro de aceite...)"
+                          className="flex-1 text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
+                        />
+
+                        <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg px-2 py-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Cant:</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="999"
+                            required
+                            value={item.cantidad}
+                            onChange={(e) => handleUpdateEncargoItem(index, "cantidad", e.target.value)}
+                            className="w-12 text-xs font-bold text-center border-none bg-transparent focus:outline-hidden"
+                          />
+                        </div>
+
+                        {encargoItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEncargoItem(index)}
+                            className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all cursor-pointer"
+                            title="Eliminar ítem"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. SECCIÓN: PROVEEDOR Y SEGUIMIENTO (OPCIONAL) */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                      3. Datos de Compra y Proveedor (Opcional)
+                    </span>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      ¿Ya tienes asignado el proveedor o la fecha de entrega?
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Proveedor / Casa de Repuestos:
+                      </label>
+                      <input
+                        type="text"
+                        value={newProveedor}
+                        onChange={(e) => {
+                          setNewProveedor(e.target.value);
+                          if (e.target.value.trim() && !marcarComoEncargado) {
+                            setMarcarComoEncargado(true);
+                          }
+                        }}
+                        placeholder="Ej: Bosch, Valeo, Recambios Valencia, etc."
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1">
+                        Fecha estimada de entrega:
+                      </label>
+                      <input
+                        type="date"
+                        value={newFechaEstimada}
+                        onChange={(e) => setNewFechaEstimada(e.target.value)}
+                        className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={marcarComoEncargado}
+                        onChange={(e) => setMarcarComoEncargado(e.target.checked)}
+                        className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <div className="text-xs">
+                        <strong className="text-slate-800">
+                          Marcar como ya encargado al proveedor (En tránsito / esperando llegada)
+                        </strong>
+                        <span className="text-slate-500 block text-[11px]">
+                          {marcarComoEncargado
+                            ? "El pedido quedará registrado en estado 'Encargado / En tránsito'."
+                            : "El pedido quedará en estado 'Para Encargar' para que el equipo lo tramite."}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 4. SECCIÓN: MOTIVO Y OBSERVACIONES */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 block">
+                      4. Diagnóstico o Motivo del Encargue
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Falla o Motivo de la solicitud:
+                    </label>
+                    <input
+                      type="text"
+                      value={newMotivo}
+                      onChange={(e) => setNewMotivo(e.target.value)}
+                      placeholder="Ej: Cambio de pastillas por desgaste excesivo / Service mayor"
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Observaciones o Notas internas:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newObservaciones}
+                      onChange={(e) => setNewObservaciones(e.target.value)}
+                      placeholder="Instrucciones para recepción, condiciones de pago o detalles del proveedor..."
+                      className="w-full text-xs p-3 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-medium resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* BOTONES DE ACCIÓN */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                  <button
+                    type="button"
+                    disabled={createLoading}
+                    onClick={() => {
+                      setCreateModalOpen(false);
+                      resetCreateForm();
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={createLoading}
+                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    {createLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Guardando encargue...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Confirmar y Crear Encargue</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL DETALLE COMPLETO DEL PEDIDO                                         */}
       {/* ========================================================================= */}
       {detailModalOpen && selectedRequest && (
@@ -862,29 +1496,40 @@ export default function RepuestosPage() {
                   <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-amber-300 font-mono text-xs font-black uppercase tracking-wider">
                     Pedido #{selectedRequest.id.slice(-4)}
                   </span>
-                  <span className="text-slate-300 text-xs font-medium">
-                    Orden #{selectedRequest.workOrder?.numeroOrden}
-                  </span>
+                  {selectedRequest.workOrder && (
+                    <span className="text-slate-300 text-xs font-medium">
+                      Orden #{selectedRequest.workOrder.numeroOrden}
+                    </span>
+                  )}
                   {isReception && isSparePartEscalated(selectedRequest) && (
                     <span className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider shadow-xs">
                       🚨 Demorado (&gt; {SPARE_PARTS_CONFIG.ESCALAMIENTO_HORAS}h)
                     </span>
                   )}
                 </div>
-                <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                  <span>
-                    {selectedRequest.workOrder?.vehicle?.marca}{" "}
-                    {selectedRequest.workOrder?.vehicle?.modelo}
-                  </span>
-                  <span className="px-2 py-0.5 bg-slate-800 text-amber-300 font-mono text-xs rounded border border-white/20">
-                    {selectedRequest.workOrder?.vehicle?.patente}
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-300">
-                  Cliente: {selectedRequest.workOrder?.vehicle?.client?.nombre}{" "}
-                  {selectedRequest.workOrder?.vehicle?.client?.apellido || ""} • Tel:{" "}
-                  {selectedRequest.workOrder?.vehicle?.client?.telefono || "S/D"}
-                </p>
+                {selectedRequest.workOrder ? (
+                  <>
+                    <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <span>
+                        {selectedRequest.workOrder.vehicle?.marca}{" "}
+                        {selectedRequest.workOrder.vehicle?.modelo}
+                      </span>
+                      <span className="px-2 py-0.5 bg-slate-800 text-amber-300 font-mono text-xs rounded border border-white/20">
+                        {selectedRequest.workOrder.vehicle?.patente}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      Cliente: {selectedRequest.workOrder.vehicle?.client?.nombre}{" "}
+                      {selectedRequest.workOrder.vehicle?.client?.apellido || ""} • Tel:{" "}
+                      {selectedRequest.workOrder.vehicle?.client?.telefono || "S/D"}
+                    </p>
+                  </>
+                ) : (
+                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <Package className="w-5 h-5 text-amber-400" />
+                    <span>Encargue General / Stock de Taller</span>
+                  </h3>
+                )}
               </div>
 
               <button

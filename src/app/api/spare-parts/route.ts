@@ -45,16 +45,22 @@ export async function GET(request: NextRequest) {
       where.estado = estado;
     }
 
-    // 4. Búsqueda por patente o número de orden
+    // 4. Búsqueda por patente, orden, repuesto o proveedor
     if (search) {
       const isNum = !isNaN(Number(search));
-      where.workOrder = {
-        ...(where.workOrder || {}),
-        OR: [
-          { vehicle: { patente: { contains: search, mode: "insensitive" } } },
-          ...(isNum ? [{ numeroOrden: Number(search) }] : []),
-        ],
-      };
+      where.OR = [
+        { fallaReparar: { contains: search, mode: "insensitive" } },
+        { proveedor: { contains: search, mode: "insensitive" } },
+        { repuestosLista: { contains: search, mode: "insensitive" } },
+        {
+          workOrder: {
+            OR: [
+              { vehicle: { patente: { contains: search, mode: "insensitive" } } },
+              ...(isNum ? [{ numeroOrden: Number(search) }] : []),
+            ],
+          },
+        },
+      ];
     }
 
     const requests = await prisma.sparePartRequest.findMany({
@@ -135,12 +141,13 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/spare-parts
- * Crea un nuevo pedido de repuestos.
- * Restricciones:
- * - Rol: Solo MECANICO (sobre su orden asignada).
- * - Orden: Debe estar en estado "En reparación" (EN_REPARACION / EN_CURSO).
- * - Datos obligatorios: "qué se va a reparar" (fallaReparar) y al menos 1 ítem con descripción y cantidad.
- * - Efecto colateral: La orden pasa automáticamente a "En espera" (EN_ESPERA_REPUESTOS) con motivo "repuesto".
+ * Crea un nuevo pedido / encargue de repuestos.
+ * Restricciones y comportamiento:
+ * - Rol: MECANICO (sobre su orden asignada), RECEPCION o ADMIN.
+ * - Recepción y Admin pueden anclar el encargo a una orden creada y opcionalmente pausar el vehículo
+ *   (o crearlo sin anclar como pedido general de taller).
+ * - Mecánico: Debe asociar a su orden en reparación; la orden pasa a 'EN_ESPERA_REPUESTOS'.
+ * - Recepción / Admin: Puede establecer proveedor, fecha estimada, y marcar directamente como 'ENCARGO_REALIZADO' o 'PARA_ENCARGAR'.
  * - Auditoría: Registro inalterable en AuditLog.
  */
 export async function POST(request: NextRequest) {
@@ -151,9 +158,9 @@ export async function POST(request: NextRequest) {
     }
 
     const role = normalizeRole(session.role);
-    if (role !== "MECHANIC" && role !== "ADMIN") {
+    if (role !== "MECHANIC" && role !== "ADMIN" && role !== "RECEPTION") {
       return NextResponse.json(
-        { error: "Permiso denegado: solo el mecánico asignado puede crear un pedido de repuestos" },
+        { error: "Permiso denegado: solo personal autorizado puede gestionar pedidos de repuestos" },
         { status: 403 }
       );
     }
@@ -162,80 +169,96 @@ export async function POST(request: NextRequest) {
     const {
       workOrderId,
       fallaReparar,
+      motivo,
+      descripcion,
       itemsSolicitados,
       repuestosLista,
+      itemsAEncargar,
       observacionesMecanico,
+      proveedor,
+      fechaEstimadaLlegada,
+      pausarVehiculo,
+      marcarComoEncargado,
       fotos,
       fotoUrl,
     } = body;
 
-    if (!workOrderId) {
-      return NextResponse.json(
-        { error: "El ID de la orden de trabajo es obligatorio" },
-        { status: 400 }
-      );
-    }
-
-    // 1. Validar que la orden exista y esté en reparación
-    const workOrder = await prisma.workOrder.findUnique({
-      where: { id: workOrderId },
-      include: {
-        vehicle: true,
-        mechanic: true,
-      },
-    });
-
-    if (!workOrder) {
-      return NextResponse.json(
-        { error: "Orden de trabajo no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    // Validar asignación del mecánico si el usuario es mecánico
-    if (role === "MECHANIC" && workOrder.mechanicId && workOrder.mechanicId !== session.id) {
-      return NextResponse.json(
-        { error: "Solo el mecánico asignado a esta orden puede pedir repuestos" },
-        { status: 403 }
-      );
-    }
-
-    // Validar estado de la orden (debe estar en reparación)
-    const isEnReparacion =
-      workOrder.estado === "EN_REPARACION" ||
-      workOrder.estado === "EN_CURSO" ||
-      workOrder.estado === "PERITADO";
-
-    if (!isEnReparacion) {
-      return NextResponse.json(
-        {
-          error: `Un pedido de repuestos solo se puede crear sobre una orden en estado 'En reparación'. El estado actual de la orden es '${workOrder.estado}'.`,
+    let targetWorkOrder: any = null;
+    if (workOrderId) {
+      targetWorkOrder = await prisma.workOrder.findUnique({
+        where: { id: workOrderId },
+        include: {
+          vehicle: {
+            include: {
+              client: true,
+            },
+          },
+          mechanic: true,
         },
-        { status: 400 }
-      );
+      });
+
+      if (!targetWorkOrder) {
+        return NextResponse.json(
+          { error: "Orden de trabajo no encontrada" },
+          { status: 404 }
+        );
+      }
+
+      // Validaciones específicas para mecánicos
+      if (role === "MECHANIC") {
+        if (targetWorkOrder.mechanicId && targetWorkOrder.mechanicId !== session.id) {
+          return NextResponse.json(
+            { error: "Solo el mecánico asignado a esta orden puede pedir repuestos" },
+            { status: 403 }
+          );
+        }
+
+        const isEnReparacion =
+          targetWorkOrder.estado === "EN_REPARACION" ||
+          targetWorkOrder.estado === "EN_CURSO" ||
+          targetWorkOrder.estado === "PERITADO";
+
+        if (!isEnReparacion) {
+          return NextResponse.json(
+            {
+              error: `Un pedido de repuestos solo se puede crear sobre una orden en estado 'En reparación'. El estado actual de la orden es '${targetWorkOrder.estado}'.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } else {
+      if (role === "MECHANIC") {
+        return NextResponse.json(
+          { error: "El mecánico debe asociar el pedido a una orden de trabajo" },
+          { status: 400 }
+        );
+      }
     }
 
-    // 2. Validar qué se va a reparar (obligatorio)
-    if (!fallaReparar || typeof fallaReparar !== "string" || !fallaReparar.trim()) {
-      return NextResponse.json(
-        { error: "El campo '¿Qué se va a reparar con los repuestos?' es obligatorio" },
-        { status: 400 }
-      );
-    }
+    // Determinar motivo / falla
+    const motivoFinal = (
+      fallaReparar ||
+      motivo ||
+      descripcion ||
+      (targetWorkOrder
+        ? `Repuestos para Orden #${targetWorkOrder.numeroOrden} (${targetWorkOrder.vehicle?.patente || "S/P"})`
+        : "Encargue de repuestos / Stock de taller")
+    ).trim();
 
-    // 3. Validar lista de ítems solicitados (al menos 1 ítem con descripción y cantidad > 0)
+    // Validar lista de ítems (al menos 1 ítem con descripción y cantidad)
+    const rawItems = itemsAEncargar || itemsSolicitados || repuestosLista;
     let parsedItems: any[] = [];
-    if (Array.isArray(itemsSolicitados) && itemsSolicitados.length > 0) {
-      parsedItems = itemsSolicitados
+    if (Array.isArray(rawItems) && rawItems.length > 0) {
+      parsedItems = rawItems
         .filter((it: any) => it && (it.descripcion || it.nombre))
         .map((it: any, idx: number) => ({
           id: it.id || `item-${Date.now()}-${idx}`,
           descripcion: (it.descripcion || it.nombre || "").trim(),
           cantidad: Math.max(1, Number(it.cantidad) || 1),
         }));
-    } else if (typeof repuestosLista === "string" && repuestosLista.trim()) {
-      // Soporte retrocompatible si se envía un texto libre con saltos de línea
-      parsedItems = repuestosLista
+    } else if (typeof rawItems === "string" && rawItems.trim()) {
+      parsedItems = rawItems
         .split("\n")
         .map((line: string) => line.trim())
         .filter(Boolean)
@@ -248,17 +271,16 @@ export async function POST(request: NextRequest) {
 
     if (parsedItems.length === 0) {
       return NextResponse.json(
-        { error: "Debe ingresar al menos un repuesto solicitado con su descripción y cantidad" },
+        { error: "Debe ingresar al menos un repuesto con su descripción y cantidad" },
         { status: 400 }
       );
     }
 
-    // Generar texto resumen de la lista para retrocompatibilidad
     const summaryLista = parsedItems
       .map((it) => `• ${it.cantidad}x ${it.descripcion}`)
       .join("\n");
 
-    // Procesar fotos con notas ancladas si existen
+    // Procesar fotos si existen
     let parsedFotos: any[] = [];
     if (Array.isArray(fotos)) {
       parsedFotos = fotos
@@ -283,23 +305,53 @@ export async function POST(request: NextRequest) {
       parsedFotos.push({
         id: `foto-${Date.now()}-0`,
         url: fotoUrl.trim(),
-        nota: "Foto de repuesto dañado",
+        nota: "Foto de repuesto",
         fecha: new Date().toISOString(),
       });
     }
 
-    // 4. Crear el pedido en estado SOLICITADO
+    // Determinar estado inicial y metadatos según el rol creador
+    let estadoInicial = "SOLICITADO";
+    let encargadoPor = null;
+    let fechaEncargo = null;
+    let fechaRevision = null;
+    let adminId = null;
+
+    if (role === "ADMIN" || role === "RECEPTION") {
+      if (role === "ADMIN") {
+        adminId = session.id;
+        fechaRevision = new Date();
+      }
+
+      // Si se especifica proveedor o marcarComoEncargado, entra como ENCARGO_REALIZADO
+      if (marcarComoEncargado || (proveedor && proveedor.trim())) {
+        estadoInicial = "ENCARGO_REALIZADO";
+        encargadoPor = `${session.nombre} ${session.apellido || ""}`.trim();
+        fechaEncargo = new Date();
+      } else {
+        estadoInicial = "PARA_ENCARGAR";
+      }
+    }
+
     const newRequest = await prisma.sparePartRequest.create({
       data: {
-        workOrderId,
-        mechanicId: session.id,
-        fallaReparar: fallaReparar.trim(),
+        workOrderId: targetWorkOrder ? targetWorkOrder.id : null,
+        mechanicId: targetWorkOrder?.mechanicId || (role === "MECHANIC" ? session.id : null),
+        adminId,
+        fallaReparar: motivoFinal,
         repuestosLista: summaryLista,
         itemsSolicitados: JSON.stringify(parsedItems),
+        itemsAEncargar: role !== "MECHANIC" ? JSON.stringify(parsedItems) : null,
+        itemsProcesados: role !== "MECHANIC" ? JSON.stringify(parsedItems) : null,
         observacionesMecanico: observacionesMecanico?.trim() || null,
+        proveedor: proveedor?.trim() || null,
+        fechaEstimadaLlegada: fechaEstimadaLlegada ? new Date(fechaEstimadaLlegada) : null,
+        encargadoPor,
+        fechaEncargo,
+        fechaRevision,
         fotoUrl: parsedFotos[0]?.url || null,
         fotos: parsedFotos.length > 0 ? JSON.stringify(parsedFotos) : null,
-        estado: "SOLICITADO",
+        estado: estadoInicial,
       },
       include: {
         workOrder: {
@@ -309,36 +361,46 @@ export async function POST(request: NextRequest) {
           },
         },
         mechanic: true,
+        admin: true,
       },
     });
 
-    // 5. Pasar la orden automáticamente a EN_ESPERA_REPUESTOS con motivo "repuesto"
-    await prisma.workOrder.update({
-      where: { id: workOrderId },
-      data: {
-        estado: "EN_ESPERA_REPUESTOS",
-        fechaCambioEstado: new Date(),
-      },
-    });
+    // Pausar orden de trabajo si corresponde:
+    // Para mecánico siempre pausa. Para Recepción/Admin, pausa si pausarVehiculo === true (o no viene false si fue solicitado explícitamente)
+    const debePausar =
+      targetWorkOrder &&
+      (role === "MECHANIC" || pausarVehiculo === true);
 
-    // Anexar fotos a WorkOrderMultimedia para conservar el historial fotográfico de la orden
-    for (const foto of parsedFotos) {
-      try {
-        await prisma.workOrderMultimedia.create({
-          data: {
-            workOrderId,
-            tipo: "FOTO",
-            urlStorage: foto.url,
-            etiqueta: "REPUESTO_ROTO",
-            descripcion: `Pausa por repuesto: ${fallaReparar.trim()}${foto.nota ? ` - Nota: ${foto.nota}` : ""}`,
-          },
-        });
-      } catch (e) {
-        console.warn("Aviso al anexar evidencia multimedia:", e);
+    if (debePausar) {
+      await prisma.workOrder.update({
+        where: { id: targetWorkOrder.id },
+        data: {
+          estado: "EN_ESPERA_REPUESTOS",
+          fechaCambioEstado: new Date(),
+        },
+      });
+    }
+
+    // Anexar fotos si hay orden
+    if (targetWorkOrder) {
+      for (const foto of parsedFotos) {
+        try {
+          await prisma.workOrderMultimedia.create({
+            data: {
+              workOrderId: targetWorkOrder.id,
+              tipo: "FOTO",
+              urlStorage: foto.url,
+              etiqueta: "REPUESTO_ROTO",
+              descripcion: `Pausa por repuesto: ${motivoFinal}${foto.nota ? ` - Nota: ${foto.nota}` : ""}`,
+            },
+          });
+        } catch (e) {
+          console.warn("Aviso al anexar evidencia multimedia:", e);
+        }
       }
     }
 
-    // 6. Registro inalterable en AuditLog
+    // Registro inalterable en AuditLog
     await recordAuditLog({
       user: session,
       accion: "CREATE_SPARE_PART_REQUEST",
@@ -347,21 +409,22 @@ export async function POST(request: NextRequest) {
       entidadId: newRequest.id,
       valores: {
         pedidoId: newRequest.id,
-        ordenId: workOrderId,
-        numeroOrden: workOrder.numeroOrden,
-        patente: workOrder.vehicle?.patente,
-        estado: "SOLICITADO",
-        fallaReparar: fallaReparar.trim(),
+        ordenId: targetWorkOrder?.id || null,
+        numeroOrden: targetWorkOrder?.numeroOrden || null,
+        patente: targetWorkOrder?.vehicle?.patente || null,
+        estado: estadoInicial,
+        fallaReparar: motivoFinal,
         itemsSolicitados: parsedItems,
-        fotosCount: parsedFotos.length,
-        motivoPausaOrden: "repuesto",
-        descripcion: `Mecánico ${session.nombre} ${session.apellido || ""} solicitó repuestos para Orden #${workOrder.numeroOrden} (${workOrder.vehicle?.patente}). La orden pasa a En Espera.`,
+        proveedor: proveedor?.trim() || null,
+        pausoVehiculo: !!debePausar,
+        creadoPorRol: role,
+        descripcion: `${role === "RECEPTION" ? "Recepción" : role === "ADMIN" ? "Administrador" : "Mecánico"} ${session.nombre} ${session.apellido || ""} creó encargue de repuestos #${newRequest.id.slice(-4)}${targetWorkOrder ? ` para Orden #${targetWorkOrder.numeroOrden} (${targetWorkOrder.vehicle?.patente || "S/P"})` : " (general)"}.${debePausar ? " La orden pasó a 'En Pausa / Esperando repuestos'." : ""}`,
       },
     });
 
     return NextResponse.json(
       {
-        message: "Pedido de repuestos creado con éxito. La orden pasó a 'En espera'.",
+        message: `Encargue de repuestos creado con éxito.${debePausar ? " La orden pasó a 'En espera de repuestos'." : ""}`,
         request: newRequest,
       },
       { status: 201 }
