@@ -974,20 +974,22 @@ export default function RepuestosPage() {
       </div>
 
       {/* TABS DE SELECCIÓN DE VISTA: PEDIDOS Y ENCARGOS vs STOCK CARGADO */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit">
+      <div className="inline-flex items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-2xl border border-slate-300/70 shadow-inner">
         <button
           type="button"
           onClick={() => setActiveMainTab("pedidos")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeMainTab === "pedidos"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
           }`}
         >
-          <Truck className={`w-4 h-4 ${activeMainTab === "pedidos" ? "text-amber-600" : "text-slate-400"}`} />
+          <Truck className={`w-4 h-4 transition-colors ${activeMainTab === "pedidos" ? "text-amber-400" : "text-slate-500"}`} />
           <span>Pedidos y Encargos</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            activeMainTab === "pedidos" ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-600"
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black transition-colors ${
+            activeMainTab === "pedidos"
+              ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+              : "bg-slate-300 text-slate-700"
           }`}>
             {requests.length}
           </span>
@@ -999,13 +1001,13 @@ export default function RepuestosPage() {
             setActiveMainTab("stock");
             if (inventoryItems.length === 0) fetchInventory();
           }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
             activeMainTab === "stock"
-              ? "bg-white text-slate-900 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/50"
           }`}
         >
-          <Boxes className={`w-4 h-4 ${activeMainTab === "stock" ? "text-emerald-600" : "text-slate-400"}`} />
+          <Boxes className={`w-4 h-4 transition-colors ${activeMainTab === "stock" ? "text-emerald-400" : "text-slate-500"}`} />
           <span>Stock Cargado / Inventario</span>
         </button>
       </div>
