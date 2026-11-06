@@ -1403,7 +1403,7 @@ export default function RepuestosPage() {
         <div className="space-y-6 animate-in fade-in duration-200">
           
           {/* TARJETAS DE MÉTRICAS DE STOCK */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setInventoryStatusFilter("ALL")}
@@ -1431,61 +1431,12 @@ export default function RepuestosPage() {
               }`}
             >
               <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-                Unidades Físicas
+                Unidades Físicas en Stock
               </span>
               <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "IN_STOCK" ? "text-white" : "text-emerald-600"}`}>
                 {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + Math.max(0, it.stock || 0), 0)} u.
               </span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setInventoryStatusFilter("LOW_STOCK")}
-              className={`p-3.5 rounded-2xl border text-left transition-all ${
-                inventoryStatusFilter === "LOW_STOCK"
-                  ? "bg-amber-600 text-white border-amber-600 shadow-md"
-                  : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-                  Stock Bajo / Alerta
-                </span>
-                <AlertTriangle className={`w-3.5 h-3.5 ${inventoryStatusFilter === "LOW_STOCK" ? "text-white" : "text-amber-600"}`} />
-              </div>
-              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "LOW_STOCK" ? "text-white" : "text-amber-600"}`}>
-                {inventoryStats?.lowStockCount ?? inventoryItems.filter((it) => it.stock > 0 && it.stock <= it.stockMinimo).length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInventoryStatusFilter("OUT_OF_STOCK")}
-              className={`p-3.5 rounded-2xl border text-left transition-all ${
-                inventoryStatusFilter === "OUT_OF_STOCK"
-                  ? "bg-rose-700 text-white border-rose-700 shadow-md"
-                  : "bg-white border-rose-200 text-rose-950 hover:bg-rose-50/50"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
-                  Agotados (0 u.)
-                </span>
-                <Ban className={`w-3.5 h-3.5 ${inventoryStatusFilter === "OUT_OF_STOCK" ? "text-white" : "text-rose-600"}`} />
-              </div>
-              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "OUT_OF_STOCK" ? "text-white" : "text-rose-600"}`}>
-                {inventoryStats?.outOfStockCount ?? inventoryItems.filter((it) => it.stock <= 0).length}
-              </span>
-            </button>
-
-            <div className="p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-800">
-              <span className="text-[10px] font-bold uppercase tracking-wider block text-slate-400">
-                Valor Total Inventario
-              </span>
-              <span className="text-xl font-black mt-1 block text-slate-900 font-mono">
-                {Number(inventoryStats?.totalInventoryValue || inventoryItems.reduce((acc, it) => acc + (Math.max(0, it.stock || 0) * (it.costo || 0)), 0)).toLocaleString("es-ES")} €
-              </span>
-            </div>
           </div>
 
           {/* BARRA DE FILTROS Y BÚSQUEDA DE STOCK */}
