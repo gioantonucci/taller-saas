@@ -24,6 +24,13 @@ import {
   Car,
   PauseCircle,
   Check,
+  Boxes,
+  Layers,
+  Tag,
+  AlertCircle,
+  PlusCircle,
+  MinusCircle,
+  Edit3,
 } from "lucide-react";
 import { SparePartRequest, SparePartItem } from "@/types";
 import ModalPortal from "@/components/ModalPortal";
@@ -46,6 +53,34 @@ export default function RepuestosPage() {
   const searchParams = useSearchParams();
   const initialPedidoId = searchParams.get("pedidoId");
   const initialEstado = searchParams.get("estado");
+  const initialTab = searchParams.get("tab") === "stock" ? "stock" : "pedidos";
+
+  // Control de pestaña principal: Pedidos vs Stock Cargado
+  const [activeMainTab, setActiveMainTab] = useState<"pedidos" | "stock">(initialTab);
+
+  // Estados de Stock Cargado / Inventario
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [inventoryStats, setInventoryStats] = useState<any>(null);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryStatusFilter, setInventoryStatusFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK">("ALL");
+  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState("TODAS");
+
+  // Modales de Stock: Crear o Editar repuesto
+  const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [stockModalMode, setStockModalMode] = useState<"CREATE" | "EDIT">("CREATE");
+  const [selectedStockItem, setSelectedStockItem] = useState<any | null>(null);
+  const [stockSaving, setStockSaving] = useState(false);
+
+  const [stockForm, setStockForm] = useState({
+    nombre: "",
+    codigo: "",
+    categoria: "Mecánica General",
+    stock: 1,
+    stockMinimo: 2,
+    costo: 0,
+    precioVenta: 0,
+  });
 
   const [requests, setRequests] = useState<SparePartRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -304,6 +339,250 @@ export default function RepuestosPage() {
     } finally {
       setCreateLoading(false);
     }
+  };
+
+  // =========================================================================
+  // GESTIÓN DE STOCK E INVENTARIO
+  // =========================================================================
+  const fetchInventory = useCallback(async (silent: boolean = false) => {
+    try {
+      if (!silent) setLoadingInventory(true);
+      const res = await fetch("/api/inventory", { cache: "no-store" });
+      if (!res.ok) throw new Error("Error al consultar inventario");
+      const data = await res.json();
+      if (data?.items) {
+        setInventoryItems(data.items);
+      }
+      if (data?.stats) {
+        setInventoryStats(data.stats);
+      }
+    } catch (err: any) {
+      console.error("Error al cargar inventario:", err);
+    } finally {
+      if (!silent) setLoadingInventory(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeMainTab === "stock" && inventoryItems.length === 0) {
+      fetchInventory();
+    }
+  }, [activeMainTab, inventoryItems.length, fetchInventory]);
+
+  const inventoryCategories = useMemo(() => {
+    const set = new Set<string>();
+    inventoryItems.forEach((it) => {
+      if (it.categoria) set.add(it.categoria);
+    });
+    return Array.from(set);
+  }, [inventoryItems]);
+
+  const filteredInventoryItems = useMemo(() => {
+    return inventoryItems.filter((it) => {
+      if (inventoryCategoryFilter !== "TODAS" && it.categoria !== inventoryCategoryFilter) {
+        return false;
+      }
+
+      if (inventoryStatusFilter === "LOW_STOCK") {
+        if (!(it.stock > 0 && it.stock <= it.stockMinimo)) return false;
+      } else if (inventoryStatusFilter === "OUT_OF_STOCK") {
+        if (it.stock > 0) return false;
+      } else if (inventoryStatusFilter === "IN_STOCK") {
+        if (it.stock <= 0) return false;
+      }
+
+      if (inventorySearch.trim()) {
+        const q = inventorySearch.toLowerCase().trim();
+        const nom = (it.nombre || "").toLowerCase();
+        const cod = (it.codigo || "").toLowerCase();
+        const cat = (it.categoria || "").toLowerCase();
+        return nom.includes(q) || cod.includes(q) || cat.includes(q);
+      }
+
+      return true;
+    });
+  }, [inventoryItems, inventoryCategoryFilter, inventoryStatusFilter, inventorySearch]);
+
+  const handleQuickStockAdjust = async (item: any, delta: number) => {
+    const newStock = Math.max(0, item.stock + delta);
+    if (newStock === item.stock) return;
+
+    setInventoryItems((prev) =>
+      prev.map((it) => (it.id === item.id ? { ...it, stock: newStock } : it))
+    );
+
+    try {
+      const res = await fetch(`/api/inventory/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock: newStock }),
+      });
+      if (!res.ok) throw new Error("Error al actualizar stock");
+      const data = await res.json();
+      if (data?.item) {
+        setInventoryItems((prev) =>
+          prev.map((it) => (it.id === item.id ? data.item : it))
+        );
+      }
+      fetchInventory(true);
+    } catch (err: any) {
+      fetchInventory(true);
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo actualizar el stock",
+        variant: "danger",
+      });
+    }
+  };
+
+  const handleDeleteStockItem = async (item: any) => {
+    const ok = await confirm({
+      title: "¿Eliminar repuesto del stock?",
+      message: `¿Estás seguro de que deseas eliminar "${item.nombre}" (${item.codigo || "Sin código"}) del inventario? Esta acción no se puede deshacer.`,
+      confirmText: "Eliminar",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/inventory/${item.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Error al eliminar repuesto");
+      setInventoryItems((prev) => prev.filter((it) => it.id !== item.id));
+      await alert({
+        title: "Repuesto eliminado",
+        message: `"${item.nombre}" fue eliminado del catálogo.`,
+        variant: "success",
+      });
+      fetchInventory(true);
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo eliminar el repuesto.",
+        variant: "danger",
+      });
+    }
+  };
+
+  const openCreateStockItem = () => {
+    setStockModalMode("CREATE");
+    setSelectedStockItem(null);
+    setStockForm({
+      nombre: "",
+      codigo: "",
+      categoria: "Mecánica General",
+      stock: 1,
+      stockMinimo: 2,
+      costo: 0,
+      precioVenta: 0,
+    });
+    setStockModalOpen(true);
+  };
+
+  const openEditStockItem = (item: any) => {
+    setStockModalMode("EDIT");
+    setSelectedStockItem(item);
+    setStockForm({
+      nombre: item.nombre || "",
+      codigo: item.codigo || "",
+      categoria: item.categoria || "Mecánica General",
+      stock: item.stock || 0,
+      stockMinimo: item.stockMinimo || 2,
+      costo: item.costo || 0,
+      precioVenta: item.precioVenta || 0,
+    });
+    setStockModalOpen(true);
+  };
+
+  const handleSaveStockItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockForm.nombre.trim()) {
+      await alert({
+        title: "Nombre requerido",
+        message: "Por favor ingresa el nombre o descripción del repuesto.",
+        variant: "warning",
+      });
+      return;
+    }
+
+    setStockSaving(true);
+    try {
+      if (stockModalMode === "CREATE") {
+        const res = await fetch("/api/inventory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: stockForm.nombre.trim(),
+            codigo: stockForm.codigo.trim() || undefined,
+            categoria: stockForm.categoria || "Mecánica General",
+            cantidad: Number(stockForm.stock) || 0,
+            stockMinimo: Number(stockForm.stockMinimo) || 2,
+            costo: Number(stockForm.costo) || 0,
+            precioVenta: Number(stockForm.precioVenta) || 0,
+          }),
+        });
+
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error(d.error || "Error al crear repuesto");
+        }
+
+        await alert({
+          title: "¡Repuesto Cargado!",
+          message: "El repuesto fue ingresado al inventario con éxito.",
+          variant: "success",
+        });
+      } else if (stockModalMode === "EDIT" && selectedStockItem) {
+        const res = await fetch(`/api/inventory/${selectedStockItem.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: stockForm.nombre.trim(),
+            codigo: stockForm.codigo.trim() || undefined,
+            categoria: stockForm.categoria || "Mecánica General",
+            stock: Number(stockForm.stock) || 0,
+            stockMinimo: Number(stockForm.stockMinimo) || 2,
+            costo: Number(stockForm.costo) || 0,
+            precioVenta: Number(stockForm.precioVenta) || 0,
+          }),
+        });
+
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          throw new Error(d.error || "Error al actualizar repuesto");
+        }
+
+        await alert({
+          title: "¡Repuesto Actualizado!",
+          message: "Los datos del repuesto se actualizaron con éxito.",
+          variant: "success",
+        });
+      }
+
+      setStockModalOpen(false);
+      fetchInventory(true);
+    } catch (err: any) {
+      await alert({
+        title: "Error",
+        message: err.message || "No se pudo guardar el repuesto.",
+        variant: "danger",
+      });
+    } finally {
+      setStockSaving(false);
+    }
+  };
+
+  const handleOrderFromStock = (item: any) => {
+    resetCreateForm();
+    setEncargoItems([
+      {
+        id: `item-${Date.now()}-0`,
+        descripcion: `${item.nombre}${item.codigo ? ` (${item.codigo})` : ""}`,
+        cantidad: Math.max(1, (item.stockMinimo * 2) - item.stock),
+      },
+    ]);
+    setNewMotivo(`Reposición de stock: ${item.nombre}`);
+    setOrderAnchorMode("GENERAL");
+    setCreateModalOpen(true);
   };
 
   // Abrir detalle del pedido de forma instantánea (0ms de retraso)
@@ -636,15 +915,25 @@ export default function RepuestosPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-xs">
-              <Package className="w-6 h-6" />
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs transition-colors ${
+              activeMainTab === "stock"
+                ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-600"
+                : "bg-amber-500/15 border border-amber-500/30 text-amber-600"
+            }`}>
+              {activeMainTab === "stock" ? <Boxes className="w-6 h-6" /> : <Package className="w-6 h-6" />}
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {isMechanic ? "Mis Pedidos de Repuestos" : "Pedido y Seguimiento de Repuestos"}
+                {activeMainTab === "stock"
+                  ? "Stock de Repuestos e Inventario"
+                  : isMechanic
+                  ? "Mis Pedidos de Repuestos"
+                  : "Pedido y Seguimiento de Repuestos"}
               </h1>
               <p className="text-xs text-slate-500 font-medium">
-                {isMechanic
+                {activeMainTab === "stock"
+                  ? "Control de existencias físicas, piezas disponibles en depósito y alertas de reposición"
+                  : isMechanic
                   ? "Historial de repuestos que has solicitado para tus órdenes de trabajo"
                   : "Gestión integral de pausas mecánicas, revisión de ítems, encargos y recepción"}
               </p>
@@ -653,7 +942,7 @@ export default function RepuestosPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {!isMechanic && (
+          {!isMechanic && activeMainTab === "pedidos" && (
             <button
               type="button"
               onClick={() => {
@@ -667,18 +956,79 @@ export default function RepuestosPage() {
             </button>
           )}
 
+          {!isMechanic && activeMainTab === "stock" && (
+            <button
+              type="button"
+              onClick={openCreateStockItem}
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm hover:shadow transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Cargar Repuesto a Stock</span>
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={() => fetchRequests(false)}
-            disabled={loading}
+            onClick={() => {
+              if (activeMainTab === "stock") {
+                fetchInventory(false);
+              } else {
+                fetchRequests(false);
+              }
+            }}
+            disabled={loading || loadingInventory}
             className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-all cursor-pointer shadow-xs"
             title="Refrescar datos"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-amber-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${(loading || loadingInventory) ? "animate-spin text-amber-600" : ""}`} />
           </button>
         </div>
       </div>
 
+      {/* TABS DE SELECCIÓN DE VISTA: PEDIDOS Y ENCARGOS vs STOCK CARGADO */}
+      <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("pedidos")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeMainTab === "pedidos"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Truck className={`w-4 h-4 ${activeMainTab === "pedidos" ? "text-amber-600" : "text-slate-400"}`} />
+          <span>Pedidos y Encargos</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeMainTab === "pedidos" ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-600"
+          }`}>
+            {requests.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveMainTab("stock");
+            if (inventoryItems.length === 0) fetchInventory();
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+            activeMainTab === "stock"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Boxes className={`w-4 h-4 ${activeMainTab === "stock" ? "text-emerald-600" : "text-slate-400"}`} />
+          <span>Stock Cargado / Inventario</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeMainTab === "stock" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-600"
+          }`}>
+            {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + (it.stock || 0), 0)} u.
+          </span>
+        </button>
+      </div>
+
+      {activeMainTab === "pedidos" ? (
+        <>
       {/* TARJETAS DE MÉTRICAS */}
       {!isMechanic ? (
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
@@ -1047,6 +1397,327 @@ export default function RepuestosPage() {
           </div>
         )}
       </div>
+      </>
+      ) : (
+        /* VISTA DE STOCK CARGADO / INVENTARIO */
+        <div className="space-y-6 animate-in fade-in duration-200">
+          
+          {/* TARJETAS DE MÉTRICAS DE STOCK */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <button
+              type="button"
+              onClick={() => setInventoryStatusFilter("ALL")}
+              className={`p-3.5 rounded-2xl border text-left transition-all ${
+                inventoryStatusFilter === "ALL"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
+              }`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                Piezas en Catálogo
+              </span>
+              <span className="text-xl font-black mt-1 block">
+                {inventoryStats?.totalCatalogItems ?? inventoryItems.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInventoryStatusFilter("IN_STOCK")}
+              className={`p-3.5 rounded-2xl border text-left transition-all ${
+                inventoryStatusFilter === "IN_STOCK"
+                  ? "bg-emerald-700 text-white border-emerald-700 shadow-md"
+                  : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
+              }`}
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                Unidades Físicas
+              </span>
+              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "IN_STOCK" ? "text-white" : "text-emerald-600"}`}>
+                {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + Math.max(0, it.stock || 0), 0)} u.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInventoryStatusFilter("LOW_STOCK")}
+              className={`p-3.5 rounded-2xl border text-left transition-all ${
+                inventoryStatusFilter === "LOW_STOCK"
+                  ? "bg-amber-600 text-white border-amber-600 shadow-md"
+                  : "bg-white border-amber-200 text-amber-950 hover:bg-amber-50/50"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                  Stock Bajo / Alerta
+                </span>
+                <AlertTriangle className={`w-3.5 h-3.5 ${inventoryStatusFilter === "LOW_STOCK" ? "text-white" : "text-amber-600"}`} />
+              </div>
+              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "LOW_STOCK" ? "text-white" : "text-amber-600"}`}>
+                {inventoryStats?.lowStockCount ?? inventoryItems.filter((it) => it.stock > 0 && it.stock <= it.stockMinimo).length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setInventoryStatusFilter("OUT_OF_STOCK")}
+              className={`p-3.5 rounded-2xl border text-left transition-all ${
+                inventoryStatusFilter === "OUT_OF_STOCK"
+                  ? "bg-rose-700 text-white border-rose-700 shadow-md"
+                  : "bg-white border-rose-200 text-rose-950 hover:bg-rose-50/50"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70">
+                  Agotados (0 u.)
+                </span>
+                <Ban className={`w-3.5 h-3.5 ${inventoryStatusFilter === "OUT_OF_STOCK" ? "text-white" : "text-rose-600"}`} />
+              </div>
+              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "OUT_OF_STOCK" ? "text-white" : "text-rose-600"}`}>
+                {inventoryStats?.outOfStockCount ?? inventoryItems.filter((it) => it.stock <= 0).length}
+              </span>
+            </button>
+
+            <div className="p-3.5 rounded-2xl border border-slate-200 bg-white text-slate-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider block text-slate-400">
+                Valor Total Inventario
+              </span>
+              <span className="text-xl font-black mt-1 block text-slate-900 font-mono">
+                {Number(inventoryStats?.totalInventoryValue || inventoryItems.reduce((acc, it) => acc + (Math.max(0, it.stock || 0) * (it.costo || 0)), 0)).toLocaleString("es-ES")} €
+              </span>
+            </div>
+          </div>
+
+          {/* BARRA DE FILTROS Y BÚSQUEDA DE STOCK */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={inventorySearch}
+                onChange={(e) => setInventorySearch(e.target.value)}
+                placeholder="Buscar repuesto por nombre, código de pieza o categoría..."
+                className="w-full text-xs pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium transition-all"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Filtro por estado */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-400">Estado:</span>
+                <select
+                  value={inventoryStatusFilter}
+                  onChange={(e: any) => setInventoryStatusFilter(e.target.value)}
+                  className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="ALL">Todos los repuestos</option>
+                  <option value="IN_STOCK">En Stock (&gt; 0)</option>
+                  <option value="LOW_STOCK">⚠️ Stock Bajo</option>
+                  <option value="OUT_OF_STOCK">🚨 Agotados (0 u.)</option>
+                </select>
+              </div>
+
+              {/* Filtro por categoría */}
+              {inventoryCategories.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-400">Categoría:</span>
+                  <select
+                    value={inventoryCategoryFilter}
+                    onChange={(e) => setInventoryCategoryFilter(e.target.value)}
+                    className="text-xs font-bold py-2 px-3 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="TODAS">Todas las categorías</option>
+                    {inventoryCategories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LISTADO / TABLA DE REPUESTOS EN STOCK */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+            {loadingInventory && inventoryItems.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+                <p className="text-xs font-bold text-slate-700">Cargando inventario de repuestos...</p>
+              </div>
+            ) : filteredInventoryItems.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <Boxes className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-bold text-slate-700">No se encontraron repuestos en stock</p>
+                <p className="text-xs text-slate-400">
+                  {inventorySearch || inventoryStatusFilter !== "ALL" || inventoryCategoryFilter !== "TODAS"
+                    ? "Prueba cambiando los filtros seleccionados."
+                    : "Comienza cargando repuestos al inventario de tu taller."}
+                </p>
+                {!isMechanic && (
+                  <button
+                    type="button"
+                    onClick={openCreateStockItem}
+                    className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Cargar Primer Repuesto</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/75 text-[10px] uppercase font-black tracking-wider text-slate-500">
+                      <th className="py-3.5 px-4">Código / Ref.</th>
+                      <th className="py-3.5 px-4">Descripción del Repuesto</th>
+                      <th className="py-3.5 px-4">Categoría</th>
+                      <th className="py-3.5 px-4 text-center">Stock Actual</th>
+                      <th className="py-3.5 px-4 text-right">Costo / Venta</th>
+                      <th className="py-3.5 px-4 text-center">Ajuste</th>
+                      <th className="py-3.5 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {filteredInventoryItems.map((item) => {
+                      const isLowStock = item.stock > 0 && item.stock <= item.stockMinimo;
+                      const isOutOfStock = item.stock <= 0;
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Código */}
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                            {item.codigo ? (
+                              <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-900 text-[11px]">
+                                {item.codigo}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic text-[11px]">S/C</span>
+                            )}
+                          </td>
+
+                          {/* Nombre */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-slate-900 block">{item.nombre}</span>
+                            {item.stockMinimo > 0 && (
+                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                Stock mín. alertado: {item.stockMinimo} u.
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Categoría */}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
+                              <Tag className="w-3 h-3 text-slate-400" />
+                              <span>{item.categoria || "General"}</span>
+                            </span>
+                          </td>
+
+                          {/* Stock badge */}
+                          <td className="py-3.5 px-4 text-center">
+                            {isOutOfStock ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
+                                <Ban className="w-3 h-3 text-rose-600" />
+                                <span>Agotado (0)</span>
+                              </span>
+                            ) : isLowStock ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                <span>Bajo ({item.stock} u.)</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>{item.stock} unidades</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Costo / Venta */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="font-mono text-slate-900 font-bold">
+                              {Number(item.precioVenta || 0).toLocaleString("es-ES")} €
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              Costo: {Number(item.costo || 0).toLocaleString("es-ES")} €
+                            </div>
+                          </td>
+
+                          {/* Ajuste rápido */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                disabled={isMechanic || item.stock <= 0}
+                                onClick={() => handleQuickStockAdjust(item, -1)}
+                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-700 transition-all cursor-pointer"
+                                title="Restar 1 unidad"
+                              >
+                                -
+                              </button>
+                              <span className="w-8 text-center font-mono font-black text-xs text-slate-900">
+                                {item.stock}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={isMechanic}
+                                onClick={() => handleQuickStockAdjust(item, 1)}
+                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-700 transition-all cursor-pointer"
+                                title="Sumar 1 unidad"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {(isLowStock || isOutOfStock) && !isMechanic && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOrderFromStock(item)}
+                                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                                  title="Crear encargue de reposición"
+                                >
+                                  <Truck className="w-3 h-3" />
+                                  <span>Pedir</span>
+                                </button>
+                              )}
+
+                              {!isMechanic && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditStockItem(item)}
+                                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-all cursor-pointer"
+                                    title="Editar repuesto"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteStockItem(item)}
+                                    className="p-1.5 rounded-lg border border-rose-200 bg-white hover:bg-rose-50 text-rose-600 transition-all cursor-pointer"
+                                    title="Eliminar del catálogo"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL CREAR ENCARGUE DE REPUESTOS (RECEPCIÓN Y ADMINISTRADOR)            */}
@@ -2214,7 +2885,174 @@ export default function RepuestosPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* LIGHTBOX FOTO EN GRANDE                                                   */}
+      {/* MODAL CARGAR / EDITAR REPUESTO EN STOCK                                   */}
+      {/* ========================================================================= */}
+      {stockModalOpen && (
+        <ModalPortal>
+          <div className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md overflow-y-auto animate-in fade-in">
+            <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden my-auto animate-in zoom-in-95 duration-200">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-5 sm:p-6 flex items-start justify-between border-b border-slate-800">
+                <div className="space-y-1">
+                  <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <Boxes className="w-5 h-5 text-emerald-400" />
+                    <span>{stockModalMode === "CREATE" ? "Cargar Repuesto a Stock" : "Editar Repuesto en Stock"}</span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    {stockModalMode === "CREATE"
+                      ? "Registra una nueva pieza en el catálogo e inventario físico del taller."
+                      : "Modifica existencias, umbral de alerta y precios del repuesto."}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setStockModalOpen(false)}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSaveStockItem} className="p-5 sm:p-6 space-y-4 max-h-[78vh] overflow-y-auto">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">
+                    Descripción / Nombre del Repuesto <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stockForm.nombre}
+                    onChange={(e) => setStockForm({ ...stockForm, nombre: e.target.value })}
+                    placeholder="Ej: Juego de Pastillas Delanteras Bosch, Filtro de Aceite Mann..."
+                    className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Código / Referencia de Pieza:
+                    </label>
+                    <input
+                      type="text"
+                      value={stockForm.codigo}
+                      onChange={(e) => setStockForm({ ...stockForm, codigo: e.target.value })}
+                      placeholder="Ej: BOS-PD1422"
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Categoría:
+                    </label>
+                    <input
+                      type="text"
+                      value={stockForm.categoria}
+                      onChange={(e) => setStockForm({ ...stockForm, categoria: e.target.value })}
+                      placeholder="Ej: Frenos, Filtros, Fluidos, Motor..."
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Cantidad en Stock:
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={stockForm.stock}
+                      onChange={(e) => setStockForm({ ...stockForm, stock: parseInt(e.target.value, 10) || 0 })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Stock Mínimo (Alerta):
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      value={stockForm.stockMinimo}
+                      onChange={(e) => setStockForm({ ...stockForm, stockMinimo: parseInt(e.target.value, 10) || 1 })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Costo Unitario (€):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={stockForm.costo}
+                      onChange={(e) => setStockForm({ ...stockForm, costo: parseFloat(e.target.value) || 0 })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      Precio de Venta (€):
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={stockForm.precioVenta}
+                      onChange={(e) => setStockForm({ ...stockForm, precioVenta: parseFloat(e.target.value) || 0 })}
+                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                  <button
+                    type="button"
+                    disabled={stockSaving}
+                    onClick={() => setStockModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={stockSaving}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    {stockSaving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Guardando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>{stockModalMode === "CREATE" ? "Cargar al Inventario" : "Guardar Cambios"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
       {/* ========================================================================= */}
       {activePhotoUrl && (
         <ModalPortal>

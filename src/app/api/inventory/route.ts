@@ -13,8 +13,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Frenos",
     stock: 8,
     stockMinimo: 2,
-    costo: 32000,
-    precioVenta: 48000,
+    costo: 28,
+    precioVenta: 45,
   },
   {
     nombre: "Filtro de Aceite Mann W712",
@@ -22,8 +22,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Filtros",
     stock: 15,
     stockMinimo: 4,
-    costo: 11500,
-    precioVenta: 18000,
+    costo: 8,
+    precioVenta: 16,
   },
   {
     nombre: "Aceite Motor Sintético 5W-40 (4L)",
@@ -31,8 +31,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Fluidos",
     stock: 6,
     stockMinimo: 2,
-    costo: 42000,
-    precioVenta: 63000,
+    costo: 24,
+    precioVenta: 42,
   },
   {
     nombre: "Juego de Bujías NGK Iridium",
@@ -40,8 +40,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Encendido",
     stock: 12,
     stockMinimo: 4,
-    costo: 9500,
-    precioVenta: 15000,
+    costo: 12,
+    precioVenta: 24,
   },
   {
     nombre: "Amortiguador Delantero Monroe",
@@ -49,8 +49,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Suspensión",
     stock: 2,
     stockMinimo: 2,
-    costo: 85000,
-    precioVenta: 125000,
+    costo: 65,
+    precioVenta: 110,
   },
   {
     nombre: "Kit Correa de Distribución Gates",
@@ -58,8 +58,8 @@ const INITIAL_INVENTORY_SEED = [
     categoria: "Motor",
     stock: 3,
     stockMinimo: 1,
-    costo: 68000,
-    precioVenta: 99000,
+    costo: 75,
+    precioVenta: 135,
   },
 ];
 
