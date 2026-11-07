@@ -120,6 +120,21 @@ export async function PATCH(
     }
 
     const updateData: any = {};
+    if (body.patente) {
+      const newPatente = body.patente.trim().toUpperCase();
+      if (newPatente !== cleanPatente) {
+        const existing = await prisma.vehicle.findUnique({
+          where: { patente: newPatente },
+        });
+        if (existing) {
+          return NextResponse.json(
+            { error: "Ya existe otro vehículo con esa patente o dominio" },
+            { status: 400 }
+          );
+        }
+        updateData.patente = newPatente;
+      }
+    }
     if (body.marca) updateData.marca = body.marca.trim();
     if (body.modelo) updateData.modelo = body.modelo.trim();
     if (body.anio) updateData.anio = parseInt(body.anio, 10);
@@ -135,6 +150,7 @@ export async function PATCH(
     });
 
     const anteriorVehicleDiff = {
+      patente: current.patente,
       marca: current.marca,
       modelo: current.modelo,
       anio: current.anio,
@@ -143,6 +159,7 @@ export async function PATCH(
       nroMotor: current.nroMotor,
     };
     const nuevoVehicleDiff = {
+      patente: updated.patente,
       marca: updated.marca,
       modelo: updated.modelo,
       anio: updated.anio,

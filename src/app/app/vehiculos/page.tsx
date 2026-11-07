@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Trash2,
   RefreshCw,
+  Edit2,
 } from "lucide-react";
 import { quickVehicleAndClientSchema, QuickVehicleAndClientValues } from "@/lib/validations";
 import { useAppDialog } from "@/components/AppDialog";
@@ -68,6 +69,7 @@ function VehiculosContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(initialOpen);
+  const [editingVehicle, setEditingVehicle] = useState<any | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -76,6 +78,7 @@ function VehiculosContent() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<QuickVehicleAndClientValues>({
     resolver: zodResolver(quickVehicleAndClientSchema),
@@ -137,6 +140,7 @@ function VehiculosContent() {
   }, [search]);
 
   const openCreateModal = () => {
+    setEditingVehicle(null);
     setSubmitError(null);
     reset({
       marca: "",
@@ -156,28 +160,63 @@ function VehiculosContent() {
     setModalOpen(true);
   };
 
+  const openEditModal = (v: any) => {
+    setEditingVehicle(v);
+    setSubmitError(null);
+    setValue("marca", v.marca || "");
+    setValue("modelo", v.modelo || "");
+    setValue("anio", Number(v.anio) || new Date().getFullYear());
+    setValue("patente", v.patente || "");
+    setValue("color", v.color || "");
+    setValue("nroChasis", v.nroChasis || "");
+    setValue("modoCliente", "EXISTENTE");
+    setValue("clientId", v.clientId || v.client?.id || clients[0]?.id || "");
+    setModalOpen(true);
+  };
+
   const onSubmit = async (values: QuickVehicleAndClientValues) => {
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const res = await fetch("/api/vehicles", {
-        method: "POST",
+      const isEditing = Boolean(editingVehicle);
+      const url = isEditing
+        ? `/api/vehicles/${encodeURIComponent(editingVehicle.patente)}`
+        : "/api/vehicles";
+      const method = isEditing ? "PATCH" : "POST";
+
+      const payload = isEditing
+        ? {
+            marca: values.marca,
+            modelo: values.modelo,
+            anio: values.anio,
+            patente: values.patente,
+            color: values.color,
+            nroChasis: values.nroChasis,
+            clientId: values.clientId,
+          }
+        : values;
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setSubmitError(data.error || "Error al registrar vehículo");
+        setSubmitError(data.error || (isEditing ? "Error al actualizar vehículo" : "Error al registrar vehículo"));
         setSubmitting(false);
         return;
       }
 
       setModalOpen(false);
+      setEditingVehicle(null);
       setActionSuccess(
-        `Vehículo ${data.vehicle.marca} ${data.vehicle.modelo} (${data.vehicle.patente}) registrado exitosamente.`
+        isEditing
+          ? `Vehículo ${data.vehicle.marca} ${data.vehicle.modelo} (${data.vehicle.patente}) actualizado exitosamente.`
+          : `Vehículo ${data.vehicle.marca} ${data.vehicle.modelo} (${data.vehicle.patente}) registrado exitosamente.`
       );
       setTimeout(() => setActionSuccess(null), 4000);
       fetchVehicles();
@@ -338,13 +377,23 @@ function VehiculosContent() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => handleSoftDelete(v)}
-                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => openEditModal(v)}
+                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+                        title="Editar Vehículo"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleSoftDelete(v)}
+                        className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Titular y Órdenes */}
@@ -462,14 +511,14 @@ function VehiculosContent() {
                       </td>
 
                       <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Link
-                            href={`/app/vehiculos/${v.patente}`}
-                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 transition-colors flex items-center justify-center group-hover:bg-sky-600 group-hover:text-white"
-                            title="Ver Ficha"
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openEditModal(v)}
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                            title="Editar Vehículo"
                           >
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
 
                           <button
                             onClick={() => handleSoftDelete(v)}
@@ -478,6 +527,14 @@ function VehiculosContent() {
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+
+                          <Link
+                            href={`/app/vehiculos/${v.patente}`}
+                            className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 transition-colors flex items-center justify-center ml-1 group-hover:bg-sky-600 group-hover:text-white"
+                            title="Ver Ficha"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -498,19 +555,24 @@ function VehiculosContent() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold">
-                  <Car className="w-4 h-4" />
+                  {editingVehicle ? <Edit2 className="w-4 h-4" /> : <Car className="w-4 h-4" />}
                 </div>
                 <div>
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    Registro de Nuevo Vehículo
+                    {editingVehicle ? "Editar Datos del Vehículo" : "Registro de Nuevo Vehículo"}
                   </h3>
                   <span className="text-[10px] text-slate-400 font-semibold block">
-                    Asignación a cliente existente o alta rápida simultánea
+                    {editingVehicle
+                      ? `Modificando ${editingVehicle.marca} ${editingVehicle.modelo} (${editingVehicle.patente})`
+                      : "Asignación a cliente existente o alta rápida simultánea"}
                   </span>
                 </div>
               </div>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={() => {
+                  setModalOpen(false);
+                  setEditingVehicle(null);
+                }}
                 className="p-1.5 rounded-xl hover:bg-slate-200 text-slate-500 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -690,7 +752,10 @@ function VehiculosContent() {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => {
+                    setModalOpen(false);
+                    setEditingVehicle(null);
+                  }}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancelar
@@ -703,10 +768,10 @@ function VehiculosContent() {
                   {submitting ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Registrando...</span>
+                      <span>{editingVehicle ? "Guardando..." : "Registrando..."}</span>
                     </>
                   ) : (
-                    <span>Registrar Vehículo</span>
+                    <span>{editingVehicle ? "Guardar Cambios" : "Registrar Vehículo"}</span>
                   )}
                 </button>
               </div>
