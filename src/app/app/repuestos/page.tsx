@@ -1756,9 +1756,9 @@ export default function RepuestosPage() {
                       <th className="py-3.5 px-4">Código / Ref.</th>
                       <th className="py-3.5 px-4">Descripción del Repuesto</th>
                       <th className="py-3.5 px-4">Categoría</th>
-                      <th className="py-3.5 px-4 text-center">Stock Actual</th>
+                      <th className="py-3.5 px-4 text-center">Estado</th>
                       <th className="py-3.5 px-4 text-right">Precio Venta</th>
-                      <th className="py-3.5 px-4 text-center">Ajuste</th>
+                      <th className="py-3.5 px-4 text-center">Stock</th>
                       <th className="py-3.5 px-4 text-right">Acciones</th>
                     </tr>
                   </thead>
@@ -1792,17 +1792,22 @@ export default function RepuestosPage() {
                             </span>
                           </td>
 
-                          {/* Stock badge */}
+                          {/* Estado badge */}
                           <td className="py-3.5 px-4 text-center">
                             {isOutOfStock ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
                                 <Ban className="w-3 h-3 text-rose-600" />
-                                <span>Agotado (0)</span>
+                                <span>Agotado</span>
+                              </span>
+                            ) : item.stock <= (item.stockMinimo || 2) ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                <AlertCircle className="w-3 h-3 text-amber-600" />
+                                <span>Stock Bajo</span>
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
                                 <Check className="w-3 h-3 text-emerald-600" />
-                                <span>{item.stock} unidades</span>
+                                <span>En Stock</span>
                               </span>
                             )}
                           </td>
@@ -1814,31 +1819,11 @@ export default function RepuestosPage() {
                             </span>
                           </td>
 
-                          {/* Ajuste rápido */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                type="button"
-                                disabled={isMechanic || item.stock <= 0}
-                                onClick={() => handleQuickStockAdjust(item, -1)}
-                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-700 transition-all cursor-pointer"
-                                title="Restar 1 unidad"
-                              >
-                                -
-                              </button>
-                              <span className="w-8 text-center font-mono font-black text-xs text-slate-900">
-                                {item.stock}
-                              </span>
-                              <button
-                                type="button"
-                                disabled={isMechanic}
-                                onClick={() => handleQuickStockAdjust(item, 1)}
-                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-slate-700 transition-all cursor-pointer"
-                                title="Sumar 1 unidad"
-                              >
-                                +
-                              </button>
-                            </div>
+                          {/* Stock (solo lectura) */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span className="font-mono font-black text-xs text-slate-900">
+                              {item.stock}
+                            </span>
                           </td>
 
                           {/* Acciones */}
