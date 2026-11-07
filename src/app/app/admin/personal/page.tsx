@@ -64,7 +64,6 @@ export default function GestionPersonalPage() {
     nombre: "",
     apellido: "",
     email: "",
-    role: "MECHANIC" as "MECHANIC" | "RECEPTION" | "ADMIN",
     password: "",
   });
 
@@ -431,7 +430,6 @@ export default function GestionPersonalPage() {
       nombre: member.nombre || "",
       apellido: member.apellido || "",
       email: member.email || "",
-      role: normalizeRole(member.role),
       password: "",
     });
     setEditFormError(null);
@@ -475,7 +473,6 @@ export default function GestionPersonalPage() {
         nombre: editFormData.nombre.trim(),
         apellido: editFormData.apellido.trim() || null,
         email: editFormData.email.trim().toLowerCase(),
-        role: editFormData.role,
       };
       if (editFormData.password.trim()) {
         payload.password = editFormData.password.trim();
@@ -1398,95 +1395,36 @@ export default function GestionPersonalPage() {
               )}
 
               <form onSubmit={handleEditSubmit} className="space-y-4">
-                {/* Selección de Rol */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2">
-                    Rol Operativo en el Sistema *
-                  </label>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setEditFormData({ ...editFormData, role: "MECHANIC" })}
-                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                        editFormData.role === "MECHANIC"
-                          ? "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Wrench
-                          className={`w-3.5 h-3.5 ${
-                            editFormData.role === "MECHANIC" ? "text-emerald-600" : "text-slate-400"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-bold ${
-                            editFormData.role === "MECHANIC" ? "text-emerald-900" : "text-slate-700"
-                          }`}
-                        >
-                          Mecánico
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-tight">
-                        Taller y reparaciones
-                      </p>
-                    </button>
+                {/* Rol Operativo (Fijo / No modificable por regla de negocio) */}
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Rol Operativo del Usuario
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">
+                        Fijo por regla de negocio (preserva historial y órdenes)
+                      </span>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setEditFormData({ ...editFormData, role: "RECEPTION" })}
-                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                        editFormData.role === "RECEPTION"
-                          ? "border-sky-500 bg-sky-50/60 ring-2 ring-sky-500/20"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <ClipboardList
-                          className={`w-3.5 h-3.5 ${
-                            editFormData.role === "RECEPTION" ? "text-sky-600" : "text-slate-400"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-bold ${
-                            editFormData.role === "RECEPTION" ? "text-sky-900" : "text-slate-700"
-                          }`}
-                        >
-                          Recepción
+                    <div className="shrink-0">
+                      {normalizeRole(editingMember.role) === "ADMIN" ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                          <Shield className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Administrador</span>
                         </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-tight">
-                        Ingresos y clientes
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEditFormData({ ...editFormData, role: "ADMIN" })}
-                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                        editFormData.role === "ADMIN"
-                          ? "border-purple-500 bg-purple-50/60 ring-2 ring-purple-500/20"
-                          : "border-slate-200 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Shield
-                          className={`w-3.5 h-3.5 ${
-                            editFormData.role === "ADMIN" ? "text-purple-600" : "text-slate-400"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-bold ${
-                            editFormData.role === "ADMIN" ? "text-purple-900" : "text-slate-700"
-                          }`}
-                        >
-                          Admin
+                      ) : normalizeRole(editingMember.role) === "MECHANIC" ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <Wrench className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Mecánico</span>
                         </span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-tight">
-                        Gestión total
-                      </p>
-                    </button>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                          <ClipboardList className="w-3.5 h-3.5 text-sky-600" />
+                          <span>Recepción</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

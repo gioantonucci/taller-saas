@@ -186,13 +186,12 @@ export async function PATCH(
 
     if (body.role !== undefined) {
       const normalizedRole = normalizeRole(body.role);
-      if (id === session.id && user.role === "ADMIN" && normalizedRole !== "ADMIN") {
+      if (normalizedRole !== normalizeRole(user.role)) {
         return NextResponse.json(
-          { error: "No puedes quitarte el rol de Administrador a ti mismo" },
+          { error: "Por regla de negocio, el rol operativo de un usuario no puede ser modificado" },
           { status: 400 }
         );
       }
-      dataToUpdate.role = normalizedRole;
     }
 
     if (body.password !== undefined && body.password !== "") {
