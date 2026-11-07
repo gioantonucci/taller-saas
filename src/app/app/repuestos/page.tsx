@@ -1674,48 +1674,6 @@ export default function RepuestosPage() {
       ) : (
         /* VISTA DE STOCK CARGADO / INVENTARIO */
         <div className="space-y-6 animate-in fade-in duration-200">
-          
-          {/* TARJETAS DE MÉTRICAS DE STOCK */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setInventoryStatusFilter("ALL")}
-              className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
-                inventoryStatusFilter === "ALL"
-                  ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                  : "bg-white border-slate-200 text-slate-700 hover:border-slate-300"
-              }`}
-            >
-              <div className="min-h-[28px] flex items-start justify-between gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
-                  Piezas en Catálogo
-                </span>
-              </div>
-              <span className="text-xl font-black mt-1 block">
-                {inventoryStats?.totalCatalogItems ?? inventoryItems.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInventoryStatusFilter("IN_STOCK")}
-              className={`p-3.5 rounded-2xl border text-left transition-all h-full min-h-[92px] flex flex-col justify-between cursor-pointer ${
-                inventoryStatusFilter === "IN_STOCK"
-                  ? "bg-emerald-700 text-white border-emerald-700 shadow-md"
-                  : "bg-white border-emerald-200 text-emerald-950 hover:bg-emerald-50/50"
-              }`}
-            >
-              <div className="min-h-[28px] flex items-start justify-between gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider block opacity-70 leading-tight">
-                  Unidades Físicas en Stock
-                </span>
-              </div>
-              <span className={`text-xl font-black mt-1 block ${inventoryStatusFilter === "IN_STOCK" ? "text-white" : "text-emerald-600"}`}>
-                {inventoryStats?.totalUnitsInStock ?? inventoryItems.reduce((acc, it) => acc + Math.max(0, it.stock || 0), 0)} u.
-              </span>
-            </button>
-          </div>
-
           {/* BARRA DE FILTROS Y BÚSQUEDA DE STOCK */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="relative flex-1">
