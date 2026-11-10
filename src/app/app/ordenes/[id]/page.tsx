@@ -728,14 +728,14 @@ export default function OrdenDetallePage() {
     <div className="space-y-6">
       {/* Botón Volver y Acciones Principales */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/app/ordenes"
-            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </Link>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
                 Orden de Trabajo
@@ -744,20 +744,20 @@ export default function OrdenDetallePage() {
                 #{order.numeroOrden}
               </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 truncate">
               {order.vehicle.marca} {order.vehicle.modelo} ({order.vehicle.patente})
             </h1>
           </div>
         </div>
 
-        {/* Acciones de Peritaje y Estado */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+        {/* Acciones de Peritaje y Estado en Columna */}
+        <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0">
           {isCancelled ? (
             <div
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs whitespace-nowrap"
               title="Esta orden de trabajo fue dada de baja y archivada"
             >
-              <Ban className="w-3.5 h-3.5 text-rose-600" />
+              <Ban className="w-3.5 h-3.5 text-rose-600 shrink-0" />
               <span>Orden Dada de Baja</span>
             </div>
           ) : (
@@ -766,18 +766,18 @@ export default function OrdenDetallePage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
                   title="Ver Peritaje de Ingreso Registrado por el Mecánico"
                 >
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4 shrink-0" />
                   <span>Ver Peritaje Realizado</span>
                 </button>
               ) : (
                 <div
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs whitespace-nowrap"
                   title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
                 >
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   <span>Peritaje Técnico Pendiente</span>
                 </div>
               )}
@@ -791,10 +791,10 @@ export default function OrdenDetallePage() {
                     setBajaError(null);
                     setDarDeBajaModalOpen(true);
                   }}
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
                   title="Dar de baja y archivar esta orden de trabajo con justificación"
                 >
-                  <Ban className="w-4 h-4 text-white" />
+                  <Ban className="w-4 h-4 text-white shrink-0" />
                   <span>Dar de baja orden</span>
                 </button>
               )}
