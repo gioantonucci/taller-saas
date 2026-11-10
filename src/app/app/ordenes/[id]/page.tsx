@@ -727,7 +727,7 @@ export default function OrdenDetallePage() {
   return (
     <div className="space-y-6">
       {/* Botón Volver y Acciones Principales */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/app/ordenes"
@@ -750,11 +750,11 @@ export default function OrdenDetallePage() {
           </div>
         </div>
 
-        {/* Acciones de Peritaje y Estado en Columna */}
-        <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0">
+        {/* Acciones de Peritaje y Estado: uno al lado del otro pero bajo el título */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {isCancelled ? (
             <div
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs whitespace-nowrap"
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs whitespace-nowrap"
               title="Esta orden de trabajo fue dada de baja y archivada"
             >
               <Ban className="w-3.5 h-3.5 text-rose-600 shrink-0" />
@@ -774,7 +774,7 @@ export default function OrdenDetallePage() {
                 </button>
               ) : (
                 <div
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs whitespace-nowrap"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs whitespace-nowrap"
                   title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
                 >
                   <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
