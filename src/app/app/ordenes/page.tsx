@@ -87,10 +87,10 @@ export default function OrdenesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("TODOS");
-  const [sortField, setSortField] = useState<"vehiculo" | "cliente" | "mecanico" | "estado" | "fecha">("fecha");
+  const [sortField, setSortField] = useState<"patente" | "vehiculo" | "cliente" | "mecanico" | "estado" | "fecha">("fecha");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
-  const handleSort = (field: "vehiculo" | "cliente" | "mecanico" | "estado" | "fecha") => {
+  const handleSort = (field: "patente" | "vehiculo" | "cliente" | "mecanico" | "estado" | "fecha") => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
@@ -1124,9 +1124,13 @@ export default function OrdenesPage() {
     return [...list].sort((a, b) => {
       let comparison = 0;
 
-      if (sortField === "vehiculo") {
-        const strA = `${a.vehicle?.marca || ""} ${a.vehicle?.modelo || ""} ${a.vehicle?.patente || ""} ${a.numeroOrden || 0}`.trim().toLowerCase();
-        const strB = `${b.vehicle?.marca || ""} ${b.vehicle?.modelo || ""} ${b.vehicle?.patente || ""} ${b.numeroOrden || 0}`.trim().toLowerCase();
+      if (sortField === "patente") {
+        const strA = (a.vehicle?.patente || "").trim().toLowerCase();
+        const strB = (b.vehicle?.patente || "").trim().toLowerCase();
+        comparison = strA.localeCompare(strB, "es", { numeric: true });
+      } else if (sortField === "vehiculo") {
+        const strA = `${a.vehicle?.marca || ""} ${a.vehicle?.modelo || ""} ${a.numeroOrden || 0}`.trim().toLowerCase();
+        const strB = `${b.vehicle?.marca || ""} ${b.vehicle?.modelo || ""} ${b.numeroOrden || 0}`.trim().toLowerCase();
         comparison = strA.localeCompare(strB, "es", { numeric: true });
       } else if (sortField === "cliente") {
         const strA = `${a.vehicle?.client?.nombre || ""} ${a.vehicle?.client?.apellido || ""}`.trim().toLowerCase();
@@ -1531,6 +1535,28 @@ export default function OrdenesPage() {
             <table className="w-full text-left border-collapse text-xs min-w-[750px]">
               <thead>
                 <tr className="bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 select-none">
+                  {/* Columna 1: Patente */}
+                  <th
+                    onClick={() => handleSort("patente")}
+                    className={`py-3 px-4 whitespace-nowrap cursor-pointer hover:bg-slate-100/80 transition-colors ${
+                      sortField === "patente" ? "text-slate-900 font-extrabold" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Patente</span>
+                      {sortField === "patente" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Columna 2: Vehículo */}
                   <th
                     onClick={() => handleSort("vehiculo")}
                     className={`py-3 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors ${
@@ -1538,7 +1564,7 @@ export default function OrdenesPage() {
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>Vehículo y Patente</span>
+                      <span>Vehículo</span>
                       {sortField === "vehiculo" ? (
                         sortDirection === "asc" ? (
                           <ArrowUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
@@ -1640,20 +1666,20 @@ export default function OrdenesPage() {
                       onClick={() => router.push(`/app/ordenes/${orden.id}`)}
                       className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                     >
-                      {/* 1. Vehículo */}
+                      {/* 1. Patente */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <ArgentinePlateBadge patente={orden.vehicle.patente} />
+                      </td>
+
+                      {/* 2. Vehículo */}
                       <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <ArgentinePlateBadge patente={orden.vehicle.patente} />
-                          <div>
-                            <span className="font-extrabold text-slate-900 group-hover:text-sky-600 transition-colors block text-xs">
-                              {orden.vehicle.marca} {orden.vehicle.modelo}
-                            </span>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                Orden #{orden.numeroOrden}
-                              </span>
-                            </div>
-                          </div>
+                        <span className="font-extrabold text-slate-900 group-hover:text-sky-600 transition-colors block text-xs">
+                          {orden.vehicle.marca} {orden.vehicle.modelo}
+                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Orden #{orden.numeroOrden}
+                          </span>
                         </div>
                       </td>
 

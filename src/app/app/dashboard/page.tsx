@@ -379,7 +379,8 @@ export default function DashboardPage() {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <th className="py-3 px-4">Orden</th>
-                <th className="py-3 px-4">Vehículo y Patente</th>
+                <th className="py-3 px-4">Patente</th>
+                <th className="py-3 px-4">Vehículo</th>
                 <th className="py-3 px-4">Cliente</th>
                 <th className="py-3 px-4">Mecánico Asignado</th>
                 <th className="py-3 px-4">Estado</th>
@@ -400,12 +401,15 @@ export default function DashboardPage() {
                       #{orden.numeroOrden}
                     </td>
 
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="font-mono text-xs px-2 py-1 rounded-md bg-slate-100 font-extrabold text-slate-800 border border-slate-200">
+                        {orden.vehicle.patente}
+                      </span>
+                    </td>
+
                     <td className="py-3 px-4">
                       <span className="font-semibold text-slate-800 group-hover:text-sky-600 transition-colors block">
                         {orden.vehicle.marca} {orden.vehicle.modelo}
-                      </span>
-                      <span className="inline-block mt-0.5 font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-bold text-slate-700">
-                        {orden.vehicle.patente}
                       </span>
                     </td>
 
