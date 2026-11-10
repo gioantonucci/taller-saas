@@ -57,6 +57,19 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
+    // Si el usuario es test@test.com, activar la bandera de modo de prueba
+    if (result.user.email?.toLowerCase() === "test@test.com") {
+      response.cookies.set("poggi_test_mode", "1", {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24,
+        path: "/",
+      });
+    } else {
+      response.cookies.delete("poggi_test_mode");
+    }
+
     return response;
   } catch (error: any) {
     console.error("Error en POST /api/auth/login:", error);

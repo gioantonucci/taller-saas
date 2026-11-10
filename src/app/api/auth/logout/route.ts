@@ -20,5 +20,6 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ success: true, message: "Sesión cerrada exitosamente" });
   response.cookies.delete("auth_token");
+  response.cookies.delete("poggi_test_mode");
   return response;
 }

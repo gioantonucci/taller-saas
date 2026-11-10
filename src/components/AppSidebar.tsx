@@ -20,12 +20,15 @@ import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 
 interface AppSidebarProps {
   user: UserSession;
+  isTestMode?: boolean;
 }
 
-export default function AppSidebar({ user }: AppSidebarProps) {
+export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [switchTargetRole, setSwitchTargetRole] = useState<string>("");
 
   // Normalizar rol
   const role = String(user.role || "").toUpperCase();
@@ -48,6 +51,48 @@ export default function AppSidebar({ user }: AppSidebarProps) {
     } catch (err) {
       console.error("Error al cerrar sesión:", err);
       window.location.href = "/login";
+    }
+  };
+
+  // Selector rápido exclusivo para modo de prueba (test@test.com)
+  const handleQuickSwitch = async (email: string) => {
+    const targetName = email.includes("admin")
+      ? "Administrador"
+      : email.includes("recepcion")
+      ? "Recepción"
+      : email.includes("test")
+      ? "Usuario Test"
+      : "Mecánico";
+
+    setSwitchTargetRole(targetName);
+    setIsSwitching(true);
+
+    try {
+      const [res] = await Promise.all([
+        fetch("/api/auth/test-switch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }),
+        new Promise((r) => setTimeout(r, 650)),
+      ]);
+
+      if (res.ok) {
+        const data = await res.json();
+        const nextRole = String(data.user?.role || "").toUpperCase();
+        if (nextRole === "MECHANIC" || nextRole === "MECANICO") {
+          window.location.href = "/app/taller/hoja-ruta";
+        } else if (nextRole === "RECEPTION" || nextRole === "RECEPCION") {
+          window.location.href = "/app/ordenes";
+        } else {
+          window.location.href = "/app/dashboard";
+        }
+      } else {
+        setIsSwitching(false);
+      }
+    } catch (err) {
+      console.error("Error al cambiar rol:", err);
+      setIsSwitching(false);
     }
   };
 
@@ -136,6 +181,15 @@ export default function AppSidebar({ user }: AppSidebarProps) {
         submessage="Finalizando sesión de forma segura..."
       />
 
+      {/* Overlay de Carga al Cambiar de Rol (solo modo test) */}
+      {isTestMode && (
+        <AuthLoadingOverlay
+          isOpen={isSwitching}
+          message="Cambiando de usuario..."
+          submessage={`Cargando perfil y permisos de ${switchTargetRole || "usuario"}...`}
+        />
+      )}
+
       {/* ========================================================================= */}
       {/* 1. TOP BAR MOBILE (Visible en celulares: md:hidden)                       */}
       {/* ========================================================================= */}
@@ -161,9 +215,67 @@ export default function AppSidebar({ user }: AppSidebarProps) {
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Selector rápido de rol solo para test@test.com / modo prueba */}
+          {isTestMode && (
+            <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch("admin@taller.com")}
+                disabled={isSwitching || loggingOut}
+                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                  user.email === "admin@taller.com"
+                    ? "bg-purple-600 text-white shadow-2xs"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Cambiar a Administrador"
+              >
+                Adm
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch("recepcion@taller.com")}
+                disabled={isSwitching || loggingOut}
+                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                  user.email === "recepcion@taller.com"
+                    ? "bg-sky-600 text-white shadow-2xs"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Cambiar a Recepción"
+              >
+                Rec
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch("mecanico@taller.com")}
+                disabled={isSwitching || loggingOut}
+                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                  user.email === "mecanico@taller.com"
+                    ? "bg-emerald-600 text-white shadow-2xs"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Cambiar a Mecánico"
+              >
+                Mec
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSwitch("test@test.com")}
+                disabled={isSwitching || loggingOut}
+                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                  user.email === "test@test.com"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Volver a Test"
+              >
+                Test
+              </button>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
-            disabled={loggingOut}
+            disabled={loggingOut || isSwitching}
             className="text-xs text-rose-300 hover:text-white flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -316,11 +428,75 @@ export default function AppSidebar({ user }: AppSidebarProps) {
           </nav>
         </div>
 
-        {/* Parte Inferior: Botón Cerrar Sesión */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/90">
+        {/* Parte Inferior: Selector Rápido de Prueba (solo en modo test) y Botón Cerrar Sesión */}
+        <div className={`p-4 border-t border-slate-800 bg-slate-900/90 ${isTestMode ? "space-y-3" : ""}`}>
+          {isTestMode && (
+            <div>
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2">
+                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                <span>Simulador de Roles (Test)</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                <button
+                  type="button"
+                  onClick={() => handleQuickSwitch("admin@taller.com")}
+                  disabled={isSwitching || loggingOut}
+                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                    user.email === "admin@taller.com"
+                      ? "bg-purple-900/60 text-purple-200 border-purple-500"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                  }`}
+                  title="Cambiar a ADMIN"
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickSwitch("recepcion@taller.com")}
+                  disabled={isSwitching || loggingOut}
+                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                    user.email === "recepcion@taller.com"
+                      ? "bg-sky-900/60 text-sky-200 border-sky-500"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                  }`}
+                  title="Cambiar a RECEPTION"
+                >
+                  Recep
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickSwitch("mecanico@taller.com")}
+                  disabled={isSwitching || loggingOut}
+                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                    user.email === "mecanico@taller.com"
+                      ? "bg-emerald-900/60 text-emerald-200 border-emerald-500"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                  }`}
+                  title="Cambiar a MECHANIC"
+                >
+                  Mecánico
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickSwitch("test@test.com")}
+                  disabled={isSwitching || loggingOut}
+                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                    user.email === "test@test.com"
+                      ? "bg-amber-900/60 text-amber-200 border-amber-500"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                  }`}
+                  title="Volver a Test"
+                >
+                  Test
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Botón de Cerrar Sesión */}
           <button
             onClick={handleLogout}
-            disabled={loggingOut}
+            disabled={isSwitching || loggingOut}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/40 hover:text-rose-300 border border-slate-700/80 hover:border-rose-700/50 text-slate-300 text-xs font-bold transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
