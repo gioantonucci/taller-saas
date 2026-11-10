@@ -750,11 +750,11 @@ export default function OrdenDetallePage() {
           </div>
         </div>
 
-        {/* Acciones de Peritaje y Estado: uno al lado del otro pero bajo el título */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        {/* Acciones de Peritaje y Estado en 2 Columnas (ocupando el 100% de la columna) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 w-full">
           {isCancelled ? (
             <div
-              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs whitespace-nowrap"
+              className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-100 border border-rose-300 text-rose-800 font-extrabold text-xs shadow-2xs whitespace-nowrap col-span-full"
               title="Esta orden de trabajo fue dada de baja y archivada"
             >
               <Ban className="w-3.5 h-3.5 text-rose-600 shrink-0" />
@@ -766,7 +766,7 @@ export default function OrdenDetallePage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
                   title="Ver Peritaje de Ingreso Registrado por el Mecánico"
                 >
                   <Eye className="w-4 h-4 shrink-0" />
@@ -774,7 +774,7 @@ export default function OrdenDetallePage() {
                 </button>
               ) : (
                 <div
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs whitespace-nowrap"
                   title="El peritaje técnico de ingreso debe ser completado por el mecánico asignado en el taller"
                 >
                   <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -791,7 +791,7 @@ export default function OrdenDetallePage() {
                     setBajaError(null);
                     setDarDeBajaModalOpen(true);
                   }}
-                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/25 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
                   title="Dar de baja y archivar esta orden de trabajo con justificación"
                 >
                   <Ban className="w-4 h-4 text-white shrink-0" />
