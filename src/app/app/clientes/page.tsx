@@ -241,132 +241,137 @@ export default function ClientesPage() {
         </button>
       </div>
 
-      {/* Tabla de Clientes Activos */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-            Listado de Clientes Activos ({clients.length})
-          </h2>
+      {/* Listado / Tabla de Clientes Activos */}
+      {loading && clients.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
+          <RefreshCw className="w-6 h-6 animate-spin text-sky-600" />
+          <span className="text-xs">Cargando directorio de clientes...</span>
         </div>
-
-        {loading && clients.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <RefreshCw className="w-6 h-6 animate-spin text-sky-600" />
-            <span className="text-xs">Cargando directorio de clientes...</span>
-          </div>
-        ) : clients.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 space-y-2">
-            <Users className="w-8 h-8 mx-auto text-slate-300" />
-            <p className="text-sm font-semibold text-slate-700">No se encontraron clientes activos</p>
-            <p className="text-xs">Podés registrar uno nuevo utilizando el botón "Nuevo Cliente".</p>
-          </div>
-        ) : (
-          <>
-            {/* VISTA MOBILE: Tarjetas Responsivas */}
-            <div className="md:hidden divide-y divide-slate-100">
-              {clients.map((c) => (
-                <div
-                  key={c.id}
-                  onClick={() => router.push(`/app/clientes/${c.id}`)}
-                  className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors text-sm block">
-                        {c.nombre} {c.apellido}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => openEditModal(c)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
-                        title="Editar Cliente"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleSoftDelete(c)}
-                        className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <Link
-                        href={`/app/clientes/${c.id}`}
-                        className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-sky-600 text-slate-700 group-hover:text-white transition-colors"
-                        title="Ver Ficha Completa"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Contacto & Dirección */}
-                  <div className="space-y-1 text-xs">
-                    {c.telefono ? (
-                      <a
-                        href={`tel:${c.telefono}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-slate-700 font-medium hover:text-sky-600"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{c.telefono}</span>
-                      </a>
-                    ) : (
-                      <span className="text-slate-400 italic text-[11px] block">Sin teléfono</span>
-                    )}
-
-                    {c.email && (
-                      <a
-                        href={`mailto:${c.email}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-slate-500 text-[11px] hover:text-sky-600 truncate"
-                      >
-                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{c.email}</span>
-                      </a>
-                    )}
-
-                    {hasValidAddress(c.direccion) ? (
-                      <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pt-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{c.direccion}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-slate-400 text-[11px] pt-0.5 italic">
-                        <span>No especificada</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Vehículos del cliente */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-semibold">
-                      Vehículos ({c.vehicles?.length || 0})
-                    </span>
-                    <div className="flex flex-wrap gap-1 items-center justify-end">
-                      {c.vehicles?.map((v: any) => (
-                        <Link
-                          key={v.id}
-                          href={`/app/vehiculos/${v.patente}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
-                        >
-                          {v.patente}
-                        </Link>
-                      ))}
-                      {(!c.vehicles || c.vehicles.length === 0) && (
-                        <span className="text-[10px] text-slate-400 italic">Sin vehículos asociados</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      ) : clients.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center text-slate-400 space-y-2">
+          <Users className="w-8 h-8 mx-auto text-slate-300" />
+          <p className="text-sm font-semibold text-slate-700">No se encontraron clientes activos</p>
+          <p className="text-xs">Podés registrar uno nuevo utilizando el botón "Nuevo Cliente".</p>
+        </div>
+      ) : (
+        <>
+          {/* VISTA MOBILE: Tarjetas Individuales e Independientes */}
+          <div className="md:hidden space-y-3.5">
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                Listado de Clientes Activos ({clients.length})
+              </h2>
             </div>
 
-            {/* VISTA DESKTOP: Tabla con Min-Width */}
-            <div className="hidden md:block overflow-x-auto">
+            {clients.map((c) => (
+              <div
+                key={c.id}
+                onClick={() => router.push(`/app/clientes/${c.id}`)}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all p-4 space-y-3 cursor-pointer group"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-slate-900 group-hover:text-sky-600 transition-colors text-sm block">
+                      {c.nombre} {c.apellido}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => openEditModal(c)}
+                      className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                      title="Editar Cliente"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleSoftDelete(c)}
+                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <Link
+                      href={`/app/clientes/${c.id}`}
+                      className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-sky-600 text-slate-700 group-hover:text-white transition-colors"
+                      title="Ver Ficha Completa"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Contacto & Dirección */}
+                <div className="space-y-1 text-xs">
+                  {c.telefono ? (
+                    <a
+                      href={`tel:${c.telefono}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-slate-700 font-medium hover:text-sky-600"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{c.telefono}</span>
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 italic text-[11px] block">Sin teléfono</span>
+                  )}
+
+                  {c.email && (
+                    <a
+                      href={`mailto:${c.email}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-slate-500 text-[11px] hover:text-sky-600 truncate"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{c.email}</span>
+                    </a>
+                  )}
+
+                  {hasValidAddress(c.direccion) ? (
+                    <div className="flex items-center gap-1.5 text-slate-500 text-[11px] pt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{c.direccion}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-slate-400 text-[11px] pt-0.5 italic">
+                      <span>No especificada</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Vehículos del cliente */}
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 font-semibold">
+                    Vehículos ({c.vehicles?.length || 0})
+                  </span>
+                  <div className="flex flex-wrap gap-1 items-center justify-end">
+                    {c.vehicles?.map((v: any) => (
+                      <Link
+                        key={v.id}
+                        href={`/app/vehiculos/${v.patente}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-700 border border-slate-200"
+                      >
+                        {v.patente}
+                      </Link>
+                    ))}
+                    {(!c.vehicles || c.vehicles.length === 0) && (
+                      <span className="text-[10px] text-slate-400 italic">Sin vehículos asociados</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* VISTA DESKTOP: Tabla Tradicional */}
+          <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                Listado de Clientes Activos ({clients.length})
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-xs min-w-[650px]">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 text-[10px] uppercase font-bold tracking-wider">
                   <tr>
@@ -473,9 +478,9 @@ export default function ClientesPage() {
                 </tbody>
               </table>
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Modal / Sheet de Alta y Edición con ZOD + REACT HOOK FORM */}
       {modalOpen && (
