@@ -8,7 +8,6 @@ import {
   Clock,
   CheckCircle2,
   Users,
-  Plus,
   ChevronRight,
   Wrench,
   ShieldAlert,
@@ -178,16 +177,6 @@ export default function DashboardPage() {
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Métricas operativas del taller, rotación de vehículos y seguimiento en tiempo real.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={() => setModalOpen(true)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ingreso Rápido de Vehículo</span>
-          </button>
         </div>
       </div>
 
