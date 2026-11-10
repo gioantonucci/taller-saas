@@ -1191,42 +1191,51 @@ export default function HojaRutaMecanicoPage() {
               </div>
             </div>
 
-            {/* Datos Técnicos y Contacto Directo */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs">
-              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
-                <Car className="w-4 h-4 text-slate-500 shrink-0" />
-                <div className="truncate">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Año / Color</span>
-                  <span className="font-bold text-slate-800 truncate block mt-0.5">
+            {/* Datos Técnicos y Contacto Directo: Optimizado en 2 columnas en tablet/móvil y 4 columnas en desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-slate-200/80 flex items-center justify-center shrink-0">
+                  <Car className="w-4 h-4 text-slate-600" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">Año / Color</span>
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm truncate block mt-1">
                     {selectedOrder.vehicle.anio} • {selectedOrder.vehicle.color || "s/d"}
                   </span>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
-                <Fuel className="w-4 h-4 text-amber-500 shrink-0" />
-                <div className="truncate">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Nafta</span>
-                  <span className="font-bold text-slate-800 truncate block mt-0.5">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                  <Fuel className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">Combustible</span>
+                  <span className="font-bold text-slate-800 text-xs sm:text-sm truncate block mt-1">
                     {selectedOrder.nivelNafta || "1/2"}
                   </span>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-2">
-                <Gauge className="w-4 h-4 text-sky-500 shrink-0" />
-                <div className="truncate">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Odómetro</span>
-                  <span className="font-bold font-mono text-slate-800 truncate block mt-0.5">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+                  <Gauge className="w-4 h-4 text-sky-600" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">Odómetro</span>
+                  <span className="font-bold font-mono text-slate-800 text-xs sm:text-sm truncate block mt-1">
                     {selectedOrder.kilometraje ? `${Number(selectedOrder.kilometraje).toLocaleString("es-AR")} km` : "s/d"}
                   </span>
                 </div>
               </div>
 
-              <div className="col-span-3 sm:col-span-1 p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2">
-                <div className="truncate">
-                  <span className="text-[9px] uppercase font-bold text-slate-400 block leading-none">Titular</span>
-                  <span className="font-bold text-slate-800 truncate block mt-0.5">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2.5">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block leading-none">Titular</span>
+                  <span
+                    className="font-bold text-slate-800 text-xs sm:text-sm truncate block mt-1"
+                    title={`${selectedOrder.vehicle.client.nombre} ${selectedOrder.vehicle.client.apellido || ""}`}
+                  >
                     {selectedOrder.vehicle.client.nombre} {selectedOrder.vehicle.client.apellido || ""}
                   </span>
                 </div>
@@ -1234,7 +1243,7 @@ export default function HojaRutaMecanicoPage() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <a
                       href={`tel:${selectedOrder.vehicle.client.telefono}`}
-                      className="p-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 transition-colors shadow-2xs"
+                      className="p-2 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 transition-colors shadow-2xs"
                       title="Llamar al cliente"
                     >
                       <Phone className="w-3.5 h-3.5" />
@@ -1245,7 +1254,7 @@ export default function HojaRutaMecanicoPage() {
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors shadow-2xs"
+                      className="p-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white transition-colors shadow-2xs"
                       title="Enviar WhatsApp"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
@@ -1256,22 +1265,22 @@ export default function HojaRutaMecanicoPage() {
             </div>
 
             {/* Motivo de Consulta Reportado */}
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs text-slate-700">
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs text-slate-700">
               <span className="font-bold text-slate-900 block text-[11px] mb-0.5">
                 Motivo de Ingreso / Tarea a Realizar:
               </span>
-              <p className="leading-relaxed text-slate-600">
+              <p className="leading-relaxed text-slate-600 text-xs sm:text-sm">
                 {selectedOrder.detallesIngreso || "Mantenimiento general y diagnóstico."}
               </p>
             </div>
 
             {selectedOrder.comentariosDuenio?.trim() && (
-              <div className="p-3 bg-amber-50/90 rounded-2xl border border-amber-200/90 text-xs text-amber-950 space-y-1">
+              <div className="p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200/90 text-xs text-amber-950 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold text-[11px] text-amber-900">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>Declaración inicial de daños del dueño (Solo lectura):</span>
                 </div>
-                <p className="font-semibold text-slate-800 italic pl-5">
+                <p className="font-semibold text-slate-800 italic pl-5 text-xs sm:text-sm">
                   &ldquo;{selectedOrder.comentariosDuenio.trim()}&rdquo;
                 </p>
               </div>
@@ -1279,21 +1288,21 @@ export default function HojaRutaMecanicoPage() {
 
             {/* Peritaje Registrado: Resumen con botón de Ver Ficha para el Mecánico */}
             {isSelectedOrderPeritajeCerrado && (
-              <div className="p-4 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                 <div className="flex items-start sm:items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-xs text-white">
+                      <span className="font-extrabold text-xs sm:text-sm text-white">
                         Peritaje de Ingreso Registrado
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         Solo Lectura
                       </span>
                     </div>
-                    <span className="text-[11px] text-slate-300 block mt-0.5">
+                    <span className="text-[11px] sm:text-xs text-slate-300 block mt-0.5">
                       {parsedPeritajeInfo?.peritadorNombre ? `Peritado por ${parsedPeritajeInfo.peritadorNombre}` : "Constatación legal completada"} • Solo Consulta
                     </span>
                   </div>
@@ -1301,7 +1310,7 @@ export default function HojaRutaMecanicoPage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0 active:scale-95"
                 >
                   <Eye className="w-4 h-4" />
                   <span>Ver Peritaje</span>
@@ -1311,18 +1320,18 @@ export default function HojaRutaMecanicoPage() {
           </div>
 
           {/* ========================================================================= */}
-          {/* TARJETA DE ACCIÓN GUIADA SEGÚN LA ETAPA (PASO A PASO OBLIGATORIO)         */}
+          {/* TARJETA DE ACCIÓN GUIADA SEGÚN LA ETAPA (ENCOLUMNADA VERTICALMENTE)       */}
           {/* ========================================================================= */}
           <div className="rounded-3xl p-4 sm:p-5 shadow-sm border space-y-3 transition-all bg-white border-slate-200">
             {/* ETAPA 1: PENDIENTE DE PERITAJE */}
             {isSelectedOrderInPeritaje && (
-              <div className="bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border border-rose-200/80 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm text-lg">
+              <div className="bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border border-rose-200/80 rounded-2xl p-4 sm:p-5 text-slate-900 flex flex-col gap-4 shadow-xs">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-sm text-xl">
                     📋
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 bg-rose-100 px-2 py-0.5 rounded-md">
                         Etapa 1: Inspección de Ingreso
                       </span>
@@ -1330,10 +1339,10 @@ export default function HojaRutaMecanicoPage() {
                         Paso Requerido
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900">
+                    <h4 className="font-black text-sm sm:text-base text-slate-900">
                       Peritaje Pendiente
                     </h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                       Registrá los daños de carrocería, testigos del tablero y fotos para habilitar la reparación técnica.
                     </p>
                   </div>
@@ -1342,7 +1351,7 @@ export default function HojaRutaMecanicoPage() {
                 <button
                   type="button"
                   onClick={() => setPeritajeModalOpen(true)}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full py-3.5 px-5 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.99] text-white font-extrabold text-sm shadow-md shadow-rose-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <span>Comenzar Peritaje de Ingreso</span>
                   <ArrowRight className="w-4 h-4" />
@@ -1352,30 +1361,30 @@ export default function HojaRutaMecanicoPage() {
 
             {/* ETAPA 2: EN REPARACIÓN */}
             {isSelectedOrderInReparacion && (
-              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm text-lg">
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/80 rounded-2xl p-4 sm:p-5 text-slate-900 flex flex-col gap-4 shadow-xs">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm text-xl">
                     🔧
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-black uppercase tracking-wider text-blue-800 bg-blue-100 px-2 py-0.5 rounded-md">
                         Etapa 2: Reparación Activa
                       </span>
-                      <span className="text-[11px] font-bold text-blue-900 bg-blue-100/70 px-2 py-0.5 rounded-md border border-blue-200/60 font-mono">
+                      <span className="text-[11px] font-bold text-blue-900 bg-blue-100/70 px-2.5 py-0.5 rounded-md border border-blue-200/60 font-mono">
                         {totalHorasInvertidas} hs acumuladas
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900">
+                    <h4 className="font-black text-sm sm:text-base text-slate-900">
                       Trabajo Mecánico en Taller
                     </h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      Cargá tareas y horas en el WorkLog. Podés pausar si faltan piezas o finalizar al concluir.
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      Cargá tareas y horas en la Bitácora. Podés pausar si faltan piezas o finalizar al concluir la reparación.
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto pt-2 sm:pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                   <button
                     type="button"
                     disabled={savingStatus}
@@ -1383,7 +1392,7 @@ export default function HojaRutaMecanicoPage() {
                       setOrderToPause(selectedOrder);
                       setPausaRepuestoModalOpen(true);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 active:scale-[0.99] font-bold text-xs shadow-xs transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-white border-2 border-amber-300 text-amber-900 hover:bg-amber-50 active:scale-[0.99] font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                     title="Pausar trabajo indicando falla y repuestos necesarios"
                   >
                     <PauseCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -1396,7 +1405,7 @@ export default function HojaRutaMecanicoPage() {
                       setOrderToFinalize(selectedOrder);
                       setFinalizarModalOpen(true);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                     title="Marcar reparación concluida y lista para entrega"
                   >
                     <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
@@ -1408,24 +1417,24 @@ export default function HojaRutaMecanicoPage() {
 
             {/* ETAPA 3: ESPERANDO REPUESTOS */}
             {isSelectedOrderInEsperaRepuestos && (
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm text-lg">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 sm:p-5 text-slate-900 flex flex-col gap-4 shadow-xs">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm text-xl">
                     ⏸️
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
                         Etapa 3: Trabajo Pausado
                       </span>
-                      <span className="text-[10px] font-bold text-amber-700">
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-md border border-amber-200/60">
                         Aguardando repuestos
                       </span>
                     </div>
-                    <h4 className="font-black text-sm text-slate-900">
+                    <h4 className="font-black text-sm sm:text-base text-slate-900">
                       En Espera de Repuestos o Insumos
                     </h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                       Cuando lleguen las piezas necesarias, reanudá el trabajo para continuar con la mecánica.
                     </p>
                   </div>
@@ -1435,9 +1444,9 @@ export default function HojaRutaMecanicoPage() {
                   type="button"
                   disabled={savingStatus}
                   onClick={() => handleUpdateStatus(selectedOrder.id, "EN_CURSO")}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 active:scale-95"
+                  className="w-full py-3.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-extrabold text-sm shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
-                  <PlayCircle className="w-4 h-4 text-white" />
+                  <PlayCircle className="w-5 h-5 text-white" />
                   <span>Reanudar Reparación en Taller</span>
                 </button>
               </div>
@@ -1446,25 +1455,25 @@ export default function HojaRutaMecanicoPage() {
             {/* ETAPA 4: FINALIZADO */}
             {isSelectedOrderTerminado && (
               <div className="space-y-3">
-                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-start sm:items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <CheckCircle2 className="w-5 h-5" />
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4 sm:p-5 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <CheckCircle2 className="w-6 h-6" />
                     </div>
                     <div>
                       <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md inline-block mb-1">
                         Etapa 4: Reparación Concluida
                       </span>
-                      <h4 className="font-black text-sm text-emerald-950">
+                      <h4 className="font-black text-sm sm:text-base text-emerald-950">
                         Vehículo Listo para Entrega al Cliente
                       </h4>
-                      <p className="text-xs text-emerald-800 mt-0.5">
+                      <p className="text-xs sm:text-sm text-emerald-800 mt-0.5">
                         El trabajo técnico concluyó exitosamente. Recepción puede realizar la entrega y archivo final.
                       </p>
                     </div>
                   </div>
-                  <div className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs self-start sm:self-auto flex items-center gap-1.5 shadow-2xs">
-                    <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="px-3.5 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-800 font-bold text-xs sm:text-sm self-start sm:self-auto flex items-center gap-1.5 shadow-2xs">
+                    <Lock className="w-4 h-4 text-emerald-600" />
                     <span>Cerrada</span>
                   </div>
                 </div>
@@ -1526,22 +1535,22 @@ export default function HojaRutaMecanicoPage() {
           {/* SECCIÓN BITÁCORA Y REGISTRO DE TRABAJOS (WORKLOGS)                         */}
           {/* ========================================================================= */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+              <div className="flex items-start sm:items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
                   <ClipboardList className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
                     Bitácora y Notas Diarias del Proceso de Arreglo
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
+              <div className="flex items-center gap-2.5 self-stretch sm:self-auto justify-between sm:justify-end">
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
                   {selectedOrder.workLogs?.length || 0} {(selectedOrder.workLogs?.length || 0) === 1 ? "nota" : "notas"}
                 </span>
                 {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(selectedOrder.estado) && (
@@ -1563,7 +1572,7 @@ export default function HojaRutaMecanicoPage() {
                       setNewWorkLogFotos([]);
                       setShowAddWorkLog(true);
                     }}
-                    className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 cursor-pointer shrink-0"
+                    className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-black transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
                   >
                     <Plus className="w-4 h-4 stroke-[2.5]" />
                     <span>Cargar Arreglo</span>

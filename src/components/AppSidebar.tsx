@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -14,6 +14,9 @@ import {
   UserCheck,
   Settings,
   Package,
+  Menu,
+  X,
+  PanelLeftClose,
 } from "lucide-react";
 import { UserSession } from "@/types";
 import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
@@ -21,11 +24,23 @@ import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 interface AppSidebarProps {
   user: UserSession;
   isTestMode?: boolean;
+  isMobileOpen?: boolean;
+  onOpenMobile?: () => void;
+  onCloseMobile?: () => void;
+  isDesktopCollapsed?: boolean;
+  onToggleDesktopCollapse?: () => void;
 }
 
-export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps) {
+export default function AppSidebar({
+  user,
+  isTestMode = false,
+  isMobileOpen = false,
+  onOpenMobile,
+  onCloseMobile,
+  isDesktopCollapsed = false,
+  onToggleDesktopCollapse,
+}: AppSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const [switchTargetRole, setSwitchTargetRole] = useState<string>("");
@@ -96,7 +111,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
     }
   };
 
-  // Definición de ítems del menú según RBAC para el MVP V1
+  // Definición de ítems del menú según RBAC
   const allNavItems = [
     {
       href: "/app/dashboard",
@@ -191,21 +206,49 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
       )}
 
       {/* ========================================================================= */}
-      {/* 1. TOP BAR MOBILE (Visible en celulares: md:hidden)                       */}
+      {/* 1. TOP BAR PARA TABLET Y MOBILE (Y DESKTOP CUANDO EL MENÚ ESTÁ OCULTO)     */}
       {/* ========================================================================= */}
-      <header className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-slate-900 text-white px-3 sm:px-4 py-2 border-b border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2">
-          <img
-            src="/images/poggi/logo.png"
-            alt="Logo POGGI"
-            className="w-7 h-7 object-contain"
-          />
-          <div>
-            <span className="font-black text-sm tracking-tight block leading-tight text-[#e5242b]">
-              POGGI
-            </span>
+      <header
+        className={`sticky top-0 z-30 flex items-center justify-between bg-slate-900 text-white px-3 sm:px-5 py-2.5 border-b border-slate-800 shadow-md ${
+          isDesktopCollapsed ? "flex" : "flex lg:hidden"
+        }`}
+      >
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Botón Abrir Menú (Drawer en tablet/móvil o expandir en desktop) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.innerWidth >= 1024 && onToggleDesktopCollapse) {
+                onToggleDesktopCollapse();
+              } else if (onOpenMobile) {
+                onOpenMobile();
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white border border-slate-700 text-xs font-bold transition-all cursor-pointer shadow-xs"
+            aria-label="Abrir menú de navegación"
+            title="Abrir menú"
+          >
+            <Menu className="w-4 h-4 text-emerald-400" />
+            <span className="font-extrabold text-xs">Menú</span>
+          </button>
+
+          {/* Logo y Marca */}
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+            <img
+              src="/images/poggi/logo.png"
+              alt="Logo POGGI"
+              className="w-7 h-7 object-contain"
+            />
+            <div className="hidden sm:block">
+              <span className="font-black text-xs tracking-tight block leading-tight text-[#e5242b]">
+                POGGI
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold block leading-tight">
+                Taller Integral
+              </span>
+            </div>
             <span
-              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border inline-block ${getRoleBadgeClasses(
+              className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border inline-block ${getRoleBadgeClasses(
                 normalizedRole
               )}`}
             >
@@ -214,15 +257,15 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Selector rápido de rol solo para test@test.com / modo prueba */}
+        {/* Acciones del encabezado: Selector Rápido de Prueba + Salir */}
+        <div className="flex items-center gap-2">
           {isTestMode && (
-            <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/60">
+            <div className="flex items-center gap-1 bg-slate-800/90 p-0.5 rounded-lg border border-slate-700/60">
               <button
                 type="button"
                 onClick={() => handleQuickSwitch("admin@taller.com")}
                 disabled={isSwitching || loggingOut}
-                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
                   user.email === "admin@taller.com"
                     ? "bg-purple-600 text-white shadow-2xs"
                     : "text-slate-400 hover:text-white"
@@ -235,7 +278,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                 type="button"
                 onClick={() => handleQuickSwitch("recepcion@taller.com")}
                 disabled={isSwitching || loggingOut}
-                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
                   user.email === "recepcion@taller.com"
                     ? "bg-sky-600 text-white shadow-2xs"
                     : "text-slate-400 hover:text-white"
@@ -248,7 +291,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                 type="button"
                 onClick={() => handleQuickSwitch("mecanico@taller.com")}
                 disabled={isSwitching || loggingOut}
-                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
+                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer ${
                   user.email === "mecanico@taller.com"
                     ? "bg-emerald-600 text-white shadow-2xs"
                     : "text-slate-400 hover:text-white"
@@ -264,83 +307,243 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
             onClick={handleLogout}
             disabled={loggingOut || isSwitching}
             className="text-xs text-rose-300 hover:text-white flex items-center gap-1 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+            title="Cerrar sesión"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-semibold">Salir</span>
+            <span className="text-[11px] font-semibold hidden sm:inline">Salir</span>
           </button>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. BOTTOM NAVIGATION BAR MOBILE                                           */}
+      {/* 2. DRAWER OFF-CANVAS PARA TABLET Y MOBILE (CERRABLE)                      */}
       {/* ========================================================================= */}
-      <nav
-        aria-label="Navegación inferior móvil"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5"
+      <div
+        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
+          isMobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!isMobileOpen}
       >
-        <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              pathname === item.href ||
-              (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
+        {/* Fondo oscuro para cerrar al hacer clic */}
+        <div
+          className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
+          onClick={onCloseMobile}
+        />
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => {
-                  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-                  if (document.documentElement) document.documentElement.scrollTop = 0;
-                  if (document.body) document.body.scrollTop = 0;
-                }}
-                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all min-w-[56px] text-center ${
-                  isActive
-                    ? normalizedRole === "ADMIN"
-                      ? "text-purple-400 bg-purple-500/15 font-bold"
-                      : normalizedRole === "RECEPTION"
-                      ? "text-sky-400 bg-sky-500/15 font-bold"
-                      : "text-emerald-400 bg-emerald-500/15 font-bold"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Icon
-                  className={`w-5 h-5 transition-transform ${
-                    isActive ? "scale-110" : ""
-                  }`}
-                />
-                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[70px]">
-                  {item.mobileBadge || item.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* ========================================================================= */}
-      {/* 3. SIDEBAR DESKTOP (Visible en pantallas medianas y grandes: md:flex)     */}
-      {/* ========================================================================= */}
-      <aside className="hidden md:flex fixed top-0 bottom-0 left-0 z-40 w-64 lg:w-72 bg-slate-900 text-slate-200 flex-col border-r border-slate-800 justify-between">
-        {/* Parte Superior: Branding + Perfil + Navegación */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Logo y Encabezado del Taller */}
-          <div className="p-5 border-b border-slate-800">
-            <Link href="/" className="flex items-center gap-3 group">
+        {/* Panel lateral deslizable */}
+        <aside
+          className={`fixed inset-y-0 left-0 w-72 sm:w-80 max-w-[85vw] bg-slate-900 text-slate-200 flex flex-col border-r border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out ${
+            isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* Encabezado del Drawer con Botón CERRAR claro */}
+          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <Link
+              href="/"
+              onClick={onCloseMobile}
+              className="flex items-center gap-2.5 group"
+            >
               <img
                 src="/images/poggi/logo.png"
                 alt="Logo Poggi Taller Integral"
-                className="w-10 h-10 object-contain drop-shadow"
+                className="w-8 h-8 object-contain drop-shadow"
               />
               <div>
-                <h1 className="font-extrabold text-white text-sm tracking-tight leading-tight">
+                <h1 className="font-extrabold text-white text-xs tracking-tight leading-tight">
                   POGGI TALLER INTEGRAL
                 </h1>
-                <span className="text-[10px] text-[#e5242b] font-semibold tracking-wider uppercase block">
+                <span className="text-[9px] text-[#e5242b] font-semibold tracking-wider uppercase block">
                   Panel de Gestión
                 </span>
               </div>
             </Link>
+
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              className="p-1.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/80 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Cerrar menú lateral"
+              aria-label="Cerrar menú"
+            >
+              <X className="w-5 h-5 text-rose-400" />
+              <span className="text-[11px] font-bold text-slate-200">Cerrar</span>
+            </button>
+          </div>
+
+          {/* Tarjeta de Usuario */}
+          <div className="p-4 border-b border-slate-800/80 bg-slate-900/60">
+            <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
+              <div
+                className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                  normalizedRole === "ADMIN"
+                    ? "bg-purple-600 text-white"
+                    : normalizedRole === "RECEPTION"
+                    ? "bg-sky-600 text-white"
+                    : "bg-emerald-600 text-white"
+                }`}
+              >
+                {user.nombre?.[0] || "U"}
+                {user.apellido?.[0] || ""}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">
+                  {user.nombre} {user.apellido || ""}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Shield className="w-3 h-3 text-sky-400" />
+                  <span
+                    className={`text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded-md border ${getRoleBadgeClasses(
+                      normalizedRole
+                    )}`}
+                  >
+                    {normalizedRole}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Enlaces de Navegación */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+              Menú Principal ({normalizedRole})
+            </span>
+
+            {filteredNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => {
+                    if (onCloseMobile) onCloseMobile();
+                    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                    if (document.documentElement) document.documentElement.scrollTop = 0;
+                    if (document.body) document.body.scrollTop = 0;
+                  }}
+                  className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? normalizedRole === "ADMIN"
+                        ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30"
+                        : normalizedRole === "RECEPTION"
+                        ? "bg-sky-600 text-white font-bold shadow-md shadow-sky-600/30"
+                        : "bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/30"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Pie del Drawer: Modo Test + Cerrar Sesión */}
+          <div className="p-4 border-t border-slate-800 bg-slate-900/90 space-y-3">
+            {isTestMode && (
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2">
+                  <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Simulador de Roles (Test)</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSwitch("admin@taller.com")}
+                    disabled={isSwitching || loggingOut}
+                    className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                      user.email === "admin@taller.com"
+                        ? "bg-purple-900/60 text-purple-200 border-purple-500"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                    }`}
+                  >
+                    Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSwitch("recepcion@taller.com")}
+                    disabled={isSwitching || loggingOut}
+                    className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                      user.email === "recepcion@taller.com"
+                        ? "bg-sky-900/60 text-sky-200 border-sky-500"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                    }`}
+                  >
+                    Recep
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSwitch("mecanico@taller.com")}
+                    disabled={isSwitching || loggingOut}
+                    className={`py-1.5 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                      user.email === "mecanico@taller.com"
+                        ? "bg-emerald-900/60 text-emerald-200 border-emerald-500"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                    }`}
+                  >
+                    Mecánico
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleLogout}
+              disabled={isSwitching || loggingOut}
+              className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/40 hover:text-rose-300 border border-slate-700/80 hover:border-rose-700/50 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{loggingOut ? "Cerrando..." : "Cerrar Sesión"}</span>
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. SIDEBAR DESKTOP (FIJO EN PANTALLAS GRANDES: lg:flex)                   */}
+      {/* ========================================================================= */}
+      <aside
+        className={`hidden lg:flex fixed top-0 bottom-0 left-0 z-40 w-72 bg-slate-900 text-slate-200 flex-col border-r border-slate-800 justify-between transition-transform duration-300 ${
+          isDesktopCollapsed ? "-translate-x-full" : "translate-x-0"
+        }`}
+      >
+        {/* Parte Superior: Branding + Perfil + Navegación */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Logo y Encabezado del Taller + Botón de Ocultar Menú */}
+          <div className="p-5 border-b border-slate-800">
+            <div className="flex items-center justify-between">
+              <Link href="/" className="flex items-center gap-3 group">
+                <img
+                  src="/images/poggi/logo.png"
+                  alt="Logo Poggi Taller Integral"
+                  className="w-10 h-10 object-contain drop-shadow"
+                />
+                <div>
+                  <h1 className="font-extrabold text-white text-sm tracking-tight leading-tight">
+                    POGGI TALLER INTEGRAL
+                  </h1>
+                  <span className="text-[10px] text-[#e5242b] font-semibold tracking-wider uppercase block">
+                    Panel de Gestión
+                  </span>
+                </div>
+              </Link>
+
+              {onToggleDesktopCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleDesktopCollapse}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Ocultar menú lateral"
+                  aria-label="Ocultar menú"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              )}
+            </div>
 
             {/* Tarjeta de Usuario y Rol Activo */}
             <div className="mt-4 p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-between">
@@ -415,7 +618,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
           </nav>
         </div>
 
-        {/* Parte Inferior: Selector Rápido de Prueba (solo en modo test) y Botón Cerrar Sesión */}
+        {/* Parte Inferior: Selector Rápido de Prueba y Cerrar Sesión */}
         <div className={`p-4 border-t border-slate-800 bg-slate-900/90 ${isTestMode ? "space-y-3" : ""}`}>
           {isTestMode && (
             <div>
@@ -467,7 +670,6 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
             </div>
           )}
 
-          {/* Botón de Cerrar Sesión */}
           <button
             onClick={handleLogout}
             disabled={isSwitching || loggingOut}
@@ -478,6 +680,53 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
           </button>
         </div>
       </aside>
+
+      {/* ========================================================================= */}
+      {/* 4. BARRA INFERIOR SOLO EN CELULARES PEQUEÑOS (sm:hidden)                  */}
+      {/* ========================================================================= */}
+      <nav
+        aria-label="Navegación inferior móvil"
+        className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-2xl px-2 py-1.5"
+      >
+        <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
+          {filteredNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/app/dashboard" && pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+                  if (document.documentElement) document.documentElement.scrollTop = 0;
+                  if (document.body) document.body.scrollTop = 0;
+                }}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all min-w-[56px] text-center ${
+                  isActive
+                    ? normalizedRole === "ADMIN"
+                      ? "text-purple-400 bg-purple-500/15 font-bold"
+                      : normalizedRole === "RECEPTION"
+                      ? "text-sky-400 bg-sky-500/15 font-bold"
+                      : "text-emerald-400 bg-emerald-500/15 font-bold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Icon
+                  className={`w-5 h-5 transition-transform ${
+                    isActive ? "scale-110" : ""
+                  }`}
+                />
+                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[70px]">
+                  {item.mobileBadge || item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </>
   );
 }
