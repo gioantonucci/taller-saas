@@ -1750,11 +1750,11 @@ export default function RepuestosPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[850px]">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/75 text-[10px] uppercase font-black tracking-wider text-slate-500">
+                    <tr className="border-b border-slate-200 bg-slate-50/75 text-[10px] uppercase font-black tracking-wider text-slate-500 whitespace-nowrap">
                       <th className="py-3.5 px-4">Código / Ref.</th>
-                      <th className="py-3.5 px-4">Descripción del Repuesto</th>
+                      <th className="py-3.5 px-4 min-w-[220px]">Descripción del Repuesto</th>
                       <th className="py-3.5 px-4">Categoría</th>
                       <th className="py-3.5 px-4 text-center">Estado</th>
                       <th className="py-3.5 px-4 text-right">Precio Venta</th>
@@ -1769,7 +1769,7 @@ export default function RepuestosPage() {
                       return (
                         <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                           {/* Código */}
-                          <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                          <td className="py-3.5 px-4 font-mono font-bold text-slate-700 whitespace-nowrap">
                             {item.codigo ? (
                               <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-900 text-[11px]">
                                 {item.codigo}
@@ -1780,12 +1780,12 @@ export default function RepuestosPage() {
                           </td>
 
                           {/* Nombre */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 min-w-[220px]">
                             <span className="font-bold text-slate-900 block">{item.nombre}</span>
                           </td>
 
                           {/* Categoría */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
                               <Tag className="w-3 h-3 text-slate-400" />
                               <span>{item.categoria || "General"}</span>
@@ -1793,7 +1793,7 @@ export default function RepuestosPage() {
                           </td>
 
                           {/* Estado badge */}
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             {isOutOfStock ? (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-200">
                                 <Ban className="w-3 h-3 text-rose-600" />
@@ -1813,21 +1813,21 @@ export default function RepuestosPage() {
                           </td>
 
                           {/* Precio Venta */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <span className="font-mono text-slate-900 font-bold">
                               {Number(item.precioVenta || 0).toLocaleString("es-ES")} €
                             </span>
                           </td>
 
                           {/* Stock (solo lectura) */}
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <span className="font-mono font-black text-xs text-slate-900">
                               {item.stock}
                             </span>
                           </td>
 
                           {/* Acciones */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
                               {isOutOfStock && !isMechanic && (
                                 <button
@@ -3395,10 +3395,10 @@ export default function RepuestosPage() {
                     </div>
 
                     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-                      <table className="w-full text-left border-collapse text-xs">
+                      <table className="w-full text-left border-collapse text-xs min-w-[650px]">
                         <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase text-slate-500">
-                            <th className="py-2.5 px-3">Descripción / Repuesto *</th>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase text-slate-500 whitespace-nowrap">
+                            <th className="py-2.5 px-3 min-w-[200px]">Descripción / Repuesto *</th>
                             <th className="py-2.5 px-3">Código / Ref</th>
                             <th className="py-2.5 px-3">Categoría</th>
                             <th className="py-2.5 px-3 w-20 text-center">Cant.</th>
