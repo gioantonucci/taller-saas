@@ -622,28 +622,28 @@ export default function VehiculoHistorialClinicoPage() {
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-5 animate-in fade-in">
           {/* Header de la Galería */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                <Camera className="w-5 h-5" />
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0 mt-0.5 sm:mt-0">
+                <Camera className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <h2 className="text-base font-extrabold text-slate-900">
-                  Galería Integral del Vehículo ({allVehiclePhotos.length})
-                </h2>
-                <p className="text-xs text-slate-500">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                    Galería Integral del Vehículo ({allVehiclePhotos.length})
+                  </h2>
+                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                    Mostrando {filteredPhotos.length} de {allVehiclePhotos.length}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
                   Todas las fotografías de peritajes de ingreso, arreglos mecánicos y repuestos asociados a la patente {vehicle.patente}.
                 </p>
               </div>
             </div>
-
-            {/* Contador filtrado */}
-            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full self-start sm:self-auto">
-              Mostrando {filteredPhotos.length} de {allVehiclePhotos.length}
-            </span>
           </div>
 
           {/* Barra de Filtros */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200/80">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 bg-slate-50/80 p-3 sm:p-4 rounded-2xl border border-slate-200/90">
             {/* Filtro por Categoría */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
@@ -656,7 +656,7 @@ export default function VehiculoHistorialClinicoPage() {
                   key={cat.id}
                   type="button"
                   onClick={() => setFilterCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     filterCategory === cat.id
                       ? "bg-indigo-600 text-white shadow-xs"
                       : "bg-white hover:bg-slate-200/70 text-slate-700 border border-slate-200"
@@ -668,12 +668,12 @@ export default function VehiculoHistorialClinicoPage() {
             </div>
 
             {/* Filtro por Orden de Trabajo */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
               <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <select
                 value={filterOrder}
                 onChange={(e) => setFilterOrder(e.target.value)}
-                className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                className="w-full md:w-auto px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
                 <option value="TODAS">Todas las Órdenes</option>
                 {vehicle.workOrders?.map((o: any) => (
