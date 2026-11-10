@@ -1303,7 +1303,7 @@ export default function HojaRutaMecanicoPage() {
                       </span>
                     </div>
                     <span className="text-[11px] sm:text-xs text-slate-300 block mt-0.5">
-                      {parsedPeritajeInfo?.peritadorNombre ? `Peritado por ${parsedPeritajeInfo.peritadorNombre}` : "Constatación legal completada"} • Solo Consulta
+                      {parsedPeritajeInfo?.peritadorNombre ? `Peritado por ${parsedPeritajeInfo.peritadorNombre}` : "Constatación legal completada"}
                     </span>
                   </div>
                 </div>
