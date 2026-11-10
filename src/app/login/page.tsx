@@ -10,7 +10,6 @@ import {
   ShieldAlert,
   ArrowRight,
   Clock,
-  UserCheck,
 } from "lucide-react";
 import AuthLoadingOverlay from "@/components/AuthLoadingOverlay";
 
@@ -26,13 +25,10 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = async (e?: React.FormEvent, customEmail?: string, customPass?: string) => {
-    if (e) e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
     setLoading(true);
-
-    const targetEmail = customEmail || email;
-    const targetPassword = customPass || password;
 
     try {
       // Mínima carga visual para indicarle al usuario la transición
@@ -40,7 +36,7 @@ function LoginForm() {
         fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: targetEmail, password: targetPassword }),
+          body: JSON.stringify({ email, password }),
         }),
         new Promise((r) => setTimeout(r, 600)),
       ]);
@@ -68,12 +64,6 @@ function LoginForm() {
       setError("No se pudo conectar con el servidor de autenticación");
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (roleEmail: string, rolePass: string) => {
-    setEmail(roleEmail);
-    setPassword(rolePass);
-    handleLogin(undefined, roleEmail, rolePass);
   };
 
   return (
@@ -196,49 +186,6 @@ function LoginForm() {
               )}
             </button>
           </form>
-
-          {/* Botones de Acceso Rápido Demo (1-Click Login para evaluadores) */}
-          <div className="mt-6 pt-5 border-t border-slate-700/80">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 text-center mb-3 flex items-center justify-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-sky-400" />
-              <span>Acceso Rápido de Prueba</span>
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("admin@taller.com", "admin123")}
-                className="p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-700/50 text-left transition-colors group cursor-pointer"
-              >
-                <span className="block text-[11px] font-bold text-purple-300 group-hover:text-purple-200">
-                  👑 ADMIN
-                </span>
-                <span className="block text-[10px] text-slate-400 truncate">Patu Poggi (Dueño)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("recepcion@taller.com", "recepcion123")}
-                className="p-2.5 rounded-xl bg-sky-950/40 hover:bg-sky-900/60 border border-sky-700/50 text-left transition-colors group cursor-pointer"
-              >
-                <span className="block text-[11px] font-bold text-sky-300 group-hover:text-sky-200">
-                  📋 RECEPTION
-                </span>
-                <span className="block text-[10px] text-slate-400 truncate">María Gómez (Recepción)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("mecanico@taller.com", "mecanico123")}
-                className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-700/50 text-left transition-colors group cursor-pointer"
-              >
-                <span className="block text-[11px] font-bold text-emerald-300 group-hover:text-emerald-200">
-                  🔧 MECHANIC
-                </span>
-                <span className="block text-[10px] text-slate-400 truncate">Lucas Benítez (Taller)</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="mt-6 text-center">
