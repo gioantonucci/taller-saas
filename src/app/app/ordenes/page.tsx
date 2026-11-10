@@ -1796,15 +1796,15 @@ export default function OrdenesPage() {
       {modalOpen && (
         <ModalPortal>
           <div
-            className="fixed inset-0 w-screen h-screen z-[100] flex items-center justify-center p-3 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setModalOpen(false)}
           >
           <div
-            className="w-full max-w-2xl sm:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-h-[520px] sm:min-h-[580px] max-h-[92vh]"
+            className="w-full max-w-2xl sm:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[calc(100dvh-1rem)] sm:h-[calc(100dvh-2rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Encabezado del Modal */}
-            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+            <div className="bg-slate-900 text-white p-3.5 sm:p-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
                   <Plus className="w-4 h-4" />
@@ -1824,7 +1824,7 @@ export default function OrdenesPage() {
             </div>
 
             {/* Stepper Progresivo de 5 Pasos */}
-            <div className="bg-slate-50 border-b border-slate-200 px-3 sm:px-5 py-3 select-none">
+            <div className="bg-slate-50 border-b border-slate-200 px-3 sm:px-5 py-2.5 sm:py-3 select-none shrink-0">
               <div className="flex items-center justify-between">
                 {[
                   { num: 1, title: "Titular", icon: Users },
@@ -1883,7 +1883,7 @@ export default function OrdenesPage() {
             </div>
 
             {/* Cuerpo del Formulario */}
-            <div ref={modalBodyRef} className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1">
+            <div ref={modalBodyRef} className="p-4 sm:p-5 overflow-y-auto min-h-0 space-y-4 text-xs flex-1 overscroll-contain">
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center gap-2 animate-in fade-in">
                   <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -2938,8 +2938,8 @@ export default function OrdenesPage() {
               )}
             </div>
 
-            {/* Botones de Navegación del Wizard */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
+            {/* Botones de Navegación del Wizard Pinned al fondo */}
+            <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3 shrink-0">
               {step > 1 ? (
                 <button
                   type="button"

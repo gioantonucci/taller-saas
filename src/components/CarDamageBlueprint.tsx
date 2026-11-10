@@ -154,7 +154,7 @@ export default function CarDamageBlueprint({
         <div
           ref={containerRef}
           onClick={handleBlueprintClick}
-          className={`relative w-full max-w-[280px] sm:max-w-[320px] aspect-[300/560] bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl p-3 shadow-inner border border-slate-800 select-none ${
+          className={`relative w-full max-w-[240px] sm:max-w-[270px] aspect-[300/560] bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl p-3 shadow-inner border border-slate-800 select-none ${
             readOnly ? "cursor-default" : "cursor-crosshair active:scale-[0.99] transition-transform"
           }`}
         >
