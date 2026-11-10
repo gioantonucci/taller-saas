@@ -381,49 +381,49 @@ export default function VehiculoHistorialClinicoPage() {
         </div>
       )}
 
-      {/* Tarjetas de Ficha Técnica y Titular */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Tarjetas de Ficha Técnica, Titular e Historial en Columna */}
+      <div className="grid grid-cols-1 gap-4">
         {/* Datos Técnicos */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Datos Técnicos del Vehículo
           </span>
-          <div className="space-y-1.5 text-xs">
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-1 border-b border-slate-100/80 gap-0.5">
-              <span className="font-bold text-slate-700">Marca y Modelo:</span>
-              <span className="text-slate-900 font-semibold">{vehicle.marca} {vehicle.modelo}</span>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between py-1 border-b border-slate-100/80 gap-2">
+              <span className="font-bold text-slate-700 whitespace-nowrap">Marca y Modelo:</span>
+              <span className="text-slate-900 font-semibold text-right">{vehicle.marca} {vehicle.modelo}</span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-1 border-b border-slate-100/80 gap-0.5">
-              <span className="font-bold text-slate-700">Año de Fabricación:</span>
-              <span className="text-slate-900 font-semibold">{vehicle.anio || "S/D"}</span>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100/80 gap-2">
+              <span className="font-bold text-slate-700 whitespace-nowrap">Año de Fabricación:</span>
+              <span className="text-slate-900 font-semibold text-right">{vehicle.anio || "S/D"}</span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-1 border-b border-slate-100/80 gap-0.5">
-              <span className="font-bold text-slate-700">Color:</span>
-              <span className="text-slate-900 font-semibold">{vehicle.color || "No especificado"}</span>
+            <div className="flex items-center justify-between py-1 border-b border-slate-100/80 gap-2">
+              <span className="font-bold text-slate-700 whitespace-nowrap">Color:</span>
+              <span className="text-slate-900 font-semibold text-right">{vehicle.color || "No especificado"}</span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-1 gap-0.5">
-              <span className="font-bold text-slate-700">Nº Bastidor (VIN):</span>
-              <span className="font-mono font-bold text-slate-900 break-all">{vehicle.nroChasis || "No especificado"}</span>
+            <div className="flex items-center justify-between py-1 gap-2">
+              <span className="font-bold text-slate-700 whitespace-nowrap">Nº Bastidor (VIN):</span>
+              <span className="font-mono font-bold text-slate-900 text-right">{vehicle.nroChasis || "No especificado"}</span>
             </div>
           </div>
         </div>
 
         {/* Titular Asignado */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Titular Registrado
           </span>
           <Link
             href={`/app/clientes/${vehicle.client?.id}`}
-            className="text-sm font-bold text-slate-900 hover:text-sky-600 block transition-colors truncate"
+            className="text-base font-bold text-slate-900 hover:text-sky-600 block transition-colors truncate"
           >
             {vehicle.client?.nombre} {vehicle.client?.apellido}
           </Link>
           <div className="space-y-1 text-xs text-slate-600">
             <p className="font-mono text-[11px]">DNI: {vehicle.client?.dni}</p>
             {vehicle.client?.telefono && (
-              <p className="flex items-center gap-1.5 text-slate-700 font-medium break-all">
-                <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+              <p className="flex items-center gap-1.5 text-slate-700 font-medium">
+                <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span>{vehicle.client.telefono}</span>
               </p>
             )}
@@ -431,24 +431,24 @@ export default function VehiculoHistorialClinicoPage() {
         </div>
 
         {/* Estadísticas de Taller */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1.5">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Historial de Reparaciones
           </span>
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-2xl font-black text-slate-900">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xl sm:text-2xl font-black text-slate-900 whitespace-nowrap">
               {clinicalStats?.totalServicios || 0} {clinicalStats?.totalServicios === 1 ? "ingreso" : "ingresos"}
             </p>
             <button
               type="button"
               onClick={() => setActiveTab("galeria")}
-              className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-xl transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
               <Camera className="w-3.5 h-3.5" />
-              <span>{allVehiclePhotos.length} fotos</span>
+              <span>{allVehiclePhotos.length} {allVehiclePhotos.length === 1 ? "foto" : "fotos"}</span>
             </button>
           </div>
-          <span className="text-[11px] text-slate-500 block">
+          <span className="text-xs text-slate-500 block pt-0.5">
             {vehicle.workOrders && vehicle.workOrders.length > 0
               ? `Último ingreso: ${new Date(vehicle.workOrders[0].fechaIngreso).toLocaleDateString("es-AR")}`
               : "Sin intervenciones previas"}
