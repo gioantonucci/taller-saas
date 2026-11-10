@@ -1983,25 +1983,29 @@ export default function OrdenDetallePage() {
 
       {/* SECCIÓN BITÁCORA Y NOTAS DIARIAS DEL PROCESO DE ARREGLO */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-start sm:items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
-              <ClipboardList className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold text-slate-900">
-                  Bitácora y Notas Diarias del Proceso de Arreglo
-                </h2>
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                  {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
-                </span>
+        {/* Encabezado: Título e Información arriba, Botón a ancho completo abajo */}
+        <div className="flex flex-col gap-3.5 pb-4 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0 mt-0.5">
+                <ClipboardList className="w-5 h-5 text-indigo-600" />
               </div>
-              <p className="text-xs text-slate-500">
-                Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                    Bitácora y Notas Diarias del Proceso de Arreglo
+                  </h2>
+                  <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                    {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                  Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
+                </p>
+              </div>
             </div>
           </div>
+
           {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
             <button
               type="button"
@@ -2011,9 +2015,9 @@ export default function OrdenDetallePage() {
                 setNewWorkLogFotos([]);
                 setShowAddWorkLog(true);
               }}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap"
+              className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white text-xs sm:text-sm font-extrabold transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <Plus className="w-4 h-4 stroke-[3]" />
               <span>Cargar Arreglo</span>
             </button>
           )}
@@ -2040,18 +2044,18 @@ export default function OrdenDetallePage() {
               return (
                 <div
                   key={log.id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all space-y-2"
+                  className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/90 hover:border-slate-300 transition-all space-y-2.5"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                  <div className="flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold text-[11px] flex items-center justify-center shrink-0">
+                      <span className="px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-700 font-extrabold text-[11px] shrink-0">
                         #{order.workLogs.length - idx}
                       </span>
                       <span className="font-extrabold text-slate-800">
                         🔧 {log.mechanic ? `${log.mechanic.nombre} ${log.mechanic.apellido || ""}` : "Mecánico"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 pl-8 sm:pl-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[11px] text-slate-400 font-mono">
                         {new Date(log.fechaRegistro).toLocaleString("es-AR")}
                       </span>
@@ -2059,7 +2063,7 @@ export default function OrdenDetallePage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteWorkLog(log.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                           title="Eliminar este registro"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2068,18 +2072,18 @@ export default function OrdenDetallePage() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-800 font-medium pl-8 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed whitespace-pre-wrap">
                     {log.descripcionTarea}
                   </p>
 
                   {/* Fotos y Videos del Arreglo */}
                   {Array.isArray(fotosList) && fotosList.length > 0 && (
-                    <div className="pl-8 pt-1">
-                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-1.5">
+                    <div className="pt-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-2">
                         <Camera className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Evidencias del arreglo ({fotosList.length}):</span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2.5">
                         {fotosList.map((f: any, fIdx: number) => {
                           const mediaUrl = typeof f === "string" ? f : f?.url;
                           if (!mediaUrl) return null;
@@ -2093,7 +2097,7 @@ export default function OrdenDetallePage() {
                               className="relative group rounded-xl overflow-hidden border border-slate-200 hover:border-indigo-500 shadow-2xs hover:shadow-md transition-all active:scale-95 cursor-pointer bg-black"
                             >
                               {isVid ? (
-                                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-slate-900 relative">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center bg-slate-900 relative">
                                   <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" />
                                   <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white">
                                     <Video className="w-5 h-5" />
@@ -2103,7 +2107,7 @@ export default function OrdenDetallePage() {
                                 <img
                                   src={mediaUrl}
                                   alt={`Evidencia ${fIdx + 1}`}
-                                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-200"
+                                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover group-hover:scale-105 transition-transform duration-200"
                                 />
                               )}
                               <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
@@ -2117,9 +2121,10 @@ export default function OrdenDetallePage() {
                   )}
 
                   {log.horasInvertidas > 0 && (
-                    <div className="pl-8 pt-1 flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[10px]">
-                        ⏱️ {log.horasInvertidas} hs computadas
+                    <div className="pt-0.5 flex items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[11px] inline-flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{log.horasInvertidas} {Number(log.horasInvertidas) === 1 ? "hora computada" : "horas computadas"}</span>
                       </span>
                     </div>
                   )}
@@ -2132,24 +2137,30 @@ export default function OrdenDetallePage() {
 
       {/* SECCIÓN MULTIMEDIA Y EVIDENCIA EN OBJECT STORAGE */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Camera className="w-5 h-5 text-sky-600 shrink-0" />
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100 shrink-0 mt-0.5">
+              <Camera className="w-5 h-5 text-sky-600" />
+            </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Evidencias Multimedia en la Nube</h2>
-              <p className="text-xs text-slate-500">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                  Evidencias Multimedia en la Nube
+                </h2>
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                  {(() => {
+                    const uniqueItems = Array.from(
+                      new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
+                    );
+                    return `${uniqueItems.length} ${uniqueItems.length === 1 ? "archivo" : "archivos"}`;
+                  })()}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
                 Fotos y peritajes resguardados en Object Storage independiente de la base de datos relacional.
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-slate-400 self-start sm:self-auto">
-            {(() => {
-              const uniqueItems = Array.from(
-                new Map((order.multimedia || []).map((m: any) => [m.urlStorage || m.url || m.id, m])).values()
-              );
-              return `${uniqueItems.length} archivos`;
-            })()}
-          </span>
         </div>
 
         {(() => {
@@ -2159,56 +2170,62 @@ export default function OrdenDetallePage() {
 
           if (uniqueItems.length === 0) {
             return (
-              <div className="p-8 text-center text-xs text-slate-500">
-                No se han registrado fotografías de evidencia para este vehículo.
+              <div className="p-8 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <Camera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-semibold text-slate-600">No se han registrado fotografías de evidencia</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Las fotos del peritaje y de los arreglos mecánicos aparecerán aquí.
+                </p>
               </div>
             );
           }
 
           return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
               {uniqueItems.map((item: any) => {
-              const isVid =
-                item.tipo === "VIDEO" ||
-                /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setActiveModalImg(item.urlStorage)}
-                  className="relative rounded-2xl overflow-hidden border border-slate-200 cursor-pointer group bg-slate-900 aspect-video shadow-sm"
-                >
-                  {isVid ? (
-                    <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
-                      <video
-                        src={item.urlStorage}
-                        preload="metadata"
-                        className="w-full h-full object-cover opacity-75"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-9 h-9 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                          <Play className="w-4 h-4 fill-white ml-0.5" />
+                const isVid =
+                  item.tipo === "VIDEO" ||
+                  /\.(mp4|webm|mov|m4v|avi|3gp|3gpp|mkv)$/i.test(item.urlStorage || "");
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveModalImg(item.urlStorage)}
+                    className="relative rounded-2xl overflow-hidden border border-slate-200/90 cursor-pointer group bg-slate-900 aspect-video shadow-2xs hover:shadow-md hover:border-slate-300 transition-all"
+                  >
+                    {isVid ? (
+                      <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                        <video
+                          src={item.urlStorage}
+                          preload="metadata"
+                          className="w-full h-full object-cover opacity-75"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                          </div>
                         </div>
                       </div>
+                    ) : (
+                      <img
+                        src={item.urlStorage}
+                        alt={item.descripcion || "Evidencia"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-end p-3">
+                      <span className="text-[10px] font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5 drop-shadow-xs">
+                        {isVid ? <Video className="w-3 h-3 text-rose-400 shrink-0" /> : <Camera className="w-3 h-3 text-sky-400 shrink-0" />}
+                        <span className="truncate">{item.etiqueta || item.tipo}</span>
+                      </span>
+                      {item.descripcion && (
+                        <p className="text-[11px] text-slate-200 truncate mt-0.5 drop-shadow-xs">
+                          {item.descripcion}
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <img
-                      src={item.urlStorage}
-                      alt={item.descripcion || "Evidencia"}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90 group-hover:opacity-100"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2.5">
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                      {isVid ? <Video className="w-2.5 h-2.5 text-rose-400" /> : <Camera className="w-2.5 h-2.5 text-sky-400" />}
-                      <span>{item.etiqueta || item.tipo}</span>
-                    </span>
-                    <p className="text-[10px] text-slate-300 truncate">
-                      {item.descripcion}
-                    </p>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
             </div>
           );
         })()}
