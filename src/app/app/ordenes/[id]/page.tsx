@@ -1687,9 +1687,9 @@ export default function OrdenDetallePage() {
 
         return (
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="flex items-start sm:items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="flex flex-col gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-start gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
@@ -1702,50 +1702,50 @@ export default function OrdenDetallePage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full pt-1">
                 {isPeritajeRealizado ? (
                   <>
                     <button
                       type="button"
                       onClick={handlePrintResguardoOrderPage}
-                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs whitespace-nowrap shrink-0"
                       title="Imprimir Resguardo de Depósito oficial (1 página A4)"
                     >
-                      <Printer className="w-3.5 h-3.5 text-emerald-600" />
+                      <Printer className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                       <span>Imprimir Resguardo</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleDownloadResguardoOrderPage}
-                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs cursor-pointer transition-all active:scale-95 border border-slate-200 shadow-2xs whitespace-nowrap shrink-0"
                       title="Descargar Resguardo de Depósito en PDF"
                     >
-                      <Download className="w-3.5 h-3.5 text-sky-600" />
+                      <Download className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                       <span>Resguardo PDF</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setPeritajeModalOpen(true)}
-                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
+                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95 whitespace-nowrap shrink-0"
                       title="Ver Ficha de Peritaje Completa (Solo Lectura)"
                     >
-                      <Eye className="w-3.5 h-3.5 text-emerald-400" />
+                      <Eye className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                       <span>Ver Ficha Completa</span>
                     </button>
                   </>
                 ) : (
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-                    <span className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold w-full sm:w-auto">
-                      <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                    <span className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold w-full sm:w-auto whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>Peritaje Pendiente</span>
                     </span>
                     {isMechanicOrAdmin ? (
                       <button
                         type="button"
                         onClick={() => setPeritajeModalOpen(true)}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95"
+                        className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer shadow-sm transition-all active:scale-95 whitespace-nowrap"
                       >
-                        <Wrench className="w-3.5 h-3.5" />
+                        <Wrench className="w-3.5 h-3.5 shrink-0" />
                         <span>Realizar Peritaje</span>
                       </button>
                     ) : (
@@ -1985,38 +1985,38 @@ export default function OrdenDetallePage() {
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-start sm:items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
               <ClipboardList className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
-                Bitácora y Notas Diarias del Proceso de Arreglo
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-bold text-slate-900">
+                  Bitácora y Notas Diarias del Proceso de Arreglo
+                </h2>
+                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
+                </span>
+              </div>
               <p className="text-xs text-slate-500">
                 Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
-              {order.workLogs.length} {order.workLogs.length === 1 ? "nota" : "notas"}
-            </span>
-            {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setNewWorkLogTarea("");
-                  setNewWorkLogHoras("1.0");
-                  setNewWorkLogFotos([]);
-                  setShowAddWorkLog(true);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 cursor-pointer shrink-0"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Cargar Arreglo</span>
-              </button>
-            )}
-          </div>
+          {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(order.estado) && (
+            <button
+              type="button"
+              onClick={() => {
+                setNewWorkLogTarea("");
+                setNewWorkLogHoras("1.0");
+                setNewWorkLogFotos([]);
+                setShowAddWorkLog(true);
+              }}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Cargar Arreglo</span>
+            </button>
+          )}
         </div>
 
         {order.workLogs.length === 0 ? (
