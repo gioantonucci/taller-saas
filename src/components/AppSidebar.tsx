@@ -257,19 +257,6 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
               >
                 Mec
               </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSwitch("test@test.com")}
-                disabled={isSwitching || loggingOut}
-                className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors cursor-pointer ${
-                  user.email === "test@test.com"
-                    ? "bg-amber-600 text-white shadow-2xs"
-                    : "text-slate-400 hover:text-white"
-                }`}
-                title="Volver a Test"
-              >
-                Test
-              </button>
             </div>
           )}
 
@@ -436,12 +423,12 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                 <UserCheck className="w-3.5 h-3.5 text-amber-400" />
                 <span>Simulador de Roles (Test)</span>
               </div>
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleQuickSwitch("admin@taller.com")}
                   disabled={isSwitching || loggingOut}
-                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                     user.email === "admin@taller.com"
                       ? "bg-purple-900/60 text-purple-200 border-purple-500"
                       : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
@@ -454,7 +441,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                   type="button"
                   onClick={() => handleQuickSwitch("recepcion@taller.com")}
                   disabled={isSwitching || loggingOut}
-                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                     user.email === "recepcion@taller.com"
                       ? "bg-sky-900/60 text-sky-200 border-sky-500"
                       : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
@@ -467,7 +454,7 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                   type="button"
                   onClick={() => handleQuickSwitch("mecanico@taller.com")}
                   disabled={isSwitching || loggingOut}
-                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
                     user.email === "mecanico@taller.com"
                       ? "bg-emerald-900/60 text-emerald-200 border-emerald-500"
                       : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
@@ -475,19 +462,6 @@ export default function AppSidebar({ user, isTestMode = false }: AppSidebarProps
                   title="Cambiar a MECHANIC"
                 >
                   Mecánico
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickSwitch("test@test.com")}
-                  disabled={isSwitching || loggingOut}
-                  className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer text-center truncate ${
-                    user.email === "test@test.com"
-                      ? "bg-amber-900/60 text-amber-200 border-amber-500"
-                      : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
-                  }`}
-                  title="Volver a Test"
-                >
-                  Test
                 </button>
               </div>
             </div>
