@@ -1534,51 +1534,55 @@ export default function HojaRutaMecanicoPage() {
           {/* ========================================================================= */}
           {/* SECCIÓN BITÁCORA Y REGISTRO DE TRABAJOS (WORKLOGS)                         */}
           {/* ========================================================================= */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
-                  <ClipboardList className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    Bitácora y Notas Diarias del Proceso de Arreglo
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
-                  </p>
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+            {/* Encabezado encolumnado verticalmente: Información arriba, Botón a ancho completo abajo */}
+            <div className="flex flex-col gap-3.5 pb-4 border-b border-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0 mt-0.5">
+                    <ClipboardList className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                        Bitácora y Notas Diarias del Proceso de Arreglo
+                      </h2>
+                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                        {selectedOrder.workLogs?.length || 0} {(selectedOrder.workLogs?.length || 0) === 1 ? "nota" : "notas"}
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
+                      Registro cronológico de arreglos mecánicos y fotos de evidencia técnica.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 self-stretch sm:self-auto justify-between sm:justify-end">
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">
-                  {selectedOrder.workLogs?.length || 0} {(selectedOrder.workLogs?.length || 0) === 1 ? "nota" : "notas"}
-                </span>
-                {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(selectedOrder.estado) && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!selectedOrderHasPeritaje) {
-                        await alert({
-                          title: "Peritaje Requerido",
-                          message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
-                          variant: "warning",
-                          icon: "warning",
-                        });
-                        setPeritajeModalOpen(true);
-                        return;
-                      }
-                      setNewWorkLogTarea("");
-                      setNewWorkLogHoras("1.0");
-                      setNewWorkLogFotos([]);
-                      setShowAddWorkLog(true);
-                    }}
-                    className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-black transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                    <span>Cargar Arreglo</span>
-                  </button>
-                )}
-              </div>
+
+              {!["FINALIZADO", "REPARADO", "TERMINADO", "ENTREGADO", "ARCHIVADO"].includes(selectedOrder.estado) && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedOrderHasPeritaje) {
+                      await alert({
+                        title: "Peritaje Requerido",
+                        message: "No se puede empezar a reparar el vehículo sin cerrar el peritaje primero.",
+                        variant: "warning",
+                        icon: "warning",
+                      });
+                      setPeritajeModalOpen(true);
+                      return;
+                    }
+                    setNewWorkLogTarea("");
+                    setNewWorkLogHoras("1.0");
+                    setNewWorkLogFotos([]);
+                    setShowAddWorkLog(true);
+                  }}
+                  className="w-full py-3.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white text-sm font-extrabold transition-all shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>Cargar Arreglo</span>
+                </button>
+              )}
             </div>
 
             {/* Aviso si la orden está finalizada */}
