@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
         parts: true,
         workLogs: true,
         multimedia: true,
+        sparePartRequests: true,
       },
       orderBy: [{ fechaCambioEstado: "desc" }, { updatedAt: "desc" }, { fechaIngreso: "desc" }],
     });

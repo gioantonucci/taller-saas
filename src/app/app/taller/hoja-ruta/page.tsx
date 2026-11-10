@@ -280,8 +280,17 @@ export default function HojaRutaMecanicoPage() {
     }
   };
 
-  const syncSelectedOrder = (order: any) => {
+  const syncSelectedOrder = async (order: any) => {
     setSelectedOrder(order);
+    try {
+      const res = await fetch(`/api/work-orders/${order.id}`);
+      if (res.ok) {
+        const fresh = await res.json();
+        if (fresh && fresh.id === order.id) {
+          setSelectedOrder(fresh);
+        }
+      }
+    } catch {}
   };
 
   useEffect(() => {
@@ -348,6 +357,25 @@ export default function HojaRutaMecanicoPage() {
       (selectedOrder.estado === "ESPERANDO_REPUESTOS" ||
         selectedOrder.estado === "EN_ESPERA_REPUESTOS" ||
         selectedOrder.estado === "DETENIDO")
+  );
+
+  // Pedidos de repuestos asociados a la orden seleccionada
+  const selectedOrderOpenSpareRequests = (selectedOrder?.sparePartRequests || []).filter(
+    (sp: any) =>
+      sp.estado !== "RECIBIDO" &&
+      sp.estado !== "RECIBIDO_TOTAL" &&
+      sp.estado !== "CANCELADO"
+  );
+  const selectedOrderReceivedSpareRequests = (selectedOrder?.sparePartRequests || []).filter(
+    (sp: any) => sp.estado === "RECIBIDO" || sp.estado === "RECIBIDO_TOTAL"
+  );
+
+  // La reanudación está bloqueada mientras se esperan los repuestos
+  // (hasta que Recepción marque que llegaron al taller)
+  const isEsperandoRepuestosBloqueado = Boolean(
+    isSelectedOrderInEsperaRepuestos &&
+      (selectedOrderOpenSpareRequests.length > 0 ||
+        (selectedOrder?.sparePartRequests && selectedOrder.sparePartRequests.length === 0))
   );
 
   const isSelectedOrderTerminado = Boolean(
@@ -1427,28 +1455,90 @@ export default function HojaRutaMecanicoPage() {
                       <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
                         Etapa 3: Trabajo Pausado
                       </span>
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-md border border-amber-200/60">
-                        Aguardando repuestos
-                      </span>
+                      {isEsperandoRepuestosBloqueado ? (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Aguardando repuestos</span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Repuestos recibidos en taller</span>
+                        </span>
+                      )}
                     </div>
                     <h4 className="font-black text-sm sm:text-base text-slate-900">
                       En Espera de Repuestos o Insumos
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      Cuando lleguen las piezas necesarias, reanudá el trabajo para continuar con la mecánica.
+                      {isEsperandoRepuestosBloqueado
+                        ? "El vehículo se encuentra pausado a la espera de repuestos. Cuando Recepción marque el ingreso de las piezas solicitadas, se habilitará el botón para reanudar el trabajo."
+                        : "Recepción ya confirmó el ingreso de las piezas necesarias en el taller. Podés reanudar el trabajo técnico ahora."}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  disabled={savingStatus}
-                  onClick={() => handleUpdateStatus(selectedOrder.id, "EN_CURSO")}
-                  className="w-full py-3.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-extrabold text-sm shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <PlayCircle className="w-5 h-5 text-white" />
-                  <span>Reanudar Reparación en Taller</span>
-                </button>
+                {/* Mensaje de estado sobre la llegada de repuestos */}
+                {isEsperandoRepuestosBloqueado ? (
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-amber-100/90 border border-amber-300/80 text-amber-950 flex items-start gap-2.5 text-xs">
+                    <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="font-extrabold text-amber-900 block">
+                        Piezas pendientes de entrega por Recepción
+                      </span>
+                      <p className="text-amber-800 text-[11px] leading-relaxed">
+                        El botón para reanudar la reparación permanecerá deshabilitado hasta que Recepción confirme la recepción de los repuestos.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 flex items-start gap-2.5 text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <span className="font-extrabold text-emerald-900 block">
+                        ✓ Repuestos listos en taller
+                      </span>
+                      <p className="text-emerald-800 text-[11px] leading-relaxed">
+                        Recepción registró la llegada de las piezas. Presioná el botón a continuación para reanudar la reparación técnica.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botón Reanudar: Deshabilitado mientras se esperan los repuestos, Habilitado cuando llegaron */}
+                {isEsperandoRepuestosBloqueado ? (
+                  <button
+                    type="button"
+                    disabled={true}
+                    className="w-full py-3.5 px-5 rounded-xl bg-slate-200/90 text-slate-400 border border-slate-300 font-extrabold text-sm flex items-center justify-center gap-2 cursor-not-allowed select-none shadow-none"
+                    title="Esperando que Recepción confirme la llegada de los repuestos al taller"
+                  >
+                    <Lock className="w-4 h-4 text-slate-400" />
+                    <span>Reanudar Reparación en Taller (Deshabilitado: Esperando repuestos)</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={savingStatus}
+                    onClick={() => handleUpdateStatus(selectedOrder.id, "EN_CURSO")}
+                    className="w-full py-3.5 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-extrabold text-sm shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <PlayCircle className="w-5 h-5 text-white" />
+                    <span>Reanudar Reparación en Taller</span>
+                  </button>
+                )}
+
+                {/* Acceso directo para Encargado/Admin si está en modo prueba o recepción */}
+                {isEncargado && isEsperandoRepuestosBloqueado && selectedOrderOpenSpareRequests.length > 0 && (
+                  <div className="text-right">
+                    <Link
+                      href={`/app/repuestos?pedidoId=${selectedOrderOpenSpareRequests[0].id}`}
+                      className="text-xs font-bold text-sky-700 hover:text-sky-900 underline inline-flex items-center gap-1"
+                    >
+                      <span>Ir a Módulo de Repuestos para marcar como recibido &rarr;</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
