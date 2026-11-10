@@ -290,7 +290,7 @@ function VehiculosContent() {
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer self-start sm:self-auto whitespace-nowrap shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Registrar Vehículo</span>

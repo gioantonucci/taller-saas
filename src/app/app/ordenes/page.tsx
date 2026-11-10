@@ -1160,8 +1160,8 @@ export default function OrdenesPage() {
 
   return (
     <div className="space-y-5 pb-16">
-      {/* 1. Header Unificado */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* 1. Header Unificado (Encolumnado en tablet/móvil para preservar forma de los botones) */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 flex items-center justify-center shrink-0">
@@ -1183,13 +1183,13 @@ export default function OrdenesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => fetchOrders(true)}
             disabled={refreshing}
-            className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 transition-colors shadow-2xs cursor-pointer"
-            title="Refrescar"
+            className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 transition-colors shadow-2xs cursor-pointer shrink-0"
+            title="Refrescar lista"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-sky-600" : ""}`} />
           </button>
@@ -1197,9 +1197,9 @@ export default function OrdenesPage() {
           <button
             type="button"
             onClick={handleOpenModal}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-sky-600/20 transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:scale-[0.99] text-white text-xs sm:text-sm font-extrabold shadow-md shadow-sky-600/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Ingresar Vehículo</span>
           </button>
         </div>
