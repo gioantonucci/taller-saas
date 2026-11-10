@@ -22,7 +22,6 @@ import {
   Maximize2,
   Download,
   ExternalLink,
-  Filter,
   Play,
   Calendar,
 } from "lucide-react";
@@ -41,7 +40,6 @@ export default function VehiculoHistorialClinicoPage() {
   const [activeTab, setActiveTab] = useState<"ordenes" | "galeria">("ordenes");
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("TODAS");
-  const [filterOrder, setFilterOrder] = useState<string>("TODAS");
 
   const fetchVehicle = async () => {
     try {
@@ -257,18 +255,15 @@ export default function VehiculoHistorialClinicoPage() {
     return list.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
   }, [vehicle]);
 
-  // Filtrado de fotos por categoría y orden
+  // Filtrado de fotos por categoría
   const filteredPhotos = useMemo(() => {
     return allVehiclePhotos.filter((p) => {
       if (filterCategory !== "TODAS" && p.categoria !== filterCategory) {
         return false;
       }
-      if (filterOrder !== "TODAS" && p.orderId !== filterOrder) {
-        return false;
-      }
       return true;
     });
-  }, [allVehiclePhotos, filterCategory, filterOrder]);
+  }, [allVehiclePhotos, filterCategory]);
 
   // Navegación por teclado en el Lightbox
   useEffect(() => {
@@ -642,47 +637,27 @@ export default function VehiculoHistorialClinicoPage() {
             </div>
           </div>
 
-          {/* Barra de Filtros */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 bg-slate-50/80 p-3 sm:p-4 rounded-2xl border border-slate-200/90">
-            {/* Filtro por Categoría */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: "TODAS", label: "Todas las fotos" },
-                { id: "ARREGLO", label: "🔧 Arreglos y Bitácora" },
-                { id: "PERITAJE", label: "📋 Peritajes e Ingreso" },
-                { id: "REPUESTO", label: "📦 Repuestos" },
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setFilterCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    filterCategory === cat.id
-                      ? "bg-indigo-600 text-white shadow-xs"
-                      : "bg-white hover:bg-slate-200/70 text-slate-700 border border-slate-200"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Filtro por Orden de Trabajo */}
-            <div className="flex items-center gap-2 shrink-0 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/60">
-              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <select
-                value={filterOrder}
-                onChange={(e) => setFilterOrder(e.target.value)}
-                className="w-full md:w-auto px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          {/* Barra de Filtros por Categoría */}
+          <div className="flex items-center gap-2 flex-wrap bg-slate-50/80 p-3 sm:p-4 rounded-2xl border border-slate-200/90">
+            {[
+              { id: "TODAS", label: "Todas las fotos" },
+              { id: "ARREGLO", label: "🔧 Arreglos y Bitácora" },
+              { id: "PERITAJE", label: "📋 Peritajes e Ingreso" },
+              { id: "REPUESTO", label: "📦 Repuestos" },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setFilterCategory(cat.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  filterCategory === cat.id
+                    ? "bg-indigo-600 text-white shadow-xs"
+                    : "bg-white hover:bg-slate-200/70 text-slate-700 border border-slate-200"
+                }`}
               >
-                <option value="TODAS">Todas las Órdenes</option>
-                {vehicle.workOrders?.map((o: any) => (
-                  <option key={o.id} value={o.id}>
-                    Orden #{o.numeroOrden} ({new Date(o.fechaIngreso).toLocaleDateString("es-AR")})
-                  </option>
-                ))}
-              </select>
-            </div>
+                {cat.label}
+              </button>
+            ))}
           </div>
 
           {/* Grid de Fotografías */}
