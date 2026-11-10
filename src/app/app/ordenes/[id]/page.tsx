@@ -999,17 +999,17 @@ export default function OrdenDetallePage() {
                 <Wrench className="w-4 h-4 text-sky-600" />
                 <span>Mecánico Asignado</span>
               </span>
-              <span
-                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
-                  order.mechanic
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : isClosed
-                    ? "bg-slate-100 text-slate-700 border-slate-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200"
-                }`}
-              >
-                {order.mechanic ? "Asignado" : isClosed ? "Cerrado" : "Sin Asignar"}
-              </span>
+              {!order.mechanic && (
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    isClosed
+                      ? "bg-slate-100 text-slate-700 border-slate-200"
+                      : "bg-amber-50 text-amber-700 border-amber-200"
+                  }`}
+                >
+                  {isClosed ? "Cerrado" : "Sin Asignar"}
+                </span>
+              )}
             </div>
 
             {order.mechanic ? (
